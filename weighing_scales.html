@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Weighing Scales ⚖️</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#1a0e08;font-family:'Trebuchet MS',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;color:#f0e0c0;user-select:none;}
+#app{width:100%;max-width:540px;}
+#config-screen{padding:24px;}
+#config-screen h1{text-align:center;font-size:24px;color:#f0a030;margin-bottom:4px;}
+.subtitle{text-align:center;color:#a07040;font-size:13px;margin-bottom:18px;}
+.config-cols{display:flex;gap:24px;}
+.config-col{flex:1;}
+.radio-group{margin-bottom:12px;}
+.radio-group .gt{display:block;font-size:13px;font-weight:bold;color:#f0e0c0;margin-bottom:4px;}
+.radio-group label{display:flex;align-items:center;gap:7px;font-size:12px;color:#d0c0a0;padding:2px 0 2px 12px;cursor:pointer;}
+.radio-group input[type=radio]{accent-color:#f0a030;}
+#start-btn{display:block;margin:18px auto 0;background:#f0a030;color:#1a0a00;border:none;padding:10px 36px;font-size:16px;font-weight:bold;border-radius:6px;cursor:pointer;font-family:inherit;}
+#start-btn:hover{background:#ffb840;}
+#game-screen{display:none;flex-direction:column;align-items:center;}
+#top-bar{display:flex;width:100%;max-width:540px;align-items:center;padding:8px 14px 4px;gap:10px;}
+#score-label{font-size:13px;font-weight:bold;flex:1;}
+#streak-label{font-size:13px;font-weight:bold;color:#f0c060;}
+#settings-btn{background:#3a2010;color:#d0c0a0;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:12px;}
+canvas#gc{display:block;width:540px;height:420px;max-width:100vw;}
+.canvas-wrap{position:relative;width:540px;max-width:100vw;}
+#feedback-label{font-size:15px;text-align:center;min-height:24px;padding:4px 0;font-weight:bold;}
+#weight-tray{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:8px 12px;min-height:60px;width:100%;}
+.weight-btn{width:52px;height:52px;border-radius:8px;border:3px solid #c08030;background:#7a4010;color:#ffe080;font-size:18px;font-weight:bold;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;transition:transform 0.1s,background 0.1s;}
+.weight-btn:hover{background:#9a5020;transform:scale(1.08);}
+.weight-btn:active{transform:scale(0.95);}
+#action-row{display:flex;gap:12px;justify-content:center;padding:4px 0 10px;}
+.act-btn{padding:8px 20px;font-size:14px;font-weight:bold;border:none;border-radius:5px;cursor:pointer;font-family:inherit;}
+#clear-btn{background:#5a2010;color:#f0c080;}
+#clear-btn:hover{background:#7a3010;}
+#skip-btn{background:#2a1a08;color:#a08060;}
+#skip-btn:hover{background:#3a2a10;}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="config-screen">
+  <h1>⚖️ Weighing Scales</h1>
+  <p class="subtitle">Balance the scales to make the number bond!</p>
+  <div class="config-cols">
+    <div class="config-col">
+      <div class="radio-group">
+        <span class="gt">⚖️ Level</span>
+        <label><input type="radio" name="level" value="to5" checked> Bonds to 5</label>
+        <label><input type="radio" name="level" value="exact10"> Bonds to 10</label>
+        <label><input type="radio" name="level" value="doubles10"> Doubles to 10</label>
+        <label><input type="radio" name="level" value="upto10"> Bonds up to 10</label>
+        <label><input type="radio" name="level" value="exact20"> Bonds to 20</label>
+        <label><input type="radio" name="level" value="doubles20"> Doubles to 20</label>
+        <label><input type="radio" name="level" value="upto20"> Bonds up to 20</label>
+      </div>
+    </div>
+    <div class="config-col">
+      <div class="radio-group">
+        <span class="gt">➕➖ Question type</span>
+        <label><input type="radio" name="mode" value="add"> Find the whole</label>
+        <label><input type="radio" name="mode" value="sub"> Find a missing part</label>
+        <label><input type="radio" name="mode" value="both" checked> Mixed</label>
+      </div>
+      <div class="radio-group">
+        <span class="gt">🔊 Sound</span>
+        <label><input type="radio" name="sound" value="on"> On</label>
+        <label><input type="radio" name="sound" value="off" checked> Off</label>
+      </div>
+    </div>
+  </div>
+  <button id="start-btn">▶ Start</button>
+</div>
+<div id="game-screen">
+  <div id="top-bar">
+    <span id="score-label">⭐ 0 / 0</span>
+    <span id="streak-label"></span>
+    <button id="settings-btn">⚙ Settings</button>
+  </div>
+  <div class="canvas-wrap"><canvas id="gc" width="540" height="420"></canvas></div>
+  <div id="feedback-label"></div>
+  <div id="weight-tray"></div>
+  <div id="action-row">
+    <button class="act-btn" id="clear-btn">↩ Clear</button>
+    <button class="act-btn" id="skip-btn">Skip →</button>
+  </div>
+</div>
+</div>
+<script>
+// ── BOND ENGINE (minimal random) ──────────────────────────────────────────
+function BE_bondsExactly(w){const b=[];for(let a=1;a<=Math.floor(w/2);a++)b.push([w,a]);return b;}
+function BE_bondsUpTo(m){let r=[];for(let w=2;w<=m;w++)r=r.concat(BE_bondsExactly(w));return r;}
+function BE_bondsDoublesOnly(m){const r=[];for(let w=2;w<=m;w+=2)r.push([w,w/2]);return r;}
+const BE_LEVEL_BONDS={to5:()=>BE_bondsUpTo(5),exact10:()=>BE_bondsExactly(10),doubles10:()=>BE_bondsDoublesOnly(10),upto10:()=>BE_bondsUpTo(10),exact20:()=>BE_bondsExactly(20),doubles20:()=>BE_bondsDoublesOnly(20),upto20:()=>BE_bondsUpTo(20)};
+class BondEngine{constructor(c){this.level=c.level||'upto10';this.mode=c.mode||'both';this._bonds=(BE_LEVEL_BONDS[this.level]||BE_LEVEL_BONDS['upto10'])();this._lastQ=null;}nextQuestion(){const[w,a]=this._bonds[Math.floor(Math.random()*this._bonds.length)];const b=w-a;let pa=a,pb=b;if(Math.random()<0.5)[pa,pb]=[pb,pa];let miss;if(this.mode==='add')miss='whole';else if(this.mode==='sub')miss=Math.random()<0.5?'partA':'partB';else{const r=Math.random();miss=r<0.34?'whole':r<0.67?'partA':'partB';}const q={whole:w,partA:pa,partB:pb,missing:miss,correctAnswer:miss==='whole'?w:miss==='partA'?pa:pb};if(this._lastQ&&this._bonds.length>1&&q.whole===this._lastQ.whole&&q.partA===this._lastQ.partA&&q.partB===this._lastQ.partB&&q.missing===this._lastQ.missing)return this.nextQuestion();this._lastQ=q;return q;}recordAnswer(){}}
+
+// ── SOUND ──────────────────────────────────────────────────────────────────
+let audioCtx=null;
+function getACtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function playTones(notes,vol=0.35){try{const c=getACtx();let t=c.currentTime;notes.forEach(([f,ms])=>{if(f===0){t+=ms/1000;return;}const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+ms/1000);o.start(t);o.stop(t+ms/1000);t+=ms/1000;});}catch(e){}}
+const SOUNDS={correct:()=>playTones([[300,80],[400,80],[600,140]]),wrong:()=>playTones([[300,80],[240,160]],0.3),balance:()=>playTones([[523,80],[659,80],[784,80],[1047,200]]),streak:()=>playTones([[523,70],[659,70],[784,70],[1047,70],[1319,200]])};
+
+// ── CANVAS ─────────────────────────────────────────────────────────────────
+const canvas=document.getElementById('gc');
+const ctx=canvas.getContext('2d');
+const W=540,H=420;
+function resizeCanvas(){const sc=Math.min(1,window.innerWidth/540);canvas.style.width=(540*sc)+'px';canvas.style.height=(420*sc)+'px';canvas.parentElement.style.width=(540*sc)+'px';}
+window.addEventListener('resize',resizeCanvas);
+
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const BEAM_CX=W/2,BEAM_Y=155,PAN_OFF=155,PAN_W=130,CHAIN_DROP=44;
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let cfg={},engine=null,score=0,total=0,streak=0;
+let currentQ=null,correctAns=0,panWeights=[],tiltAnim=0,tiltId=null,revealId=null,wrongFlash=0;
+
+// ── DRAW ───────────────────────────────────────────────────────────────────
+function drawBackground(){
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#2a1608');g.addColorStop(1,'#140a04');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,180,80,0.04)';ctx.lineWidth=1;
+  for(let y=0;y<H;y+=18){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y+6);ctx.stroke();}
+  ctx.fillStyle='#5a2e0a';ctx.fillRect(40,BEAM_Y+8,W-80,14);
+  ctx.fillStyle='#7a3e0a';ctx.fillRect(40,BEAM_Y+8,W-80,4);
+}
+
+function drawScales(){
+  const tilt=tiltAnim*28;
+  // Stand
+  ctx.fillStyle='#c08030';
+  ctx.beginPath();ctx.moveTo(BEAM_CX-8,BEAM_Y);ctx.lineTo(BEAM_CX+8,BEAM_Y);ctx.lineTo(BEAM_CX+14,BEAM_Y+160);ctx.lineTo(BEAM_CX-14,BEAM_Y+160);ctx.closePath();ctx.fill();
+  // Base
+  ctx.fillStyle='#a06020';ctx.beginPath();ctx.ellipse(BEAM_CX,BEAM_Y+162,48,12,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#c07820';ctx.beginPath();ctx.ellipse(BEAM_CX,BEAM_Y+160,44,10,0,0,Math.PI*2);ctx.fill();
+  // Pivot
+  ctx.fillStyle='#ffe080';ctx.beginPath();ctx.arc(BEAM_CX,BEAM_Y,9,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#c09040';ctx.beginPath();ctx.arc(BEAM_CX,BEAM_Y,9,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ffe080';ctx.beginPath();ctx.arc(BEAM_CX,BEAM_Y,5,0,Math.PI*2);ctx.fill();
+  // Beam
+  const lY=BEAM_Y-tilt,rY=BEAM_Y+tilt;
+  ctx.strokeStyle='#d09040';ctx.lineWidth=10;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(BEAM_CX-PAN_OFF-PAN_W/2,lY);ctx.lineTo(BEAM_CX+PAN_OFF+PAN_W/2,rY);ctx.stroke();
+  ctx.strokeStyle='#ffe090';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(BEAM_CX-PAN_OFF-PAN_W/2,lY);ctx.lineTo(BEAM_CX+PAN_OFF+PAN_W/2,rY);ctx.stroke();
+  // Chains + pans
+  const pLy=lY+CHAIN_DROP,pRy=rY+CHAIN_DROP;
+  [[BEAM_CX-PAN_OFF,lY],[BEAM_CX+PAN_OFF,rY]].forEach(([cx2,by])=>{
+    ctx.strokeStyle='#c09040';ctx.lineWidth=2;
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.ellipse(cx2,by+i*11+4,4,5,0,0,Math.PI*2);ctx.stroke();}
+  });
+  drawPan(BEAM_CX-PAN_OFF,pLy,false);
+  drawPan(BEAM_CX+PAN_OFF,pRy,true);
+  drawPanContents(BEAM_CX-PAN_OFF,pLy,false);
+  drawPanContents(BEAM_CX+PAN_OFF,pRy,true);
+}
+
+function drawPan(cx2,py,isAns){
+  ctx.fillStyle=isAns?'#805020':'#705018';
+  ctx.beginPath();ctx.ellipse(cx2,py+10,PAN_W/2+4,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=isAns?'#c08040':'#b07030';
+  ctx.beginPath();ctx.ellipse(cx2,py+8,PAN_W/2,8,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#ffe090';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.ellipse(cx2,py+6,PAN_W/2-4,5,0,0,Math.PI*2);ctx.stroke();
+}
+
+function drawPanContents(cx2,py,isAns){
+  if(!currentQ)return;
+  if(!isAns){
+    const known=getKnownValues();
+    drawStackedWeights(cx2,py,known,'#4080c0','#80b0ff');
+  } else {
+    const col=wrongFlash>0?'#c04020':'#408050';
+    const col2=wrongFlash>0?'#ff8060':'#80d080';
+    drawStackedWeights(cx2,py,panWeights,col,col2);
+    ctx.fillStyle='rgba(0,0,0,0.5)';
+    ctx.beginPath();ctx.roundRect(cx2-28,py-38,56,28,5);ctx.fill();
+    ctx.fillStyle='#ffe080';ctx.font='bold 16px Trebuchet MS';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('= '+correctAns,cx2,py-24);
+  }
+}
+
+function drawStackedWeights(cx2,py,values,bodyCol,topCol){
+  if(!values.length)return;
+  const ww=36,wh=28;
+  let baseY=py-2;
+  values.forEach(v=>{
+    const wx=cx2-ww/2,wy=baseY-wh;
+    ctx.fillStyle=bodyCol;ctx.beginPath();ctx.roundRect(wx,wy+6,ww,wh-6,4);ctx.fill();
+    ctx.fillStyle=topCol;ctx.beginPath();ctx.ellipse(cx2,wy+6,ww/2-2,7,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 14px Trebuchet MS';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(v,cx2,wy+wh/2+2);
+    baseY=wy;
+  });
+  if(values.length>1){
+    const sum=values.reduce((a,b)=>a+b,0);
+    ctx.fillStyle='#ffe080';ctx.font='bold 13px Trebuchet MS';ctx.fillText(sum,cx2,baseY-10);
+  }
+}
+
+function getKnownValues(){
+  if(!currentQ)return[];
+  const{whole:w,partA:a,partB:b,missing:m}=currentQ;
+  if(m==='whole')return[a,b];
+  if(m==='partA')return[b];
+  return[a];
+}
+
+function drawQuestion(){
+  if(!currentQ)return;
+  const{whole:w,partA:a,partB:b,missing:m}=currentQ;
+  const qText=m==='whole'?`${a}  +  ${b}  =  ?`:m==='partA'?`?  +  ${b}  =  ${w}`:`${a}  +  ?  =  ${w}`;
+  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.beginPath();ctx.roundRect(W/2-130,14,260,38,8);ctx.fill();
+  ctx.fillStyle='#ffe0a0';ctx.font='bold 20px Trebuchet MS';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(qText,W/2,33);
+  ctx.fillStyle='#a0c0ff';ctx.font='13px Trebuchet MS';
+  ctx.fillText('Known',BEAM_CX-PAN_OFF,H-20);
+  ctx.fillStyle='#a0d0a0';ctx.fillText('Answer',BEAM_CX+PAN_OFF,H-20);
+}
+
+function redraw(){
+  ctx.clearRect(0,0,W,H);
+  drawBackground();drawScales();drawQuestion();
+}
+
+// ── TILT ANIMATION ─────────────────────────────────────────────────────────
+function animateTilt(target,onDone){
+  if(tiltId)clearInterval(tiltId);
+  tiltId=setInterval(()=>{
+    tiltAnim+=(target-tiltAnim)*0.18;
+    if(Math.abs(tiltAnim-target)<0.01){tiltAnim=target;clearInterval(tiltId);tiltId=null;if(onDone)onDone();}
+    redraw();
+  },16);
+}
+
+// ── WEIGHT TRAY ────────────────────────────────────────────────────────────
+function buildWeightTray(){
+  const tray=document.getElementById('weight-tray');
+  tray.innerHTML='';
+  const maxW=currentQ?currentQ.whole:10;
+  for(let v=1;v<=maxW;v++){
+    const btn=document.createElement('button');
+    btn.className='weight-btn';btn.textContent=v;
+    btn.onclick=()=>placeWeight(v);
+    tray.appendChild(btn);
+  }
+}
+
+function placeWeight(v){
+  const run=panWeights.reduce((a,b)=>a+b,0)+v;
+  panWeights.push(v);
+  if(run===correctAns){
+    animateTilt(1,()=>setTimeout(()=>{animateTilt(0);onCorrect();},600));
+  } else if(run>correctAns){
+    wrongFlash=5;
+    animateTilt(-0.5,()=>animateTilt(0,()=>{wrongFlash=0;panWeights=[];redraw();}));
+    onWrong();
+  } else {
+    animateTilt((run/correctAns)*0.6);redraw();
+  }
+}
+
+// ── GAME FLOW ──────────────────────────────────────────────────────────────
+function snd(n){if(cfg.sound==='on'&&SOUNDS[n])SOUNDS[n]();}
+function setFeedback(msg,col){const el=document.getElementById('feedback-label');el.textContent=msg;el.style.color=col;}
+function updateScore(){document.getElementById('score-label').textContent=`⭐ ${score}/${total}`;}
+
+function newQuestion(){
+  if(revealId){clearTimeout(revealId);revealId=null;}
+  panWeights=[];tiltAnim=0;wrongFlash=0;setFeedback('','#fff');
+  currentQ=engine.nextQuestion();
+  correctAns=currentQ.correctAnswer;
+  buildWeightTray();updateScore();redraw();
+}
+
+function onCorrect(){
+  score++;streak++;total++;
+  engine.recordAnswer();
+  snd(streak>=5?'streak':'balance');
+  const msgs=['✓ Balanced! 🎉','✓ Perfect!','✓ Excellent! 🏆','✓ Spot on! ⭐'];
+  setFeedback(msgs[Math.floor(Math.random()*msgs.length)],'#80e080');
+  if(streak>1)document.getElementById('streak-label').textContent=`🔥${streak} in a row!`;
+  updateScore();
+  revealId=setTimeout(newQuestion,1400);
+}
+
+function onWrong(){
+  streak=0;total++;
+  document.getElementById('streak-label').textContent='';
+  engine.recordAnswer();snd('wrong');
+  setFeedback('Too heavy! Try again… ⚖️','#e06040');updateScore();
+}
+
+function skipQuestion(){
+  streak=0;total++;
+  document.getElementById('streak-label').textContent='';
+  engine.recordAnswer();panWeights=[];animateTilt(0);setFeedback('','#fff');updateScore();newQuestion();
+}
+
+// ── START / SETTINGS ───────────────────────────────────────────────────────
+function getRadio(n){return document.querySelector(`input[name="${n}"]:checked`)?.value;}
+
+document.getElementById('start-btn').onclick=()=>{
+  cfg={level:getRadio('level'),mode:getRadio('mode'),sound:getRadio('sound')};
+  engine=new BondEngine({level:cfg.level,mode:cfg.mode});
+  score=0;total=0;streak=0;
+  document.getElementById('streak-label').textContent='';
+  document.getElementById('config-screen').style.display='none';
+  document.getElementById('game-screen').style.display='flex';
+  resizeCanvas();newQuestion();
+};
+
+document.getElementById('settings-btn').onclick=()=>{
+  if(tiltId){clearInterval(tiltId);tiltId=null;}
+  document.getElementById('game-screen').style.display='none';
+  document.getElementById('config-screen').style.display='block';
+};
+
+document.getElementById('clear-btn').onclick=()=>{panWeights=[];animateTilt(0);setFeedback('','#fff');redraw();};
+document.getElementById('skip-btn').onclick=skipQuestion;
+
+resizeCanvas();
+</script>
+</body>
+</html>

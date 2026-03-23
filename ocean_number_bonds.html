@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Ocean Number Bonds 🐙</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0a1a3a;
+  font-family: 'Trebuchet MS', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: #d0eeff;
+  user-select: none;
+}
+
+#app { width: 100%; max-width: 520px; }
+
+/* ── CONFIG SCREEN ── */
+#config-screen {
+  padding: 20px 24px;
+  background: #0a1a3a;
+}
+#config-screen h1 {
+  text-align: center;
+  font-size: 22px;
+  color: #40ffcc;
+  margin-bottom: 4px;
+}
+#config-screen .subtitle {
+  text-align: center;
+  color: #60b0d0;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.config-cols {
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+}
+.config-col { flex: 1; }
+.radio-group { margin-bottom: 12px; }
+.radio-group label.group-title {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  color: #d0eeff;
+  margin-bottom: 4px;
+}
+.radio-group label.option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #d0eeff;
+  padding: 2px 0 2px 14px;
+  cursor: pointer;
+}
+.radio-group input[type=radio] { accent-color: #00b8d4; }
+#start-btn {
+  display: block;
+  margin: 18px auto 0;
+  background: #00b8d4;
+  color: #002030;
+  border: none;
+  padding: 10px 36px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+#start-btn:hover { background: #00d4f0; }
+
+/* ── GAME SCREEN ── */
+#game-screen { display: none; flex-direction: column; align-items: center; }
+
+#top-bar {
+  display: flex;
+  width: 100%;
+  max-width: 480px;
+  align-items: center;
+  padding: 8px 14px 4px;
+  gap: 10px;
+}
+#score-label { font-size: 14px; font-weight: bold; flex: 1; }
+#streak-label { font-size: 13px; font-weight: bold; color: #40ffcc; }
+#settings-btn {
+  background: #0e3a6a;
+  color: #d0eeff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+canvas#game-canvas {
+  display: block;
+  width: 480px;
+  height: 460px;
+  max-width: 100vw;
+}
+
+#sum-label {
+  font-size: 19px;
+  font-weight: bold;
+  color: #ffffff;
+  text-align: center;
+  padding: 4px 0 0;
+  min-height: 28px;
+  letter-spacing: 1px;
+}
+#feedback-label {
+  font-size: 14px;
+  text-align: center;
+  min-height: 22px;
+  padding: 2px 0;
+  font-weight: bold;
+}
+#btn-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 6px 0 10px;
+}
+.game-btn {
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+#check-btn { background: #00b8d4; color: #002030; }
+#skip-btn  { background: #0e3a6a; color: #d0eeff; }
+#check-btn:hover { background: #00d4f0; }
+#skip-btn:hover  { background: #1a5090; }
+
+/* Entry overlay */
+#entry-overlay {
+  position: absolute;
+  background: transparent;
+  border: none;
+  outline: none;
+  text-align: center;
+  font-family: 'Trebuchet MS', sans-serif;
+  font-weight: bold;
+  color: #005f7a;
+  caret-color: #005f7a;
+  pointer-events: auto;
+  z-index: 10;
+  display: none;
+}
+
+.canvas-wrap { position: relative; width: 480px; max-width: 100vw; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- CONFIG -->
+<div id="config-screen">
+  <h1>🐙 Ocean Number Bonds 🐙</h1>
+  <p class="subtitle">Choose your settings</p>
+  <div class="config-cols">
+    <div class="config-col">
+      <div class="radio-group">
+        <label class="group-title">🐚 Starting level</label>
+        <label class="option"><input type="radio" name="level" value="to5" checked> Bonds to 5</label>
+        <label class="option"><input type="radio" name="level" value="exact10"> Bonds to 10 (exactly)</label>
+        <label class="option"><input type="radio" name="level" value="doubles10"> Doubles up to 10</label>
+        <label class="option"><input type="radio" name="level" value="upto10"> Bonds up to 10</label>
+        <label class="option"><input type="radio" name="level" value="exact20"> Bonds to 20 (exactly)</label>
+        <label class="option"><input type="radio" name="level" value="doubles20"> Doubles up to 20</label>
+        <label class="option"><input type="radio" name="level" value="upto20"> Bonds up to 20</label>
+      </div>
+      <div class="radio-group">
+        <label class="group-title">🔊 Sound effects</label>
+        <label class="option"><input type="radio" name="sound" value="on"> On</label>
+        <label class="option"><input type="radio" name="sound" value="off" checked> Off</label>
+      </div>
+    </div>
+    <div class="config-col">
+      <div class="radio-group">
+        <label class="group-title">➕➖ Question type</label>
+        <label class="option"><input type="radio" name="mode" value="add"> Addition only</label>
+        <label class="option"><input type="radio" name="mode" value="sub"> Subtraction only</label>
+        <label class="option"><input type="radio" name="mode" value="both" checked> Addition &amp; Subtraction</label>
+      </div>
+      <div class="radio-group">
+        <label class="group-title">🔢 Display</label>
+        <label class="option"><input type="radio" name="display" value="numbers" checked> Numbers only</label>
+        <label class="option"><input type="radio" name="display" value="both"> Counters &amp; Numbers</label>
+        <label class="option"><input type="radio" name="display" value="counters"> Counters only</label>
+      </div>
+      <div class="radio-group">
+        <label class="group-title">⏱ Timer</label>
+        <label class="option"><input type="radio" name="timer" value="off" checked> Off</label>
+        <label class="option"><input type="radio" name="timer" value="on"> On (10 sec)</label>
+      </div>
+    </div>
+  </div>
+  <button id="start-btn">▶ Start Game</button>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div id="top-bar">
+    <span id="score-label">⭐ 0 / 0</span>
+    <span id="streak-label"></span>
+    <button id="settings-btn">⚙ Settings</button>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="game-canvas" width="480" height="460"></canvas>
+    <input id="entry-overlay" type="text" inputmode="numeric" maxlength="2" autocomplete="off">
+  </div>
+  <div id="sum-label"></div>
+  <div id="feedback-label"></div>
+  <div id="btn-row">
+    <button class="game-btn" id="check-btn">✓ Check</button>
+    <button class="game-btn" id="skip-btn">Skip →</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+
+// ── BOND ENGINE (minimal random) ──────────────────────────────────────────
+function BE_bondsExactly(whole) {
+  const b = [];
+  for (let a = 1; a <= Math.floor(whole / 2); a++) b.push([whole, a]);
+  return b;
+}
+function BE_bondsUpTo(max) {
+  let r = [];
+  for (let w = 2; w <= max; w++) r = r.concat(BE_bondsExactly(w));
+  return r;
+}
+function BE_bondsDoublesOnly(max) {
+  const r = [];
+  for (let w = 2; w <= max; w += 2) r.push([w, w / 2]);
+  return r;
+}
+const BE_LEVEL_BONDS = {
+  to5:       function() { return BE_bondsUpTo(5); },
+  exact10:   function() { return BE_bondsExactly(10); },
+  doubles10: function() { return BE_bondsDoublesOnly(10); },
+  upto10:    function() { return BE_bondsUpTo(10); },
+  exact20:   function() { return BE_bondsExactly(20); },
+  doubles20: function() { return BE_bondsDoublesOnly(20); },
+  upto20:    function() { return BE_bondsUpTo(20); },
+};
+
+class BondEngine {
+  constructor(config) {
+    this.level   = config.level || 'upto10';
+    this.mode    = config.mode  || 'both';
+    const builder = BE_LEVEL_BONDS[this.level] || BE_LEVEL_BONDS['upto10'];
+    this._bonds  = builder();
+    this._lastQ  = null;
+  }
+
+  nextQuestion() {
+    const idx = Math.floor(Math.random() * this._bonds.length);
+    const [w, a] = this._bonds[idx];
+    const b = w - a;
+    let pa = a, pb = b;
+    if (Math.random() < 0.5) { pa = b; pb = a; }
+
+    let miss;
+    if (this.mode === 'add') {
+      miss = 'whole';
+    } else if (this.mode === 'sub') {
+      miss = Math.random() < 0.5 ? 'partA' : 'partB';
+    } else {
+      const r = Math.random();
+      miss = r < 0.34 ? 'whole' : r < 0.67 ? 'partA' : 'partB';
+    }
+
+    const correctAnswer = miss === 'whole' ? w : miss === 'partA' ? pa : pb;
+    const q = { whole: w, partA: pa, partB: pb, missing: miss, correctAnswer: correctAnswer };
+
+    // Avoid immediate identical repeat
+    if (this._lastQ && this._bonds.length > 1 &&
+        q.whole   === this._lastQ.whole   &&
+        q.partA   === this._lastQ.partA   &&
+        q.partB   === this._lastQ.partB   &&
+        q.missing === this._lastQ.missing) {
+      return this.nextQuestion();
+    }
+    this._lastQ = q;
+    return q;
+  }
+
+  recordAnswer() {
+    // Naive engine — no state to update
+  }
+}
+
+// SOUND ENGINE (Web Audio API)
+// ═══════════════════════════════════════════════════════════════
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTones(notes, volume=0.4) {
+  try {
+    const ctx = getAudioCtx();
+    let t = ctx.currentTime;
+    notes.forEach(([freq, ms]) => {
+      if (freq === 0) { t += ms/1000; return; }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(volume, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + ms/1000);
+      osc.start(t); osc.stop(t + ms/1000);
+      t += ms/1000;
+    });
+  } catch(e) {}
+}
+const SOUNDS = {
+  correct:  () => playTones([[300,80],[400,80],[600,140]], 0.4),
+  wrong:    () => playTones([[300,80],[240,160]], 0.3),
+  streak3:  () => playTones([[523,80],[659,80],[784,80],[1047,180]]),
+  streak5:  () => playTones([[523,70],[659,70],[784,70],[1047,70],[1319,200]]),
+  streak10: () => playTones([[392,60],[523,60],[659,60],[784,60],[1047,60],[1319,220]]),
+  streak20: () => playTones([[262,50],[330,50],[392,50],[523,50],[659,50],[784,50],[1047,50],[1319,250]]),
+  levelup:  () => playTones([[784,80],[880,80],[988,80],[1047,80],[1175,200]]),
+  timeout:  () => playTones([[330,100],[0,40],[280,180]], 0.3),
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// CANVAS & DRAWING CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const W = 480, H = 460;
+const CW = {cx:240, cy:145, r:85};
+const CA = {cx:118, cy:340, r:68};
+const CB = {cx:362, cy:340, r:68};
+const MON_X = W - 68, MON_Y = 72;
+
+const COL = {
+  bg:           '#0a1a3a',
+  circleFill:   '#e8f4f8',
+  circleStroke: '#1a5a7a',
+  missingFill:  '#e0f8ff',
+  missingStroke:'#00b8d4',
+  missingText:  '#005f7a',
+  correctFill:  '#b0ffe8',
+  correctStroke:'#008860',
+  correctText:  '#003830',
+  wrongCol:     '#ff7040',
+  correctCol:   '#40ffcc',
+  timerSand:    '#40d8ff',
+  timerUrgent:  '#ff5030',
+};
+
+const DICE_PATTERNS = {
+  1: [[0,0]],
+  2: [[-0.45,-0.45],[0.45,0.45]],
+  3: [[-0.62,-0.62],[0,0],[0.62,0.62]],
+  4: [[-0.62,-0.62],[0.62,-0.62],[-0.62,0.62],[0.62,0.62]],
+  5: [[-0.62,-0.62],[0.62,-0.62],[0,0],[-0.62,0.62],[0.62,0.62]],
+};
+
+
+// ═══════════════════════════════════════════════════════════════
+// CANVAS SETUP
+// ═══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const entry = document.getElementById('entry-overlay');
+
+function resizeCanvas() {
+  const scale = Math.min(1, window.innerWidth / 480);
+  canvas.style.width = (480 * scale) + 'px';
+  canvas.style.height = (460 * scale) + 'px';
+  const wrap = canvas.parentElement;
+  wrap.style.width = (480 * scale) + 'px';
+  positionEntry();
+}
+window.addEventListener('resize', resizeCanvas);
+
+
+// Pre-generated static background elements (set once on game start)
+let bgSeaweed = [], bgStaticBubbles = [], bgFish = [], bgCoral = [];
+
+function generateBackground() {
+  const swCols = ['#006644','#008855','#00aa66'];
+  bgSeaweed = [20,55,W-55,W-20,W/3-10,W/3+20,2*W/3-10,2*W/3+20].map(sx => ({
+    sx, col: swCols[Math.floor(Math.random()*3)],
+    segs: Array.from({length:5}, (_,seg) => ({sway: Math.sin(seg*1.2+sx*0.1)*6, seg}))
+  }));
+  bgStaticBubbles = Array.from({length:14}, () => ({
+    x: 10+Math.random()*(W-20), y: 10+Math.random()*(H-50), r: 3+Math.random()*5
+  }));
+  bgFish = [[60,80,1],[W-80,120,-1],[200,50,1]];
+  bgCoral = [[W/2-60,H-18,'#cc4444'],[W/2-40,H-22,'#dd6622'],
+             [W/2+40,H-18,'#cc4488'],[W/2+60,H-20,'#cc4444']];
+}
+
+function drawBackground() {
+  // Depth bands
+  const bands = ['#0e2a5a','#0a1e48','#081638'];
+  bands.forEach((col, i) => {
+    ctx.fillStyle = col;
+    ctx.fillRect(0, i*H/3, W, H/3);
+  });
+  // Light rays
+  ctx.fillStyle = '#1a3a6a';
+  [60,160,280,380,440].forEach(rx => {
+    ctx.beginPath();
+    ctx.moveTo(rx-18,0); ctx.lineTo(rx+18,0);
+    ctx.lineTo(rx+6,H/2); ctx.lineTo(rx-6,H/2);
+    ctx.closePath(); ctx.fill();
+  });
+  // Seaweed (pre-generated)
+  bgSeaweed.forEach(({sx, col, segs}) => {
+    ctx.fillStyle = col;
+    segs.forEach(({sway, seg}) => {
+      ctx.beginPath();
+      ctx.ellipse(sx+sway, H-20-seg*16, 5, 8, 0, 0, Math.PI*2);
+      ctx.fill();
+    });
+  });
+  // Coral (pre-generated)
+  bgCoral.forEach(([cx2,cy2,col]) => {
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.ellipse(cx2, cy2-7, 8, 14, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx2-7, cy2-4, 5, 8, -0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx2+7, cy2-4, 5, 8, 0.3, 0, Math.PI*2); ctx.fill();
+  });
+  // Anemone
+  drawAnemone();
+  // Fish (pre-generated)
+  bgFish.forEach(([fx,fy,fs]) => {
+    ctx.fillStyle = '#1a4a7a';
+    ctx.beginPath(); ctx.ellipse(fx+8*fs, fy, 8, 4, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(fx-2*fs,fy-5); ctx.lineTo(fx-8*fs,fy-9);
+    ctx.lineTo(fx-8*fs,fy+9); ctx.lineTo(fx-2*fs,fy+5);
+    ctx.closePath(); ctx.fill();
+  });
+  // Static bubbles (pre-generated)
+  ctx.strokeStyle = '#2a6a9a'; ctx.lineWidth = 1;
+  bgStaticBubbles.forEach(({x,y,r}) => {
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+  });
+}
+
+function drawAnemone() {
+  const ax = 28, ay = H - 20;
+  ctx.fillStyle = '#cc3366';
+  ctx.beginPath(); ctx.ellipse(ax, ay-9, 7, 9, 0, 0, Math.PI*2); ctx.fill();
+  const frondCols = ['#ff66aa','#ff44cc','#ee2299','#ff88bb','#dd1177','#ff55aa','#ee3388','#ff77bb'];
+  for (let fi = 0; fi < 9; fi++) {
+    const fdeg = -80 + fi*20;
+    const fang = (fdeg - 90) * Math.PI/180;
+    const flen = 28 + (fi%3)*6;
+    const fx1 = ax + 4*Math.cos(fang), fy1 = ay-12 + 4*Math.sin(fang);
+    const fmx = ax + flen*0.5*Math.cos(fang) + 6*Math.cos(fang+Math.PI/2);
+    const fmy = ay-12 + flen*0.5*Math.sin(fang) + 6*Math.sin(fang+Math.PI/2);
+    const ftx = ax + flen*Math.cos(fang), fty = ay-12 + flen*Math.sin(fang);
+    ctx.strokeStyle = frondCols[fi%frondCols.length];
+    ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(fx1,fy1); ctx.quadraticCurveTo(fmx,fmy,ftx,fty); ctx.stroke();
+    ctx.fillStyle = frondCols[fi%frondCols.length];
+    ctx.beginPath(); ctx.arc(ftx,fty,4,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — OCTOPUS
+// ═══════════════════════════════════════════════════════════════
+function drawOctopus() {
+  const x = MON_X, y = MON_Y + Math.round(octopusBounce);
+  const mood = octopusMood, rot = octopusRot;
+  const bodyRx = 26, bodyRy = 38;
+  const cx = x, cy = y;
+  const armCy = cy + bodyRy * 0.6;
+  const BODY = '#cc5588', DARK = '#993366', SUCKER = '#ffaad4';
+  const EWHITE = '#f0f8ff', EDARK = '#1a0a2a', CHEEK = '#ff88bb';
+
+  const rotExtra = (mood==='excited'?-10 : mood==='sad'?15 : 0) + rot;
+
+  // Arms
+  [30,50,70,90].forEach(deg => {
+    [-1,1].forEach(side => {
+      const ang = Math.PI/2 + (deg*side + rotExtra*side)*Math.PI/180;
+      const len = 70, push = 18;
+      const sx = cx + push*Math.cos(ang), sy = armCy + push*Math.sin(ang);
+      const perp = ang + Math.PI/2*side;
+      const p1x = sx+(len-push)*0.45*Math.cos(ang)+13*Math.cos(perp);
+      const p1y = sy+(len-push)*0.45*Math.sin(ang)+13*Math.sin(perp);
+      const p2x = cx+len*Math.cos(ang)-7*Math.cos(perp);
+      const p2y = armCy+len*Math.sin(ang)-7*Math.sin(perp);
+      ctx.strokeStyle = BODY; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.quadraticCurveTo(p1x,p1y,p2x,p2y);
+      ctx.lineWidth = 7; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p1x,p1y); ctx.quadraticCurveTo(p1x,p1y,p2x,p2y);
+      ctx.lineWidth = 3; ctx.stroke();
+      [0.35,0.72].forEach(t => {
+        const qx = sx*(1-t)**2 + 2*p1x*t*(1-t) + p2x*t**2;
+        const qy = sy*(1-t)**2 + 2*p1y*t*(1-t) + p2y*t**2;
+        const dr = t<0.5?4:3;
+        ctx.beginPath(); ctx.arc(qx,qy,dr,0,Math.PI*2);
+        ctx.fillStyle = SUCKER; ctx.fill();
+        ctx.strokeStyle = DARK; ctx.lineWidth = 1; ctx.stroke();
+      });
+    });
+  });
+
+  // Body oval
+  ctx.beginPath(); ctx.ellipse(cx, cy, bodyRx, bodyRy, 0, 0, Math.PI*2);
+  ctx.fillStyle = BODY; ctx.fill();
+  ctx.strokeStyle = DARK; ctx.lineWidth = 2; ctx.stroke();
+
+  // Face
+  const eyeY = cy - 14, mouthY = cy + 6;
+  if (mood === 'sad') {
+    [cx-9, cx+9].forEach(ex => {
+      ctx.beginPath(); ctx.arc(ex, eyeY, 6, 0.3, Math.PI-0.3);
+      ctx.strokeStyle = EDARK; ctx.lineWidth = 2; ctx.stroke();
+      // Teardrop
+      ctx.beginPath();
+      ctx.moveTo(ex-1, eyeY+4);
+      ctx.lineTo(ex+3, eyeY+7); ctx.lineTo(ex+2, eyeY+13);
+      ctx.lineTo(ex, eyeY+17); ctx.lineTo(ex-2, eyeY+13);
+      ctx.lineTo(ex-3, eyeY+7);
+      ctx.closePath();
+      ctx.fillStyle = '#80c8ff'; ctx.fill();
+    });
+    ctx.beginPath(); ctx.arc(cx, mouthY+6, 9, Math.PI+0.35, -0.35);
+    ctx.strokeStyle = EDARK; ctx.lineWidth = 2; ctx.stroke();
+  } else {
+    [cx-9, cx+9].forEach(ex => {
+      ctx.beginPath(); ctx.ellipse(ex, eyeY, 6, 6, 0, 0, Math.PI*2);
+      ctx.fillStyle = EWHITE; ctx.fill(); ctx.strokeStyle = EDARK; ctx.lineWidth=1; ctx.stroke();
+      ctx.beginPath(); ctx.arc(ex, eyeY+2, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = EDARK; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex-1.5, eyeY+0.5, 1.2, 0, Math.PI*2);
+      ctx.fillStyle = 'white'; ctx.fill();
+      if (mood === 'excited') {
+        ctx.fillStyle = '#ffe040'; ctx.font = 'bold 9px sans-serif';
+        ctx.fillText('★', ex-5, eyeY+8);
+      }
+    });
+    if (mood === 'happy' || mood === 'excited') {
+      ctx.beginPath(); ctx.arc(cx, mouthY+4, 10, 0.25, Math.PI-0.25);
+      ctx.strokeStyle = EDARK; ctx.lineWidth = 2.5; ctx.stroke();
+      [cx-17, cx+17].forEach(chx => {
+        ctx.beginPath(); ctx.ellipse(chx, mouthY, 5, 4, 0, 0, Math.PI*2);
+        ctx.fillStyle = CHEEK; ctx.globalAlpha = 0.6; ctx.fill(); ctx.globalAlpha = 1;
+      });
+      if (mood === 'excited') {
+        ctx.fillStyle = '#ffe040'; ctx.strokeStyle = '#cc9900'; ctx.lineWidth = 1.5;
+        const crownY = cy - bodyRy - 4;
+        ctx.beginPath();
+        [[cx-14,crownY+8],[cx-10,crownY],[cx-5,crownY+8],[cx,crownY-4],
+         [cx+5,crownY+8],[cx+10,crownY],[cx+14,crownY+8]]
+          .forEach((p,i) => i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]));
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+    } else {
+      ctx.beginPath(); ctx.moveTo(cx-7, mouthY+2); ctx.lineTo(cx+7, mouthY+2);
+      ctx.strokeStyle = EDARK; ctx.lineWidth = 2; ctx.stroke();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — SAND TIMER
+// ═══════════════════════════════════════════════════════════════
+function drawSandTimer() {
+  if (cfg.timer !== 'on') return;
+  const tx=28, ty=18, tw=30, th=54;
+  const frac = Math.max(0, timeLeft/10);
+  const urgent = timeLeft <= 3;
+  const sandCol = urgent ? COL.timerUrgent : COL.timerSand;
+  const frameCol = '#1a6090', glassCol = '#0a2848';
+  const midY = ty + th/2;
+
+  ctx.fillStyle = glassCol;
+  ctx.beginPath(); ctx.moveTo(tx-tw,ty); ctx.lineTo(tx+tw,ty); ctx.lineTo(tx,midY); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(tx-tw,ty+th); ctx.lineTo(tx+tw,ty+th); ctx.lineTo(tx,midY); ctx.closePath(); ctx.fill();
+
+  // Top sand
+  const topH = Math.floor(th/2 * frac);
+  if (topH > 1) {
+    const sandTop = ty + (th/2 - topH);
+    const wAtTop = tw * (midY - sandTop) / (th/2);
+    ctx.fillStyle = sandCol;
+    ctx.beginPath(); ctx.moveTo(tx-wAtTop,sandTop); ctx.lineTo(tx+wAtTop,sandTop); ctx.lineTo(tx,midY); ctx.closePath(); ctx.fill();
+  }
+  // Bottom sand
+  const botH = Math.floor(th/2 * (1-frac));
+  if (botH > 1) {
+    const baseY = ty+th, topY = baseY-botH;
+    const wAtBotTop = tw * (topY-midY)/(th/2);
+    ctx.fillStyle = sandCol;
+    ctx.beginPath(); ctx.moveTo(tx-wAtBotTop,topY); ctx.lineTo(tx+wAtBotTop,topY); ctx.lineTo(tx+tw,baseY); ctx.lineTo(tx-tw,baseY); ctx.closePath(); ctx.fill();
+  }
+  // Frame
+  ctx.strokeStyle = frameCol; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(tx-tw,ty); ctx.lineTo(tx+tw,ty); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx-tw,ty+th); ctx.lineTo(tx+tw,ty+th); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx-tw,ty); ctx.lineTo(tx,midY); ctx.lineTo(tx+tw,ty); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx-tw,ty+th); ctx.lineTo(tx,midY); ctx.lineTo(tx+tw,ty+th); ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — BONDS / CIRCLES / DOTS
+// ═══════════════════════════════════════════════════════════════
+function decompose(n) {
+  const g = [];
+  let r = n;
+  while (r > 0) { const v = Math.min(5,r); g.push(v); r-=v; }
+  return g;
+}
+
+function getDotColours(circleIdx) {
+  // 0=whole, 1=partA, 2=partB
+  const disp = cfg.display;
+  if (circleIdx === 1) return Array(partA).fill('#20a040');
+  if (circleIdx === 2) return Array(partB).fill('#2060c0');
+  // whole
+  return Array(partA).fill('#20a040').concat(Array(partB).fill('#2060c0'));
+}
+
+function drawDots(cx, cy, r, n, withNumbers, colours) {
+  if (n === 0) return;
+  const groups = decompose(n);
+  const ng = groups.length;
+  const margin = r * 0.08;
+  const boxW = 2*r - 2*margin, boxH = r - r*0.05 - margin;
+  const gap = 0.18;
+  let half;
+  if (ng===1) half = Math.min(boxW,boxH)*0.85/2;
+  else if (ng===2) half = Math.min(boxW/(2+gap),boxH)*0.88/2;
+  else half = Math.min(boxW/(2+gap),boxH/(2+gap))*0.88/2;
+
+  let centres = [];
+  const dotTop = cy + r*0.05, dotBot = cy + r - margin;
+  const zoneH = dotBot - dotTop, zoneW = 2*r - 2*margin;
+  const midX = cx, midY = dotTop + zoneH/2;
+  const stepX = (half*2)*(1+gap), stepY = (half*2)*(1+gap);
+
+  if (ng===1) centres=[[midX,midY]];
+  else if (ng===2) centres=[[midX-half*(1+gap)/2, midY],[midX+half*(1+gap)/2, midY]];
+  else if (ng===3) centres=[[midX-stepX/2,midY-stepY/2],[midX+stepX/2,midY-stepY/2],[midX,midY+stepY/2]];
+  else centres=[[midX-stepX/2,midY+stepY/2],[midX+stepX/2,midY+stepY/2],[midX-stepX/2,midY-stepY/2],[midX+stepX/2,midY-stepY/2]];
+
+  const spread = n < 10 ? 0.65 : 0.85;
+  let dotIdx = 0;
+
+  groups.forEach((gval, gi) => {
+    const [scx,scy] = centres[gi];
+    const pat = DICE_PATTERNS[gval];
+    pat.forEach(([dx,dy]) => {
+      const px = scx + dx*half*spread, py = scy + dy*half*spread;
+      const ng2 = ng;
+      let dr = Math.max(3, Math.min(7, Math.floor(r*0.12/Math.max(1, Math.pow(ng2,0.45)))));
+      if (ng2===2) dr = 7;
+      ctx.beginPath(); ctx.arc(px,py,dr,0,Math.PI*2);
+      ctx.fillStyle = colours[dotIdx] || '#888';
+      ctx.fill();
+      dotIdx++;
+    });
+  });
+}
+
+function drawBonds() {
+  const circles = [
+    {c:CW, val:whole,  isMiss:missing==='whole',  fsize:46, idx:0},
+    {c:CA, val:partA,  isMiss:missing==='partA',  fsize:38, idx:1},
+    {c:CB, val:partB,  isMiss:missing==='partB',  fsize:38, idx:2},
+  ];
+
+  // Lines
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(CW.cx,CW.cy); ctx.lineTo(CA.cx,CA.cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(CW.cx,CW.cy); ctx.lineTo(CB.cx,CB.cy); ctx.stroke();
+
+  circles.forEach(({c,val,isMiss,fsize,idx}) => {
+    // Fill
+    ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+    ctx.fillStyle = isMiss ? COL.missingFill : COL.circleFill; ctx.fill();
+    // Stroke
+    ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+    if (isMiss) {
+      ctx.setLineDash([8,5]); ctx.strokeStyle = COL.missingStroke; ctx.lineWidth=3;
+    } else {
+      ctx.setLineDash([]); ctx.strokeStyle = COL.circleStroke; ctx.lineWidth=3;
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+
+    if (!isMiss) {
+      const disp = cfg.display;
+      const withNum = disp==='numbers'||disp==='both';
+      const withDots = disp==='counters'||disp==='both';
+      if (withNum) {
+        // Whole circle: always 46pt, always at fixed position (no shift)
+        // Part circles: shift up when dots also shown
+        const isWhole = (idx === 0);
+        const numY = withDots ? c.cy - c.r*0.45 : c.cy;
+        ctx.fillStyle = '#2a1a00';
+        ctx.font = `bold ${fsize}px Trebuchet MS`;
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(val, c.cx, numY);
+      }
+      if (withDots) {
+        drawDots(c.cx, c.cy, c.r, val, withNum, getDotColours(idx));
+      }
+    }
+  });
+}
+
+function drawRevealCircle(miss, correctVal) {
+  let c, fsize;
+  if (miss==='whole') { c=CW; fsize=46; }
+  else if (miss==='partA') { c=CA; fsize=38; }
+  else { c=CB; fsize=38; }
+
+  ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+  ctx.fillStyle = COL.correctFill; ctx.fill();
+  ctx.setLineDash([]); ctx.strokeStyle = COL.correctStroke; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2); ctx.stroke();
+
+  const disp = cfg.display;
+  const withNum = disp==='numbers'||disp==='both';
+  const withDots = disp==='counters'||disp==='both';
+
+  if (withNum) {
+    const numY = withDots ? c.cy - c.r*0.45 : c.cy;
+    ctx.fillStyle = COL.correctText;
+    ctx.font = `bold ${fsize}px Trebuchet MS`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(correctVal, c.cx, numY);
+  }
+  if (withDots) {
+    const idx = miss==='whole'?0 : miss==='partA'?1:2;
+    drawDots(c.cx, c.cy, c.r, correctVal, withNum, getDotColours(idx));
+  }
+  // Stars outside
+  for (let i=0;i<6;i++) {
+    const ang=Math.random()*Math.PI*2, dist=c.r+8+Math.random()*20;
+    ctx.fillStyle=['#ffe040','#ff8020','#c8f060'][Math.floor(Math.random()*3)];
+    ctx.font=`${5+Math.floor(Math.random()*6)}px sans-serif`;
+    ctx.fillText('★', c.cx+dist*Math.cos(ang), c.cy+dist*Math.sin(ang));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — BUBBLES
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — BUBBLES (positions updated by interval, drawn in redraw)
+// ═══════════════════════════════════════════════════════════════
+function spawnBubble(startY) {
+  bubbles.push({
+    x: 15+Math.random()*(W-30),
+    y: startY !== undefined ? startY : H-10,
+    r: 4+Math.random()*6,
+    speed: 0.6+Math.random()*1.2,
+  });
+}
+
+function updateBubbles() {
+  if (Math.random() < 0.18) spawnBubble();
+  bubbles = bubbles.filter(b => {
+    b.x += (Math.random()-0.5)*0.8;
+    b.y -= b.speed;
+    return b.y + b.r > 0;
+  });
+}
+
+function drawBubbles() {
+  ctx.strokeStyle = '#4ab8e0'; ctx.lineWidth = 1;
+  bubbles.forEach(b => {
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#a0e0ff';
+    ctx.beginPath(); ctx.ellipse(b.x-b.r/3, b.y-b.r*0.5, b.r/3, b.r/4, 0, 0, Math.PI*2); ctx.fill();
+  });
+}
+
+function startBubbles() {
+  if (bubbleAnimId) clearInterval(bubbleAnimId);
+  bubbleAnimId = setInterval(() => { updateBubbles(); redraw(); }, 80);
+}
+
+function stopBubbles() {
+  if (bubbleAnimId) { clearInterval(bubbleAnimId); bubbleAnimId = null; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — STARBURST
+// ═══════════════════════════════════════════════════════════════
+let burstStep = 0, burstTotal = 8, burstRays = 16, burstCx = 240, burstCy = 230;
+const BURST_COLS = ['#40ffcc','#00d4ff','#ff80c0','#ffff60','#80ffff','#ff6090'];
+
+function drawBurst() {
+  if (burstStep > burstTotal) return;
+  const frac = burstStep / burstTotal;
+  const length = 120 * frac;
+  for (let i=0;i<burstRays;i++) {
+    const ang = 2*Math.PI*i/burstRays;
+    const col = BURST_COLS[Math.floor(Math.random()*BURST_COLS.length)];
+    ctx.strokeStyle = col; ctx.lineCap='round';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(burstCx+length*0.15*Math.cos(ang), burstCy+length*0.15*Math.sin(ang));
+    ctx.lineTo(burstCx+length*0.45*Math.cos(ang), burstCy+length*0.45*Math.sin(ang));
+    ctx.stroke();
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(burstCx+length*0.45*Math.cos(ang), burstCy+length*0.45*Math.sin(ang));
+    ctx.lineTo(burstCx+length*Math.cos(ang), burstCy+length*Math.sin(ang));
+    ctx.stroke();
+    const sz = Math.max(6, Math.floor(14*frac));
+    ctx.fillStyle = col; ctx.font = `${sz}px sans-serif`;
+    ctx.fillText('★', burstCx+length*Math.cos(ang)-4, burstCy+length*Math.sin(ang)+4);
+  }
+  burstStep++;
+  const delay = burstStep < burstTotal/2 ? 40 : 60;
+  burstAnimId = setTimeout(redraw, delay);
+}
+
+function startBurst(cx, cy, rays) {
+  if (burstAnimId) clearTimeout(burstAnimId);
+  burstStep = 0; burstRays = rays; burstCx = cx; burstCy = cy;
+  burstTotal = 8;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BANNERS
+// ═══════════════════════════════════════════════════════════════
+function showLevelUpBanner() {
+  banners.push({text1:'🐚  New bond unlocked!  🐚', text2:'Swim deeper!',
+    col1:'#40ffcc', col2:'#80d8ff', border:'#40ffcc', until:Date.now()+1800});
+}
+function showGraduationBanner(w,a,b) {
+  banners.push({text1:`🎓  You learnt  ${a} + ${b} = ${w}  🎓`, text2:'This bond is now in free play!',
+    col1:'#ffd700', col2:'#80d8ff', border:'#ffd700', until:Date.now()+2500});
+  snd('levelup');
+}
+
+function drawBanners() {
+  const now = Date.now();
+  banners = banners.filter(b => b.until > now);
+  banners.forEach(b => {
+    const cx=240, cy=H/2;
+    ctx.fillStyle = '#0a1e40';
+    ctx.beginPath(); roundRect(ctx, cx-165, cy-32, 330, 64, 6); ctx.fill();
+    ctx.strokeStyle = b.border; ctx.lineWidth=3;
+    ctx.beginPath(); roundRect(ctx, cx-165, cy-32, 330, 64, 6); ctx.stroke();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font = 'bold 14px Trebuchet MS'; ctx.fillStyle = b.col1;
+    ctx.fillText(b.text1, cx, cy-10);
+    ctx.font = '11px Trebuchet MS'; ctx.fillStyle = b.col2;
+    ctx.fillText(b.text2, cx, cy+12);
+  });
+}
+
+function roundRect(c2, x,y,w,h,r) {
+  c2.moveTo(x+r,y); c2.lineTo(x+w-r,y); c2.arcTo(x+w,y,x+w,y+r,r);
+  c2.lineTo(x+w,y+h-r); c2.arcTo(x+w,y+h,x+w-r,y+h,r);
+  c2.lineTo(x+r,y+h); c2.arcTo(x,y+h,x,y+h-r,r);
+  c2.lineTo(x,y+r); c2.arcTo(x,y,x+r,y,r); c2.closePath();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN DRAW
+// ═══════════════════════════════════════════════════════════════
+function redraw() {
+  ctx.clearRect(0,0,W,H);
+  drawBackground();
+  drawBubbles();
+  drawOctopus();
+  drawSandTimer();
+  drawBonds();
+  if (revealed) drawRevealCircle(missing, correct);
+  if (burstStep <= burstTotal) drawBurst();
+  drawBanners();
+  positionEntry();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENTRY WIDGET POSITIONING
+// ═══════════════════════════════════════════════════════════════
+function positionEntry() {
+  // Don't show during reveal or if no question active
+  if (entry.disabled) { entry.style.display='none'; return; }
+
+  const scale = parseFloat(canvas.style.width) / W || 1;
+  let c, fsize, entryW, entryH;
+  if (missing === 'whole') { c=CW; fsize=38; }
+  else if (missing === 'partA') { c=CA; fsize=32; }
+  else if (missing === 'partB') { c=CB; fsize=32; }
+  else { entry.style.display='none'; return; }
+
+  const disp = cfg.display;
+  const withDots = disp==='counters'||disp==='both';
+  entryW = c.r * 1.1 * 2 * scale;
+  entryH = (withDots ? c.r*0.60 : c.r*0.80) * 2 * scale;
+  const entryY = withDots ? c.cy - c.r*0.38 : c.cy;
+
+  const rect = canvas.getBoundingClientRect();
+  entry.style.display = 'block';
+  entry.style.left = (rect.left + (c.cx - c.r*1.1)*scale) + 'px';
+  entry.style.top  = (rect.top  + (entryY - entryH/2/scale)*scale) + 'px';
+  entry.style.width  = entryW + 'px';
+  entry.style.height = entryH + 'px';
+  entry.style.fontSize = (fsize * scale) + 'px';
+  entry.style.lineHeight = entryH + 'px';
+  entry.style.position = 'fixed';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OCTOPUS ANIMATION
+// ═══════════════════════════════════════════════════════════════
+function startOctopusBounce(cycles) {
+  if (octopusAnimId) clearInterval(octopusAnimId);
+  const framesPerCycle = 24;
+  const totalFrames = cycles * framesPerCycle;
+  let frame = 0;
+  octopusAnimId = setInterval(() => {
+    const phase = frame / framesPerCycle * Math.PI * 2;
+    octopusBounce = -Math.abs(Math.sin(phase)) * 18;
+    octopusRot = Math.sin(phase) * 10;
+    redraw();
+    frame++;
+    if (frame >= totalFrames) {
+      clearInterval(octopusAnimId); octopusAnimId = null;
+      octopusBounce = 0; octopusRot = 0;
+      octopusMood = 'happy';
+      redraw();
+    }
+  }, 50);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════
+let cfg    = {};
+let engine = null;   // BondEngine instance — replaces all old bond variables
+let score = 0, total = 0, streak = 0;
+let whole, partA, partB, missing, correct;
+let octopusMood   = 'thinking';
+let octopusBounce = 0;
+let octopusRot    = 0;
+let octopusAnimId = null;
+let revealTimeout = null;
+let timerInterval = null;
+let timeLeft      = 10;
+let revealed      = false;
+let bubbleAnimId  = null;
+let bubbles       = [];
+let burstAnimId   = null;
+let banners       = [];
+let sadResetId    = null;
+
+// ═══════════════════════════════════════════════════════════════
+// GAME FLOW
+// ═══════════════════════════════════════════════════════════════
+function snd(name) {
+  if (cfg.sound === 'on' && SOUNDS[name]) SOUNDS[name]();
+}
+function updateScore() {
+  document.getElementById('score-label').textContent = `⭐ ${score} / ${total}`;
+}
+function showFeedback(msg, col) {
+  const el = document.getElementById('feedback-label');
+  el.textContent = msg; el.style.color = col;
+}
+function updateSumLabel() {
+  const el = document.getElementById('sum-label');
+  if (missing === 'whole')
+    el.textContent = `${partA}  +  ${partB}  =  ?`;
+  else if (missing === 'partA')
+    el.textContent = `?  +  ${partB}  =  ${whole}    ·    ${whole}  −  ${partB}  =  ?`;
+  else
+    el.textContent = `${partA}  +  ?  =  ${whole}    ·    ${whole}  −  ${partA}  =  ?`;
+}
+
+function newQuestion() {
+  stopTimer();
+  revealed = false;
+  entry.value = '';
+  entry.disabled = false;
+
+  const q = engine.nextQuestion();
+  whole   = q.whole;
+  partA   = q.partA;
+  partB   = q.partB;
+  missing = q.missing;
+  correct = q.correctAnswer;
+
+  updateSumLabel();
+  if (!octopusAnimId) octopusMood = 'thinking';
+  redraw();
+  updateScore();
+  startTimer();
+  setTimeout(() => { entry.focus(); positionEntry(); }, 50);
+}
+
+function checkAnswer() {
+  const raw = entry.value.trim();
+  if (!raw) { showFeedback('Type a number first!', COL.wrongCol); return; }
+  const val = parseInt(raw);
+  if (isNaN(val)) { showFeedback('Numbers only!', COL.wrongCol); return; }
+
+  stopTimer();
+  const isCorrect = val === correct;
+  total++;
+
+  engine.recordAnswer({ whole, partA, partB, missing }, isCorrect);
+  const result = { justSecured: false };
+
+  if (isCorrect) {
+    score++; streak++;
+    octopusMood = 'happy';
+    revealed = true;
+    redraw();
+    handleStreak();
+    updateScore();
+    entry.disabled = true;
+    entry.style.display = 'none';
+    if (result.justSecured) showGraduationBanner(whole, partA, partB);
+    if (revealTimeout) clearTimeout(revealTimeout);
+    revealTimeout = setTimeout(newQuestion, 1500);
+  } else {
+    streak = 0;
+    document.getElementById('streak-label').textContent = '';
+    octopusMood = 'sad';
+    redraw();
+    showFeedback('Not quite — try again! 🐙', COL.wrongCol);
+    snd('wrong');
+    entry.value = '';
+    if (sadResetId) clearTimeout(sadResetId);
+    sadResetId = setTimeout(() => {
+      if (octopusMood === 'sad') { octopusMood = 'thinking'; redraw(); }
+    }, 1500);
+    updateScore();
+    startTimer();
+  }
+}
+
+function handleStreak() {
+  const streakSounds = {3:'streak3',5:'streak5',10:'streak10',20:'streak20',
+                        50:'streak20',75:'streak20',100:'streak20'};
+  const STREAK_MESSAGES = {
+    3:  ["3 in a row! 🌊",                 "#40ffcc"],
+    5:  ["5 in a row! Amazing! 🐠",        "#00d4ff"],
+    10: ["10 in a row! SUPERSTAR! ⭐",     "#ffff60"],
+    20: ["20 IN A ROW! LEGENDARY! 🏆",     "#ff80c0"],
+    50: ["50 IN A ROW! UNBELIEVABLE! 🌟",  "#ff40ff"],
+    75: ["75 IN A ROW! INCREDIBLE! 🔱",    "#40ffff"],
+    100:["100 IN A ROW! CHAMPION! 👑",     "#ffffff"],
+  };
+  const BRILLIANT_MSGS = [
+    "✓ Brilliant! Keep swimming! 🌊","✓ Fantastic! You're on a roll! 🐠",
+    "✓ Excellent! Don't stop now! ⭐","✓ Amazing work! Keep going! 🐙",
+    "✓ Super! Ride that wave! 🌊","✓ Wonderful! You're flying! 🐡",
+    "✓ Outstanding! More! More! 🦀","✓ Splendid! Keep it up! 🐚",
+  ];
+  if (STREAK_MESSAGES[streak]) {
+    const [msg,col] = STREAK_MESSAGES[streak];
+    showFeedback(msg, col);
+    document.getElementById('streak-label').textContent=`🌊 ${streak} in a row!`;
+    snd(streakSounds[streak] || 'streak3');
+    const rays   = streak>=50?24 : streak>=10?20:14;
+    const cycles = streak>=50?5  : streak>=10?4 :3;
+    startBurst(W/2, H/2, rays);
+    octopusMood='excited';
+    startOctopusBounce(cycles);
+  } else if (streak >= 2) {
+    const msg = BRILLIANT_MSGS[Math.floor(Math.random()*BRILLIANT_MSGS.length)];
+    showFeedback(msg, COL.correctCol);
+    document.getElementById('streak-label').textContent=`🌊 ${streak} in a row!`;
+    snd('correct');
+  } else {
+    document.getElementById('streak-label').textContent='';
+    showFeedback('✓ Correct! Well done! 🐠', COL.correctCol);
+    snd('correct');
+  }
+}
+
+function skipQuestion() {
+  total++; streak=0;
+  document.getElementById('streak-label').textContent='';
+  engine.recordAnswer({ whole, partA, partB, missing }, false);
+  updateScore();
+  newQuestion();
+}
+
+function startTimer() {
+  if (cfg.timer !== 'on') return;
+  stopTimer();
+  timeLeft = 10;
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    redraw();
+    if (timeLeft <= 0) {
+      stopTimer();
+      total++;
+      engine.recordAnswer();
+      octopusMood='sad'; revealed=false;
+      redraw();
+      showFeedback(`Time's up! Answer: ${correct} 🐙`, COL.wrongCol);
+      snd('timeout');
+      updateScore();
+      setTimeout(newQuestion, 1400);
+    }
+  }, 1000);
+}
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval=null; }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIG → GAME TRANSITION
+// ═══════════════════════════════════════════════════════════════
+function getRadio(name) {
+  return document.querySelector(`input[name="${name}"]:checked`)?.value;
+}
+
+document.getElementById('start-btn').onclick = () => {
+  cfg = {
+    level:   getRadio('level'),
+    mode:    getRadio('mode'),
+    display: getRadio('display'),
+    timer:   getRadio('timer'),
+    sound:   getRadio('sound'),
+  };
+  // Create new engine
+  engine = new BondEngine({ level: cfg.level, mode: cfg.mode });
+
+  // Reset visual state
+  score=0; total=0; streak=0; revealed=false;
+  octopusMood='thinking'; octopusBounce=0; octopusRot=0;
+  if (octopusAnimId) { clearInterval(octopusAnimId); octopusAnimId=null; }
+  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout=null; }
+  if (burstAnimId)   { clearTimeout(burstAnimId);   burstAnimId=null; }
+  burstStep=99; banners=[]; bubbles=[];
+
+  updateScore();
+  generateBackground();
+
+  document.getElementById('config-screen').style.display='none';
+  document.getElementById('game-screen').style.display='flex';
+  resizeCanvas();
+
+  bubbles = [];
+  for (let i=0;i<5;i++) spawnBubble(Math.floor(Math.random()*H));
+  startBubbles();
+  newQuestion();
+};
+
+document.getElementById('settings-btn').onclick = () => {
+  stopTimer();
+  stopBubbles();
+  if (octopusAnimId) { clearInterval(octopusAnimId); octopusAnimId=null; }
+  entry.style.display='none';
+  document.getElementById('game-screen').style.display='none';
+  document.getElementById('config-screen').style.display='block';
+};
+
+document.getElementById('check-btn').onclick = checkAnswer;
+document.getElementById('skip-btn').onclick  = skipQuestion;
+
+entry.addEventListener('keydown', e => {
+  if (e.key==='Enter') { checkAnswer(); e.preventDefault(); }
+  if (e.key==='.' || e.key==='Delete') {
+    e.preventDefault();
+    entry.value = entry.value.slice(0,-1);
+  }
+});
+entry.addEventListener('input', () => {
+  if (entry.value.length > 2) entry.value = entry.value.slice(0,2);
+});
+
+resizeCanvas();
+</script>
+</body>
+</html>

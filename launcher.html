@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Number Bonds Games 🎮</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  background:#0a0612; font-family:'Trebuchet MS',sans-serif;
+  min-height:100vh; color:#f0e8ff; overflow-x:hidden;
+}
+/* ── WHO SCREEN ─── */
+#who-screen { display:flex; flex-direction:column; align-items:center; padding:36px 16px; min-height:100vh; }
+#who-screen h1 { font-size:28px; color:#c090ff; margin-bottom:6px; text-align:center; }
+#who-screen .sub { font-size:14px; color:#504060; margin-bottom:28px; text-align:center; }
+#profile-grid { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; max-width:440px; width:100%; }
+.profile-card {
+  width:100px; height:115px; border-radius:14px;
+  background:#1a1028; border:2px solid #302048;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:6px; cursor:pointer; padding:8px;
+  transition:transform 0.12s,border-color 0.12s,box-shadow 0.12s;
+}
+.profile-card:hover { transform:scale(1.09); border-color:#c080ff; box-shadow:0 6px 20px rgba(160,80,255,0.3); }
+.profile-card .av   { font-size:38px; line-height:1; }
+.profile-card .pn   { font-size:12px; font-weight:bold; color:#e0d0ff; text-align:center; word-break:break-word; }
+.profile-card.guest { background:#100c1a; border-style:dashed; }
+.profile-card.addnew{ background:#100c1a; border-style:dashed; color:#806090; }
+.profile-card.addnew .av { font-size:26px; color:#806090; }
+#del-btn { margin-top:14px; background:none; border:none; color:#402838; font-size:12px; cursor:pointer; font-family:inherit; }
+#del-btn:hover { color:#b04060; }
+
+/* ── ADD MODAL ─── */
+#add-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:100; align-items:center; justify-content:center; }
+#add-modal.open { display:flex; }
+#add-box { background:#1a1030; border:2px solid #5030a0; border-radius:14px; padding:24px; width:320px; display:flex; flex-direction:column; gap:16px; }
+#add-box h2 { color:#c090ff; font-size:18px; text-align:center; }
+#add-box label { font-size:12px; color:#a090c0; display:block; margin-bottom:4px; }
+#add-box input[type=text] { width:100%; padding:10px 12px; border-radius:8px; background:#0e0820; border:2px solid #4030a0; color:#f0e8ff; font-size:16px; font-family:inherit; outline:none; }
+#add-box input:focus { border-color:#9060e0; }
+.av-picker { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+.av-opt { font-size:28px; padding:4px; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:border-color 0.1s; }
+.av-opt.sel { border-color:#c080ff; background:rgba(160,80,255,0.18); }
+.modal-btns { display:flex; gap:10px; }
+.modal-btns button { flex:1; padding:10px; border-radius:8px; border:none; font-size:14px; font-weight:bold; font-family:inherit; cursor:pointer; }
+#save-btn   { background:#7040c0; color:#f0e0ff; }
+#save-btn:hover { background:#9060e0; }
+#cancel-btn { background:#201830; color:#806090; }
+
+/* ── GAME SCREEN ─── */
+#game-screen { display:none; flex-direction:column; align-items:center; padding:20px 16px; min-height:100vh; }
+#g-header { display:flex; align-items:center; gap:10px; width:100%; max-width:540px; margin-bottom:20px; }
+#back-btn { background:#0e0820; color:#806090; border:1px solid #302050; padding:8px 14px; border-radius:20px; font-family:inherit; font-size:13px; cursor:pointer; }
+#back-btn:hover { background:#1a1030; color:#c0b0e0; }
+#player-badge { display:flex; align-items:center; gap:8px; background:#1a1030; border:1px solid #302050; border-radius:20px; padding:6px 14px 6px 8px; font-size:14px; color:#e0d0ff; }
+#badge-av { font-size:22px; }
+
+/* ── GAME CARDS ─── */
+.game-cards { display:flex; flex-wrap:wrap; gap:18px; justify-content:center; max-width:540px; width:100%; }
+.gcard {
+  width:160px; border-radius:14px; overflow:hidden;
+  background:#14102a; border:2px solid #241840;
+  display:flex; flex-direction:column; cursor:pointer;
+  transition:transform 0.14s,border-color 0.14s,box-shadow 0.14s;
+}
+.gcard:hover { transform:translateY(-6px); box-shadow:0 10px 28px rgba(150,80,255,0.25); }
+.gcard-icon { height:110px; display:flex; align-items:center; justify-content:center; font-size:56px; }
+.ocean-bg  { background:linear-gradient(140deg,#061228,#0a2040); }
+.scales-bg { background:linear-gradient(140deg,#120a04,#1e1004); }
+.potion-bg { background:linear-gradient(140deg,#08041a,#140828); }
+.gcard-body { padding:10px 12px 14px; flex:1; }
+.gcard-title { font-size:16px; font-weight:bold; margin-bottom:5px; }
+.stars { display:inline-flex; gap:2px; margin-bottom:5px; }
+.stars .s { font-size:16px; }
+.stars .on { color:#ffe060; }
+.stars .off{ color:#282030; }
+.star-label { font-size:10px; color:#605070; margin-left:4px; vertical-align:middle; }
+.gcard-ks { font-size:10px; padding:2px 7px; border-radius:8px; display:inline-block; margin-bottom:6px; }
+.ks1  { background:#0e3020; color:#50d0a0; border:1px solid #207050; }
+.ks12 { background:#1e1840; color:#9080e0; border:1px solid #504080; }
+.gcard-desc { font-size:11px; color:#807090; line-height:1.45; }
+
+/* ── TEACHER INFO ─── */
+#teacher-toggle { margin-top:22px; font-size:12px; color:#503860; cursor:pointer; text-align:center; }
+#teacher-toggle:hover { color:#907090; }
+#teacher-info { display:none; max-width:480px; background:#0e0820; border:1px solid #251840; border-radius:10px; padding:14px 16px; margin-top:10px; font-size:12px; color:#706080; line-height:1.6; }
+#teacher-info.open { display:block; }
+#teacher-info h3 { color:#a080c0; font-size:13px; margin-bottom:5px; }
+#teacher-info p  { margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<!-- WHO'S PLAYING -->
+<div id="who-screen">
+  <h1>🎮 Number Bonds Games</h1>
+  <p class="sub">Who's playing today?</p>
+  <div id="profile-grid"></div>
+  <button id="del-btn" style="display:none">Remove a player…</button>
+</div>
+
+<!-- ADD PLAYER MODAL -->
+<div id="add-modal">
+  <div id="add-box">
+    <h2>Add a player</h2>
+    <div>
+      <label>Name</label>
+      <input type="text" id="new-name" placeholder="e.g. Rosie" maxlength="18" autocomplete="off">
+    </div>
+    <div>
+      <label>Choose an avatar</label>
+      <div class="av-picker" id="av-picker"></div>
+    </div>
+    <div class="modal-btns">
+      <button id="cancel-btn">Cancel</button>
+      <button id="save-btn">Save ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME SELECT -->
+<div id="game-screen">
+  <div id="g-header">
+    <button id="back-btn">← Players</button>
+    <div id="player-badge">
+      <span id="badge-av">👤</span>
+      <span id="badge-name">Guest</span>
+    </div>
+  </div>
+
+  <div class="game-cards">
+    <div class="gcard" onclick="openGame('ocean_number_bonds.html')">
+      <div class="gcard-icon ocean-bg">🐙</div>
+      <div class="gcard-body">
+        <div class="gcard-title">Ocean Bonds</div>
+        <div>
+          <span class="stars">
+            <span class="s on">★</span><span class="s on">★</span><span class="s off">★</span>
+          </span><span class="star-label">KS1–KS2</span>
+        </div>
+        <span class="gcard-ks ks12">KS1 &amp; KS2</span>
+        <p class="gcard-desc">Type the missing number. The octopus cheers you on!</p>
+      </div>
+    </div>
+
+    <div class="gcard" onclick="openGame('weighing_scales.html')">
+      <div class="gcard-icon scales-bg">⚖️</div>
+      <div class="gcard-body">
+        <div class="gcard-title">Scales</div>
+        <div>
+          <span class="stars">
+            <span class="s on">★</span><span class="s off">★</span><span class="s off">★</span>
+          </span><span class="star-label">KS1</span>
+        </div>
+        <span class="gcard-ks ks1">KS1</span>
+        <p class="gcard-desc">Place weights on the pan to balance the scales.</p>
+      </div>
+    </div>
+
+    <div class="gcard" onclick="openGame('potion_shop.html')">
+      <div class="gcard-icon potion-bg">🧪</div>
+      <div class="gcard-body">
+        <div class="gcard-title">Potion Shop</div>
+        <div>
+          <span class="stars">
+            <span class="s on">★</span><span class="s on">★</span><span class="s off">★</span>
+          </span><span class="star-label">KS1–KS2</span>
+        </div>
+        <span class="gcard-ks ks12">KS1 &amp; KS2</span>
+        <p class="gcard-desc">Fill the wizard's cauldron with the right potions!</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="teacher-toggle" onclick="toggleTeacher()">ℹ️ Teacher / parent notes ▾</div>
+  <div id="teacher-info">
+    <h3>About these games</h3>
+    <p>All three games practise number bonds using different representations. Bond selection is fully random from the chosen level — designed for open exploration and iPad concept testing.</p>
+    <h3>Star ratings (recommended stage)</h3>
+    <p>
+      ★☆☆ Weighing Scales — best for early KS1, bonds to 10.<br>
+      ★★☆ Ocean Bonds &amp; Potion Shop — KS1 through lower KS2.<br>
+      ★★★ (coming soon) — upper KS2 challenge.
+    </p>
+    <h3>Level &amp; mode settings</h3>
+    <p>Each game has its own settings screen. Choose the bond range (to 5, to 10, to 20, doubles only, etc.) and question type (addition only, subtraction only, or mixed).</p>
+    <h3>Profiles &amp; privacy</h3>
+    <p>Named profiles save the child's last-used level and game so they pick up where they left off. Guest mode stores nothing at all. All data stays on this device — nothing is sent to any server.</p>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// PROFILES  (localStorage)
+// ══════════════════════════════════════
+const STORE_KEY = 'nb_profiles_v1';
+const AVATARS   = ['🐙','🧪','⚖️','🐠','🐸','🦊','🐼','🐨','🦁','🐯','🐧','🦄','🐲','🌟','🍕','🚀'];
+
+function loadProfiles(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'[]'); }catch(e){ return []; } }
+function saveProfiles(ps){ localStorage.setItem(STORE_KEY, JSON.stringify(ps)); }
+
+function saveLastUsed(id, level, mode){
+  if(!id||id==='guest') return;
+  const ps=loadProfiles(); const p=ps.find(x=>x.id===id);
+  if(p){ p.lastLevel=level; p.lastMode=mode; saveProfiles(ps); }
+}
+
+let currentProfile = null;  // null = guest
+
+// ══════════════════════════════════════
+// WHO SCREEN
+// ══════════════════════════════════════
+function renderWho(){
+  const ps   = loadProfiles();
+  const grid = document.getElementById('profile-grid');
+  grid.innerHTML = '';
+
+  ps.forEach(p => {
+    const c = document.createElement('div');
+    c.className = 'profile-card';
+    c.innerHTML = `<span class="av">${p.avatar}</span><span class="pn">${p.name}</span>`;
+    c.onclick = () => pickProfile(p);
+    grid.appendChild(c);
+  });
+
+  // Add new
+  const add = document.createElement('div');
+  add.className = 'profile-card addnew';
+  add.innerHTML = `<span class="av">＋</span><span class="pn">Add player</span>`;
+  add.onclick = openAdd;
+  grid.appendChild(add);
+
+  // Guest
+  const guest = document.createElement('div');
+  guest.className = 'profile-card guest';
+  guest.innerHTML = `<span class="av">👤</span><span class="pn">Guest</span>`;
+  guest.onclick = () => pickProfile(null);
+  grid.appendChild(guest);
+
+  document.getElementById('del-btn').style.display = ps.length ? 'block' : 'none';
+}
+
+function pickProfile(p){
+  currentProfile = p;
+  document.getElementById('badge-av').textContent   = p ? p.avatar : '👤';
+  document.getElementById('badge-name').textContent = p ? p.name  : 'Guest';
+  document.getElementById('who-screen').style.display  = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
+}
+
+// ══════════════════════════════════════
+// ADD MODAL
+// ══════════════════════════════════════
+let selAv = AVATARS[0];
+
+function openAdd(){
+  selAv = AVATARS[0];
+  document.getElementById('new-name').value = '';
+  const picker = document.getElementById('av-picker');
+  picker.innerHTML = '';
+  AVATARS.forEach(av => {
+    const s = document.createElement('span');
+    s.className = 'av-opt' + (av===selAv?' sel':'');
+    s.textContent = av;
+    s.onclick = () => {
+      selAv = av;
+      picker.querySelectorAll('.av-opt').forEach(el=>el.classList.remove('sel'));
+      s.classList.add('sel');
+    };
+    picker.appendChild(s);
+  });
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('new-name').focus(),80);
+}
+
+document.getElementById('cancel-btn').onclick = ()=> document.getElementById('add-modal').classList.remove('open');
+
+document.getElementById('save-btn').onclick = ()=>{
+  const name = document.getElementById('new-name').value.trim();
+  if(!name){ document.getElementById('new-name').focus(); return; }
+  const ps = loadProfiles();
+  ps.push({ id:Date.now().toString(), name, avatar:selAv, lastLevel:'upto10', lastMode:'both', lastGame:null });
+  saveProfiles(ps);
+  document.getElementById('add-modal').classList.remove('open');
+  renderWho();
+};
+
+document.getElementById('new-name').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('save-btn').click();
+});
+
+// Delete
+document.getElementById('del-btn').onclick = ()=>{
+  const ps = loadProfiles();
+  if(!ps.length) return;
+  const names = ps.map((p,i)=>`${p.avatar} ${p.name}`).join('\n');
+  const resp  = prompt(`Type the name to remove:\n\n${names}`);
+  if(!resp) return;
+  const idx = ps.findIndex(p=>p.name.toLowerCase()===resp.trim().toLowerCase());
+  if(idx===-1){ alert('Player not found.'); return; }
+  if(!confirm(`Remove ${ps[idx].name}?`)) return;
+  ps.splice(idx,1); saveProfiles(ps); renderWho();
+};
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+function openGame(file){
+  const id = currentProfile ? currentProfile.id : 'guest';
+  window.location.href = `${file}?profile=${encodeURIComponent(id)}`;
+}
+
+document.getElementById('back-btn').onclick = ()=>{
+  document.getElementById('game-screen').style.display='none';
+  document.getElementById('who-screen').style.display='flex';
+};
+
+function toggleTeacher(){
+  const el = document.getElementById('teacher-info');
+  const bt = document.getElementById('teacher-toggle');
+  el.classList.toggle('open');
+  bt.textContent = el.classList.contains('open')
+    ? 'ℹ️ Teacher / parent notes ▴'
+    : 'ℹ️ Teacher / parent notes ▾';
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+renderWho();
+</script>
+</body>
+</html>
