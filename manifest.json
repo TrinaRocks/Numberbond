@@ -2,7 +2,7 @@
   "name": "Number Bonds Games",
   "short_name": "Number Bonds",
   "description": "Three fun maths games for KS1 and KS2 number bonds practice",
-  "start_url": "/index.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0a0612",
   "theme_color": "#0a0612",

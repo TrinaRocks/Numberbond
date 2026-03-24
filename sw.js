@@ -3,14 +3,14 @@
 const CACHE = 'numberbonds-v1';
 
 const FILES = [
-  '/index.html',
-  '/ocean_number_bonds.html',
-  '/potion_shop.html',
-  '/weighing_scales.html',
-  '/bond_engine.js',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  'index.html',
+  'ocean_number_bonds.html',
+  'potion_shop.html',
+  'weighing_scales.html',
+  'bond_engine.js',
+  'manifest.json',
+  'icon-192.png',
+  'icon-512.png'
 ];
 
 // Install: cache everything up front
