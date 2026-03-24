@@ -455,7 +455,7 @@ const COL = {
 
 const DICE_PATTERNS = {
   1: [[0,0]],
-  2: [[-0.55,-0.55],[0.55,0.55]],
+  2: [[-0.45,-0.45],[0.45,0.45]],
   3: [[-0.62,-0.62],[0,0],[0.62,0.62]],
   4: [[-0.62,-0.62],[0.62,-0.62],[-0.62,0.62],[0.62,0.62]],
   5: [[-0.62,-0.62],[0.62,-0.62],[0,0],[-0.62,0.62],[0.62,0.62]],
@@ -714,13 +714,13 @@ function decompose(n) {
 function getDotColours(circleIdx) {
   // 0=whole, 1=partA, 2=partB
   const disp = cfg.display;
-  if (circleIdx === 1) return Array(partA).fill('#20a040');
+  if (circleIdx === 1) return Array(partA).fill('#e07010');
   if (circleIdx === 2) return Array(partB).fill('#2060c0');
   // whole
-  return Array(partA).fill('#20a040').concat(Array(partB).fill('#2060c0'));
+  return Array(partA).fill('#e07010').concat(Array(partB).fill('#2060c0'));
 }
 
-function drawDots(cx, cy, r, n, withNumbers, colours, fullCircle, circleIdx) {
+function drawDots(cx, cy, r, n, withNumbers, colours, fullCircle) {
   if (n === 0) return;
   const groups = decompose(n);
   const ng = groups.length;
@@ -743,16 +743,15 @@ function drawDots(cx, cy, r, n, withNumbers, colours, fullCircle, circleIdx) {
   const refZoneW = zoneW;      // width is the same either way
   const refSubW  = refZoneW / cols;
   const refSubH  = refZoneH / rows;
-  const fullCircleBoost = fullCircle ? (rows > 1 ? (circleIdx === 0 ? 1.30 : 1.43) : 1.2) : 1.0;
-  const half  = Math.min(refSubW, refSubH) * (n > 10 ? 0.42 : 0.34) * fullCircleBoost;
-  const dotR  = Math.max(2.5, Math.min(9, half * (n > 10 ? 0.40 : 0.34)));
+  const half  = Math.min(refSubW, refSubH) * (n > 10 ? 0.42 : 0.34) * (fullCircle ? 1.2 : 1.0);
+  const dotR  = Math.max(2.5, Math.min(9, half * (n > 10 ? 0.40 : 0.34))) * 0.9;
 
   // Build sub-dice centres on a grid
   let centres = [];
   if (n > 10 && cols === 2) {
     const colSpacing = half * 2.4;
-    // In counters-only (fullCircle), match row spacing to column spacing
-    const rowSpacing = fullCircle ? half * 2.4 : subH;
+    // In counters-only (fullCircle), pull rows closer together around midY
+    const rowSpacing = fullCircle ? half * 2.0 : subH;
     const totalRowH = rowSpacing * (rows - 1);
     for (let gi = 0; gi < ng; gi++) {
       const col = gi % cols;
@@ -798,6 +797,57 @@ function drawDots(cx, cy, r, n, withNumbers, colours, fullCircle, circleIdx) {
   });
 }
 
+// Returns true if the whole circle should show A and B as two separate sub-dice.
+// Active for entry levels (to5, doubles10) whenever counters are visible.
+function useSplitDiceForWhole() {
+  const disp = cfg.display;
+  const withDots = disp === 'counters' || disp === 'both';
+  return withDots && (cfg.level === 'to5' || cfg.level === 'doubles10');
+}
+
+// Draw the whole circle's counters as two side-by-side dice:
+// left die = partA (orange), right die = partB (blue), matching the bond diagram order.
+function drawWholeSplitDice(c, withNum) {
+  const countersOnly = cfg.display === 'counters';
+  const r = c.r;
+  const margin = r * 0.10;
+  const dotTop = countersOnly ? c.cy - r + margin : c.cy + r * 0.07;
+  const dotBot = c.cy + r - margin;
+  const zoneH = dotBot - dotTop;
+  const zoneW = 2 * r - 2 * margin;
+  const gap = r * 0.08;
+  const halfW = (zoneW - gap) / 2;
+  const lcx = c.cx - gap / 2 - halfW / 2;  // partA (left)
+  const rcx = c.cx + gap / 2 + halfW / 2;  // partB (right)
+  const refZoneH = r * 0.83;
+  const half = Math.min(halfW, refZoneH) * 0.34 * (countersOnly ? 1.2 : 1.0);
+  const dotR = Math.max(2.5, Math.min(9, half * 0.34)) * 0.9;
+  const spread = 0.78;
+
+  [[partA, lcx, '#e07010'], [partB, rcx, '#2060c0']].forEach(([val, scx, col]) => {
+    if (val === 0) return;
+    const groups = [];
+    let rem = val;
+    while (rem > 0) { const v = Math.min(5, rem); groups.push(v); rem -= v; }
+    const ng = groups.length;
+    const rowH = zoneH / ng;
+    groups.forEach((gval, gi) => {
+      const scy = dotTop + rowH * gi + rowH / 2;
+      const pat = DICE_PATTERNS[gval] || DICE_PATTERNS[5];
+      pat.forEach(([dx, dy]) => {
+        ctx.beginPath(); ctx.arc(scx + dx * half * spread, scy + dy * half * spread, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = col; ctx.fill();
+      });
+    });
+  });
+
+  // Faint dividing line between the two dice
+  ctx.strokeStyle = 'rgba(100,140,160,0.35)'; ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(c.cx, dotTop + r * 0.05); ctx.lineTo(c.cx, dotBot - r * 0.05); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
 function drawBonds() {
   const circles = [
     {c:CW, val:whole,  isMiss:missing==='whole',  fsize:46, idx:0},
@@ -836,7 +886,11 @@ function drawBonds() {
         ctx.fillText(val, c.cx, numY);
       }
       if (withDots) {
-        drawDots(c.cx, c.cy, c.r, val, withNum, getDotColours(idx), countersOnly, idx);
+        if (idx === 0 && useSplitDiceForWhole()) {
+          drawWholeSplitDice(c, withNum);
+        } else {
+          drawDots(c.cx, c.cy, c.r, val, withNum, getDotColours(idx), countersOnly);
+        }
       }
     }
   });
@@ -867,7 +921,11 @@ function drawRevealCircle(miss, correctVal) {
   }
   if (withDots) {
     const idx = miss==='whole'?0 : miss==='partA'?1:2;
-    drawDots(c.cx, c.cy, c.r, correctVal, withNum, getDotColours(idx), countersOnly, idx);
+    if (idx === 0 && useSplitDiceForWhole()) {
+      drawWholeSplitDice(c, withNum);
+    } else {
+      drawDots(c.cx, c.cy, c.r, correctVal, withNum, getDotColours(idx), countersOnly);
+    }
   }
   // Stars outside
   for (let i=0;i<6;i++) {
