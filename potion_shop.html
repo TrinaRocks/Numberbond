@@ -24,8 +24,9 @@ body{background:#0e0818;font-family:'Trebuchet MS',sans-serif;display:flex;flex-
 #score-label{font-size:13px;font-weight:bold;flex:1;}
 #streak-label{font-size:13px;font-weight:bold;color:#c0a0ff;}
 #settings-btn{background:#1e0838;color:#c0b0e0;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:12px;}
-canvas#gc{display:block;width:560px;height:380px;max-width:100vw;}
+canvas#gc{display:block;width:100%;height:auto;max-width:560px;}
 .canvas-wrap{position:relative;width:560px;max-width:100vw;}
+#home-btn{background:#1e0838;color:#c0b0e0;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:14px;text-decoration:none;display:inline-block;}
 #feedback-label{font-size:14px;text-align:center;min-height:22px;padding:3px 0;font-weight:bold;}
 #shelf-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px 12px;min-height:70px;width:100%;}
 .bottle-btn{display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:transform 0.12s;padding:4px 6px;border-radius:8px;border:2px solid transparent;background:rgba(255,255,255,0.04);}
@@ -77,6 +78,7 @@ canvas#gc{display:block;width:560px;height:380px;max-width:100vw;}
 </div>
 <div id="game-screen">
   <div id="top-bar">
+    <a id="home-btn" href="launcher.html">←</a>
     <span id="score-label">⭐ 0 / 0</span>
     <span id="streak-label"></span>
     <button id="settings-btn">⚙ Settings</button>
@@ -108,7 +110,7 @@ const SOUNDS={pour:()=>playTones([[200,60],[180,80],[160,100]],0.25),correct:()=
 const canvas=document.getElementById('gc');
 const ctx=canvas.getContext('2d');
 const W=560,H=380;
-function resizeCanvas(){const sc=Math.min(1,window.innerWidth/560);canvas.style.width=(560*sc)+'px';canvas.style.height=(380*sc)+'px';canvas.parentElement.style.width=(560*sc)+'px';}
+function resizeCanvas(){const maxW=Math.min(560,window.innerWidth);const sc=maxW/560;canvas.style.width=(560*sc)+'px';canvas.style.height=(380*sc)+'px';canvas.parentElement.style.width=(560*sc)+'px';}
 window.addEventListener('resize',resizeCanvas);
 
 // ── BOTTLE PALETTES ────────────────────────────────────────────────────────

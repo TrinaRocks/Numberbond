@@ -19,7 +19,7 @@ body {
   user-select: none;
 }
 
-#app { width: 100%; max-width: 520px; }
+#app { width: 100%; max-width: 580px; }
 
 /* ── CONFIG SCREEN ── */
 #config-screen {
@@ -83,7 +83,6 @@ body {
 #top-bar {
   display: flex;
   width: 100%;
-  max-width: 480px;
   align-items: center;
   padding: 8px 14px 4px;
   gap: 10px;
@@ -100,12 +99,24 @@ body {
   font-family: inherit;
   font-size: 12px;
 }
+#home-btn {
+  background: #0e3a6a;
+  color: #d0eeff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  text-decoration: none;
+  display: inline-block;
+}
 
 canvas#game-canvas {
   display: block;
-  width: 480px;
-  height: 460px;
-  max-width: 100vw;
+  width: 100%;
+  height: auto;
+  max-width: 480px;
 }
 
 #sum-label {
@@ -160,7 +171,77 @@ canvas#game-canvas {
   display: none;
 }
 
-.canvas-wrap { position: relative; width: 480px; max-width: 100vw; }
+/* ── GAME LAYOUT WRAPPER ── */
+#game-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  gap: 6px;
+}
+
+.canvas-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+canvas#game-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Number pad — left column (1–10) and right column (11–20) flanking canvas */
+#num-pad-left, #num-pad-right {
+  display: grid;
+  grid-template-columns: 44px;
+  grid-template-rows: repeat(10, 1fr);
+  gap: 4px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+#num-pad-left { padding: 4px 4px 4px 0; }
+#num-pad-right { padding: 4px 0 4px 4px; }
+
+.num-pad-btn {
+  width: 44px;
+  border-radius: 7px;
+  border: none;
+  background: #0e3a6a;
+  color: #d0eeff;
+  font-size: 15px;
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.1s, transform 0.08s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.num-pad-btn:hover  { background: #1a5090; }
+.num-pad-btn:active { transform: scale(0.92); background: #2060b0; }
+
+/* Narrow screens: both pads go below as rows */
+@media (max-width: 560px) {
+  #game-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+  #num-pad-left, #num-pad-right {
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: auto;
+    width: 100%;
+    padding: 2px 6px;
+    align-self: auto;
+  }
+  .num-pad-btn {
+    width: 100%;
+    height: 36px;
+    font-size: 14px;
+  }
+}
 </style>
 </head>
 <body>
@@ -214,13 +295,18 @@ canvas#game-canvas {
 <!-- GAME -->
 <div id="game-screen">
   <div id="top-bar">
+    <a id="home-btn" href="launcher.html">←</a>
     <span id="score-label">⭐ 0 / 0</span>
     <span id="streak-label"></span>
     <button id="settings-btn">⚙ Settings</button>
   </div>
-  <div class="canvas-wrap">
-    <canvas id="game-canvas" width="480" height="460"></canvas>
-    <input id="entry-overlay" type="text" inputmode="numeric" maxlength="2" autocomplete="off">
+  <div id="game-layout">
+    <div id="num-pad-left"></div>
+    <div class="canvas-wrap">
+      <canvas id="game-canvas" width="480" height="460"></canvas>
+      <input id="entry-overlay" type="text" inputmode="numeric" maxlength="2" autocomplete="off">
+    </div>
+    <div id="num-pad-right"></div>
   </div>
   <div id="sum-label"></div>
   <div id="feedback-label"></div>
@@ -369,7 +455,7 @@ const COL = {
 
 const DICE_PATTERNS = {
   1: [[0,0]],
-  2: [[-0.45,-0.45],[0.45,0.45]],
+  2: [[-0.55,-0.55],[0.55,0.55]],
   3: [[-0.62,-0.62],[0,0],[0.62,0.62]],
   4: [[-0.62,-0.62],[0.62,-0.62],[-0.62,0.62],[0.62,0.62]],
   5: [[-0.62,-0.62],[0.62,-0.62],[0,0],[-0.62,0.62],[0.62,0.62]],
@@ -384,11 +470,6 @@ const ctx = canvas.getContext('2d');
 const entry = document.getElementById('entry-overlay');
 
 function resizeCanvas() {
-  const scale = Math.min(1, window.innerWidth / 480);
-  canvas.style.width = (480 * scale) + 'px';
-  canvas.style.height = (460 * scale) + 'px';
-  const wrap = canvas.parentElement;
-  wrap.style.width = (480 * scale) + 'px';
   positionEntry();
 }
 window.addEventListener('resize', resizeCanvas);
@@ -639,41 +720,77 @@ function getDotColours(circleIdx) {
   return Array(partA).fill('#20a040').concat(Array(partB).fill('#2060c0'));
 }
 
-function drawDots(cx, cy, r, n, withNumbers, colours) {
+function drawDots(cx, cy, r, n, withNumbers, colours, fullCircle, circleIdx) {
   if (n === 0) return;
   const groups = decompose(n);
   const ng = groups.length;
-  const margin = r * 0.08;
-  const boxW = 2*r - 2*margin, boxH = r - r*0.05 - margin;
-  const gap = 0.18;
-  let half;
-  if (ng===1) half = Math.min(boxW,boxH)*0.85/2;
-  else if (ng===2) half = Math.min(boxW/(2+gap),boxH)*0.88/2;
-  else half = Math.min(boxW/(2+gap),boxH/(2+gap))*0.88/2;
+  const margin = r * 0.10;
+  // Dot zone: full circle when counters-only, lower portion otherwise
+  const dotTop = fullCircle ? cy - r + margin : cy + r * 0.07;
+  const dotBot = cy + r - margin;
+  const zoneH = dotBot - dotTop;
+  const zoneW = 2 * r - 2 * margin;
+  const midX = cx, midY = dotTop + zoneH / 2;
 
+  // How large each sub-dice box can be
+  const cols = ng <= 2 ? ng : 2;
+  const rows = Math.ceil(ng / cols);
+  const subW = zoneW / cols;
+  const subH = zoneH / rows;
+  // half-span: always derived from the lower-portion zone so counters-only
+  // matches counters-and-numbers dot sizes exactly
+  const refZoneH = r * 0.83;  // lower-portion height (cy+r*0.07 to cy+r-r*0.10)
+  const refZoneW = zoneW;      // width is the same either way
+  const refSubW  = refZoneW / cols;
+  const refSubH  = refZoneH / rows;
+  const fullCircleBoost = fullCircle ? (rows > 1 ? (circleIdx === 0 ? 1.30 : 1.43) : 1.2) : 1.0;
+  const half  = Math.min(refSubW, refSubH) * (n > 10 ? 0.42 : 0.34) * fullCircleBoost;
+  const dotR  = Math.max(2.5, Math.min(9, half * (n > 10 ? 0.40 : 0.34)));
+
+  // Build sub-dice centres on a grid
   let centres = [];
-  const dotTop = cy + r*0.05, dotBot = cy + r - margin;
-  const zoneH = dotBot - dotTop, zoneW = 2*r - 2*margin;
-  const midX = cx, midY = dotTop + zoneH/2;
-  const stepX = (half*2)*(1+gap), stepY = (half*2)*(1+gap);
+  if (n > 10 && cols === 2) {
+    const colSpacing = half * 2.4;
+    // In counters-only (fullCircle), match row spacing to column spacing
+    const rowSpacing = fullCircle ? half * 2.4 : subH;
+    const totalRowH = rowSpacing * (rows - 1);
+    for (let gi = 0; gi < ng; gi++) {
+      const col = gi % cols;
+      const row = Math.floor(gi / cols);
+      const scx = midX + (col === 0 ? -colSpacing / 2 : colSpacing / 2);
+      const scy = midY - totalRowH / 2 + row * rowSpacing;
+      centres.push([scx, scy]);
+    }
+  } else if (n >= 6 && cols === 2) {
+    const colSpacing = half * 2.0;
+    for (let gi = 0; gi < ng; gi++) {
+      const col = gi % cols;
+      const row = Math.floor(gi / cols);
+      const scx = midX + (col === 0 ? -colSpacing / 2 : colSpacing / 2);
+      const scy = dotTop + subH * row + subH / 2;
+      centres.push([scx, scy]);
+    }
+  } else {
+    for (let gi = 0; gi < ng; gi++) {
+      const col = gi % cols;
+      const row = Math.floor(gi / cols);
+      const scx = (cx - r + margin) + subW * col + subW / 2;
+      const scy = dotTop + subH * row + subH / 2;
+      centres.push([scx, scy]);
+    }
+  }
+  // Special single-group: centre in zone
+  if (ng === 1) centres = [[midX, midY]];
 
-  if (ng===1) centres=[[midX,midY]];
-  else if (ng===2) centres=[[midX-half*(1+gap)/2, midY],[midX+half*(1+gap)/2, midY]];
-  else if (ng===3) centres=[[midX-stepX/2,midY-stepY/2],[midX+stepX/2,midY-stepY/2],[midX,midY+stepY/2]];
-  else centres=[[midX-stepX/2,midY+stepY/2],[midX+stepX/2,midY+stepY/2],[midX-stepX/2,midY-stepY/2],[midX+stepX/2,midY-stepY/2]];
-
-  const spread = n < 10 ? 0.65 : 0.85;
+  const spread = n > 10 ? 0.95 : 0.78;
   let dotIdx = 0;
-
   groups.forEach((gval, gi) => {
-    const [scx,scy] = centres[gi];
-    const pat = DICE_PATTERNS[gval];
-    pat.forEach(([dx,dy]) => {
-      const px = scx + dx*half*spread, py = scy + dy*half*spread;
-      const ng2 = ng;
-      let dr = Math.max(3, Math.min(7, Math.floor(r*0.12/Math.max(1, Math.pow(ng2,0.45)))));
-      if (ng2===2) dr = 7;
-      ctx.beginPath(); ctx.arc(px,py,dr,0,Math.PI*2);
+    const [scx, scy] = centres[gi];
+    const pat = DICE_PATTERNS[gval] || DICE_PATTERNS[5];
+    pat.forEach(([dx, dy]) => {
+      const px = scx + dx * half * spread;
+      const py = scy + dy * half * spread;
+      ctx.beginPath(); ctx.arc(px, py, dotR, 0, Math.PI * 2);
       ctx.fillStyle = colours[dotIdx] || '#888';
       ctx.fill();
       dotIdx++;
@@ -710,10 +827,8 @@ function drawBonds() {
       const disp = cfg.display;
       const withNum = disp==='numbers'||disp==='both';
       const withDots = disp==='counters'||disp==='both';
+      const countersOnly = disp==='counters';
       if (withNum) {
-        // Whole circle: always 46pt, always at fixed position (no shift)
-        // Part circles: shift up when dots also shown
-        const isWhole = (idx === 0);
         const numY = withDots ? c.cy - c.r*0.45 : c.cy;
         ctx.fillStyle = '#2a1a00';
         ctx.font = `bold ${fsize}px Trebuchet MS`;
@@ -721,7 +836,7 @@ function drawBonds() {
         ctx.fillText(val, c.cx, numY);
       }
       if (withDots) {
-        drawDots(c.cx, c.cy, c.r, val, withNum, getDotColours(idx));
+        drawDots(c.cx, c.cy, c.r, val, withNum, getDotColours(idx), countersOnly, idx);
       }
     }
   });
@@ -741,6 +856,7 @@ function drawRevealCircle(miss, correctVal) {
   const disp = cfg.display;
   const withNum = disp==='numbers'||disp==='both';
   const withDots = disp==='counters'||disp==='both';
+  const countersOnly = disp==='counters';
 
   if (withNum) {
     const numY = withDots ? c.cy - c.r*0.45 : c.cy;
@@ -751,7 +867,7 @@ function drawRevealCircle(miss, correctVal) {
   }
   if (withDots) {
     const idx = miss==='whole'?0 : miss==='partA'?1:2;
-    drawDots(c.cx, c.cy, c.r, correctVal, withNum, getDotColours(idx));
+    drawDots(c.cx, c.cy, c.r, correctVal, withNum, getDotColours(idx), countersOnly, idx);
   }
   // Stars outside
   for (let i=0;i<6;i++) {
@@ -995,6 +1111,37 @@ function updateSumLabel() {
     el.textContent = `${partA}  +  ?  =  ${whole}    ·    ${whole}  −  ${partA}  =  ?`;
 }
 
+function buildNumPad() {
+  const left  = document.getElementById('num-pad-left');
+  const right = document.getElementById('num-pad-right');
+  left.innerHTML = '';
+  right.innerHTML = '';
+
+  const needs20 = ['exact20','doubles20','upto20'].includes(cfg.level);
+  const show20 = needs20 || (whole > 10 || partA > 10 || partB > 10);
+
+  // Always show 1–10 on the left
+  for (let n = 1; n <= 10; n++) {
+    const btn = document.createElement('button');
+    btn.className = 'num-pad-btn';
+    btn.textContent = n;
+    btn.onclick = () => { if (entry.disabled) return; entry.value = n; checkAnswer(); };
+    left.appendChild(btn);
+  }
+
+  // Show 11–20 on the right only when needed
+  right.style.display = show20 ? '' : 'none';
+  if (show20) {
+    for (let n = 11; n <= 20; n++) {
+      const btn = document.createElement('button');
+      btn.className = 'num-pad-btn';
+      btn.textContent = n;
+      btn.onclick = () => { if (entry.disabled) return; entry.value = n; checkAnswer(); };
+      right.appendChild(btn);
+    }
+  }
+}
+
 function newQuestion() {
   stopTimer();
   revealed = false;
@@ -1010,6 +1157,7 @@ function newQuestion() {
 
   updateSumLabel();
   if (!octopusAnimId) octopusMood = 'thinking';
+  buildNumPad();
   redraw();
   updateScore();
   startTimer();
