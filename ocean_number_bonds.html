@@ -62,6 +62,8 @@ body {
   cursor: pointer;
 }
 .radio-group input[type=radio] { accent-color: #00b8d4; }
+.option-disabled { opacity: 0.35; pointer-events: none; }
+.cfg-hint { font-size: 10px; color: #3a6080; margin-top: 2px; padding-left: 14px; line-height: 1.4; }
 #start-btn {
   display: block;
   margin: 18px auto 0;
@@ -272,6 +274,7 @@ canvas#game-canvas {
     <div class="config-col">
       <div class="radio-group">
         <label class="group-title">➕➖ Question type</label>
+        <label class="option"><input type="radio" name="mode" value="early"> Early maths</label>
         <label class="option"><input type="radio" name="mode" value="add"> Addition only</label>
         <label class="option"><input type="radio" name="mode" value="sub"> Subtraction only</label>
         <label class="option"><input type="radio" name="mode" value="both" checked> Addition &amp; Subtraction</label>
@@ -383,6 +386,17 @@ class BondEngine {
         q.missing === this._lastQ.missing) {
       return this.nextQuestion();
     }
+
+    // Avoid symmetric repeats: if partA==partB and we're flipping between partA and partB missing
+    if (this._lastQ && this._bonds.length > 1 &&
+        q.partA === q.partB &&
+        q.whole === this._lastQ.whole &&
+        q.partA === this._lastQ.partA &&
+        q.partB === this._lastQ.partB &&
+        q.missing === 'partA' && this._lastQ.missing === 'partB') {
+      return this.nextQuestion();
+    }
+
     this._lastQ = q;
     return q;
   }
@@ -797,16 +811,22 @@ function drawDots(cx, cy, r, n, withNumbers, colours, fullCircle) {
   });
 }
 
-// Returns true if the whole circle should show A and B as two separate sub-dice.
-// Active for entry levels (to5, doubles10) whenever counters are visible.
+// ── PRE-ADDITION / SPLIT-DICE HELPERS ─────────────────────────────────────
+
+// True when the active game mode is early maths.
+function isEarlyMaths() { return cfg.mode === 'early'; }
+
+// True when the whole circle should display A and B as two side-by-side dice.
+// Applies in early maths mode AND in bonds-to-5 / doubles-to-10 counter modes.
 function useSplitDiceForWhole() {
-  const disp = cfg.display;
-  const withDots = disp === 'counters' || disp === 'both';
-  return withDots && (cfg.level === 'to5' || cfg.level === 'doubles10');
+  const withDots = cfg.display === 'counters' || cfg.display === 'both';
+  if (!withDots) return false;
+  if (isEarlyMaths()) return true;
+  return cfg.level === 'to5' || cfg.level === 'doubles10';
 }
 
 // Draw the whole circle's counters as two side-by-side dice:
-// left die = partA (orange), right die = partB (blue), matching the bond diagram order.
+// left = partA (orange), right = partB (blue).
 function drawWholeSplitDice(c, withNum) {
   const countersOnly = cfg.display === 'counters';
   const r = c.r;
@@ -817,8 +837,8 @@ function drawWholeSplitDice(c, withNum) {
   const zoneW = 2 * r - 2 * margin;
   const gap = r * 0.08;
   const halfW = (zoneW - gap) / 2;
-  const lcx = c.cx - gap / 2 - halfW / 2;  // partA (left)
-  const rcx = c.cx + gap / 2 + halfW / 2;  // partB (right)
+  const lcx = c.cx - gap / 2 - halfW / 2;
+  const rcx = c.cx + gap / 2 + halfW / 2;
   const refZoneH = r * 0.83;
   const half = Math.min(halfW, refZoneH) * 0.34 * (countersOnly ? 1.2 : 1.0);
   const dotR = Math.max(2.5, Math.min(9, half * 0.34)) * 0.9;
@@ -829,25 +849,24 @@ function drawWholeSplitDice(c, withNum) {
     const groups = [];
     let rem = val;
     while (rem > 0) { const v = Math.min(5, rem); groups.push(v); rem -= v; }
-    const ng = groups.length;
-    const rowH = zoneH / ng;
+    const rowH = zoneH / groups.length;
     groups.forEach((gval, gi) => {
       const scy = dotTop + rowH * gi + rowH / 2;
-      const pat = DICE_PATTERNS[gval] || DICE_PATTERNS[5];
-      pat.forEach(([dx, dy]) => {
+      (DICE_PATTERNS[gval] || DICE_PATTERNS[5]).forEach(([dx, dy]) => {
         ctx.beginPath(); ctx.arc(scx + dx * half * spread, scy + dy * half * spread, dotR, 0, Math.PI * 2);
         ctx.fillStyle = col; ctx.fill();
       });
     });
   });
 
-  // Faint dividing line between the two dice
+  // Faint dividing line
   ctx.strokeStyle = 'rgba(100,140,160,0.35)'; ctx.lineWidth = 1;
   ctx.setLineDash([3, 3]);
   ctx.beginPath(); ctx.moveTo(c.cx, dotTop + r * 0.05); ctx.lineTo(c.cx, dotBot - r * 0.05); ctx.stroke();
   ctx.setLineDash([]);
 }
 
+// ── DRAW BONDS ─────────────────────────────────────────────────────────────
 function drawBonds() {
   const circles = [
     {c:CW, val:whole,  isMiss:missing==='whole',  fsize:46, idx:0},
@@ -873,11 +892,37 @@ function drawBonds() {
     }
     ctx.stroke(); ctx.setLineDash([]);
 
-    if (!isMiss) {
+    // ── In early maths mode: all missing circles show dots (even when missing) ──
+    if (isEarlyMaths() && isMiss) {
+      // Draw the circle as visibly present (not dashed) with dots inside
+      ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+      ctx.fillStyle = COL.circleFill; ctx.fill();
+      ctx.setLineDash([]); ctx.strokeStyle = COL.circleStroke; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2); ctx.stroke();
+      
+      // Draw dots for missing circle
       const disp = cfg.display;
-      const withNum = disp==='numbers'||disp==='both';
       const withDots = disp==='counters'||disp==='both';
       const countersOnly = disp==='counters';
+      if (withDots) {
+        if (idx === 0) {
+          // Whole circle: show split dice
+          drawWholeSplitDice(c, false);
+        } else {
+          // Part circles: show dots
+          drawDots(c.cx, c.cy, c.r, val, false, getDotColours(idx), countersOnly);
+        }
+      }
+      return; // skip the normal isMiss branch below
+    }
+
+    if (!isMiss) {
+      const disp = cfg.display;
+      const withDots = disp==='counters'||disp==='both';
+      const countersOnly = disp==='counters';
+      // In early maths mode, always show numbers above dots; otherwise use display setting
+      const withNum = isEarlyMaths() ? true : disp==='numbers'||disp==='both';
+      
       if (withNum) {
         const numY = withDots ? c.cy - c.r*0.45 : c.cy;
         ctx.fillStyle = '#2a1a00';
@@ -908,9 +953,10 @@ function drawRevealCircle(miss, correctVal) {
   ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2); ctx.stroke();
 
   const disp = cfg.display;
-  const withNum = disp==='numbers'||disp==='both';
   const withDots = disp==='counters'||disp==='both';
   const countersOnly = disp==='counters';
+  // In early maths mode, always show numbers on reveal; otherwise use display setting
+  const withNum = isEarlyMaths() ? true : disp==='numbers'||disp==='both';
 
   if (withNum) {
     const numY = withDots ? c.cy - c.r*0.45 : c.cy;
@@ -921,6 +967,7 @@ function drawRevealCircle(miss, correctVal) {
   }
   if (withDots) {
     const idx = miss==='whole'?0 : miss==='partA'?1:2;
+    // Early maths and split-dice levels: keep split dice on reveal of whole
     if (idx === 0 && useSplitDiceForWhole()) {
       drawWholeSplitDice(c, withNum);
     } else {
@@ -1340,6 +1387,22 @@ function stopTimer() {
 // ═══════════════════════════════════════════════════════════════
 // CONFIG → GAME TRANSITION
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// CONFIG — EARLY MATHS CONSTRAINTS
+// ═══════════════════════════════════════════════════════════════
+// Early maths is always compatible — it forces bonds to 5 and counters only
+
+// Run on page load and whenever level or display changes
+document.querySelectorAll('input[name="level"], input[name="display"]').forEach(el => {
+  el.addEventListener('change', updateModeAvailability);
+});
+updateModeAvailability();
+
+function updateModeAvailability() {
+  // Early maths is always available and doesn't have restrictions
+  // No special handling needed — it simply enforces its own settings when selected
+}
+
 function getRadio(name) {
   return document.querySelector(`input[name="${name}"]:checked`)?.value;
 }
@@ -1352,8 +1415,14 @@ document.getElementById('start-btn').onclick = () => {
     timer:   getRadio('timer'),
     sound:   getRadio('sound'),
   };
-  // Create new engine
-  engine = new BondEngine({ level: cfg.level, mode: cfg.mode });
+  // Early maths enforces: bonds to 5, counters only, all circles (both addition & subtraction)
+  if (cfg.mode === 'early') {
+    cfg.level   = 'to5';
+    cfg.display = 'counters';
+  }
+  // Engine uses 'both' for early maths (all three circles can be missing, all question types)
+  const engineMode = cfg.mode === 'early' ? 'both' : cfg.mode;
+  engine = new BondEngine({ level: cfg.level, mode: engineMode });
 
   // Reset visual state
   score=0; total=0; streak=0; revealed=false;
