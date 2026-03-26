@@ -7,8 +7,8 @@ Three browser-based maths games for KS1 and KS2 number bonds practice. Works as 
 | Game | Stage | Description |
 |------|-------|-------------|
 | 🐙 Ocean Bonds | KS1–KS2 | Type the missing number. The octopus cheers you on! |
-| ⚖️ Weighing Scales | KS1 | Place weights on the pan to balance the scales. |
-| 🧪 Potion Shop | KS1–KS2 | Fill the wizard's cauldron with the right potions! |
+| ⚖️ Weighing Scales | KS1 | Early construction. |
+| 🧪 Potion Shop | KS1–KS2 | Early construction. |
 
 ## Features
 
