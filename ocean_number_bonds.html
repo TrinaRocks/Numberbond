@@ -290,6 +290,11 @@ canvas#game-canvas {
         <label class="option"><input type="radio" name="timer" value="off" checked> Off</label>
         <label class="option"><input type="radio" name="timer" value="on"> On (10 sec)</label>
       </div>
+      <div class="radio-group">
+        <label class="group-title">🎯 Bond selection</label>
+        <label class="option"><input type="radio" name="bondSelection" value="progress" checked> Progress onwards</label>
+        <label class="option"><input type="radio" name="bondSelection" value="practice"> Extra practice here</label>
+      </div>
     </div>
   </div>
   <button id="start-btn">▶ Start Game</button>
@@ -353,14 +358,14 @@ class BondEngine {
   constructor(config) {
     this.level   = config.level || 'upto10';
     this.mode    = config.mode  || 'both';
+    this.bondSelection = config.bondSelection || 'progress';
     const builder = BE_LEVEL_BONDS[this.level] || BE_LEVEL_BONDS['upto10'];
     this._bonds  = builder();
     this._lastQ  = null;
   }
 
   nextQuestion() {
-    const idx = Math.floor(Math.random() * this._bonds.length);
-    const [w, a] = this._bonds[idx];
+    const [w, a] = this._selectBond();
     const b = w - a;
     let pa = a, pb = b;
     if (Math.random() < 0.5) { pa = b; pb = a; }
@@ -399,6 +404,28 @@ class BondEngine {
 
     this._lastQ = q;
     return q;
+  }
+
+  _selectBond() {
+    // For now, both 'progress' and 'practice' use simple random selection
+    // Smart algorithm to be defined later
+    if (this.bondSelection === 'progress') {
+      return this._smartBondSelect();
+    } else if (this.bondSelection === 'practice') {
+      return this._simpleBondSelect();
+    }
+    return this._simpleBondSelect();
+  }
+
+  _smartBondSelect() {
+    // Placeholder: currently calls simple selection
+    // Will be replaced with adaptive algorithm
+    return this._simpleBondSelect();
+  }
+
+  _simpleBondSelect() {
+    const idx = Math.floor(Math.random() * this._bonds.length);
+    return this._bonds[idx];
   }
 
   recordAnswer() {
@@ -1414,6 +1441,7 @@ document.getElementById('start-btn').onclick = () => {
     display: getRadio('display'),
     timer:   getRadio('timer'),
     sound:   getRadio('sound'),
+    bondSelection: getRadio('bondSelection'),
   };
   // Early maths enforces: bonds to 5, counters only, all circles (both addition & subtraction)
   if (cfg.mode === 'early') {
@@ -1422,7 +1450,7 @@ document.getElementById('start-btn').onclick = () => {
   }
   // Engine uses 'both' for early maths (all three circles can be missing, all question types)
   const engineMode = cfg.mode === 'early' ? 'both' : cfg.mode;
-  engine = new BondEngine({ level: cfg.level, mode: engineMode });
+  engine = new BondEngine({ level: cfg.level, mode: engineMode, bondSelection: cfg.bondSelection });
 
   // Reset visual state
   score=0; total=0; streak=0; revealed=false;
