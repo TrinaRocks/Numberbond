@@ -224,6 +224,10 @@ canvas#game-canvas { display: block; }
 }
 .num-pad-btn:hover  { background: #1a5090; }
 .num-pad-btn:active { transform: scale(0.92); background: #2060b0; }
+/* Hide keypad on desktop (mouse / fine pointer). Touch-only UI. */
+@media (hover: hover) and (pointer: fine) {
+  .num-pad-panel { display: none !important; }
+}
 
 /* ── CAVE GAME SCREEN ── */
 #bar-model-screen { display:none; }
@@ -546,7 +550,7 @@ canvas#cave-canvas { display:block; }
     <div id="num-pad-left" class="num-pad-panel"></div>
     <div class="canvas-wrap">
       <canvas id="game-canvas" width="480" height="460"></canvas>
-      <input id="entry-overlay" type="text" inputmode="numeric" maxlength="2" autocomplete="off">
+      <input id="entry-overlay" type="text" inputmode="none" maxlength="2" autocomplete="off">
     </div>
     <div id="num-pad-right" class="num-pad-panel"></div>
   </div>
@@ -564,7 +568,7 @@ canvas#cave-canvas { display:block; }
   <div id="cave-game-layout" class="game-pad-layout layout-side">
     <div id="cave-num-pad-left" class="num-pad-panel"></div>
     <div id="cave-wrap" class="canvas-wrap">
-      <canvas id="cave-canvas" width="680" height="420"></canvas>
+      <canvas id="cave-canvas" width="480" height="460"></canvas>
       <div id="cave-top-bar">
         <button id="cave-home-btn">←</button>
         <span id="cave-score-label">⭐ 0 / 0</span>
@@ -582,7 +586,7 @@ canvas#cave-canvas { display:block; }
         </div>
         <div id="bm-input-row">
           <span class="bm-answer-prompt" id="bm-answer-prompt">?</span>
-          <input type="number" class="bm-answer-input" id="bm-answer-input" min="0" max="200" placeholder="?" autocomplete="off">
+          <input type="number" class="bm-answer-input" id="bm-answer-input" min="0" max="200" placeholder="?" inputmode="none" autocomplete="off">
         </div>
         <div class="bm-feedback" id="bm-feedback"></div>
       </div>
@@ -1416,6 +1420,20 @@ function fitGameLayout(opts) {
   const n = Keypad.count;
   if (n === 0) return;
 
+  // Desktop (mouse / fine pointer): CSS hides pads; don't reserve pad space.
+  const touchUI = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+  if (!touchUI) {
+    const scale = Math.min(sw/aW, sh/aH);
+    if (!(scale > 0)) return;
+    const cw = aW * scale, ch = aH * scale;
+    layout.classList.remove('layout-stack');
+    layout.classList.add('layout-side');
+    canvasEl.style.width  = cw + 'px';
+    canvasEl.style.height = ch + 'px';
+    canvasEl.style.maxWidth = 'none';
+    return;
+  }
+
   // Evaluate candidate configurations: mode (side|stack) × split (dual|single).
   // Score = canvas area, penalized when button short-dim is below MIN_TAP.
   const MIN_TAP = 34;   // px — below this, buttons feel cramped
@@ -1504,7 +1522,7 @@ function fitCave() {
     leftPad:          document.getElementById('cave-num-pad-left'),
     rightPad:         document.getElementById('cave-num-pad-right'),
     containerWidthEl: document.getElementById('bar-model-screen'),
-    aspectW: 680, aspectH: 420,
+    aspectW: 480, aspectH: 460,
     reserveAbove: 0,
     reserveBelow: 24,
   });
@@ -2509,7 +2527,7 @@ function underwaterCave(canvasId) {
   const cv = document.getElementById(canvasId);
   const g  = cv.getContext('2d');
   const W  = cv.width, H = cv.height;
-  const SANDY = Math.round(H * 0.881); // 370/420
+  const SANDY = Math.round(H * 0.881); // ~405 at H=460
 
   // ═══════════════════════════════════════════
   // COLOURS
@@ -2573,13 +2591,13 @@ function underwaterCave(canvasId) {
   // Each ripple: cx (centre x), y (baseline y), ph (phase), amp (peak amplitude)
   // Edge-fade: sin(t*π) where t=0..1 across ripple width
   // Internal modulation: 0.72 + 0.28*cos((x-cx)*0.018 + ph*0.5)
-  // All ripples same half-width (160px landscape, 130px portrait)
+  // All ripples same half-width (scaled for 480-wide scene)
   const RIPPLES = [
-    {cx: 140, y: SANDY+6,  ph: 0.0, amp: 7},
-    {cx: 340, y: SANDY+12, ph: 1.9, amp: 9},
-    {cx: 540, y: SANDY+8,  ph: 0.8, amp: 6},
+    {cx: 100, y: SANDY+6,  ph: 0.0, amp: 7},
+    {cx: 240, y: SANDY+12, ph: 1.9, amp: 9},
+    {cx: 380, y: SANDY+8,  ph: 0.8, amp: 6},
   ];
-  const RH = 160, RF = 0.038;
+  const RH = 113, RF = 0.038;
 
   function drawSand() {
     g.fillStyle = COL.sand;    g.fillRect(0, SANDY, W, H-SANDY);
@@ -2664,16 +2682,16 @@ function underwaterCave(canvasId) {
   }
 
   // Crystal definitions — 5 bilateral + 2 unilateral
-  // Landscape crab zone [280..400] kept clear
+  // Crab zone [180..300] kept clear (scene now 480 wide)
   const CRYSTALS = [
-    buildCrystal(100, COL.purpFill, COL.purpHi, 68,10,[{side:-1,frac:.32,hlen:20,vH:28,hw:6},{side:1,frac:.58,hlen:18,vH:24,hw:5}]),
-    buildCrystal(162, COL.tealFill, COL.tealHi, 58, 9,[{side:1,frac:.35,hlen:22,vH:26,hw:5},{side:-1,frac:.62,hlen:16,vH:22,hw:5}]),
-    buildCrystal(225, COL.viotFill, COL.viotHi, 72,11,[{side:-1,frac:.28,hlen:24,vH:30,hw:7},{side:1,frac:.55,hlen:20,vH:25,hw:6}]),
-    buildCrystal(455, COL.cyanFill, COL.cyanHi, 64,10,[{side:-1,frac:.38,hlen:19,vH:27,hw:6},{side:1,frac:.60,hlen:21,vH:23,hw:5}]),
-    buildCrystal(520, COL.lilFill,  COL.lilHi,  60, 9,[{side:1,frac:.30,hlen:20,vH:25,hw:5},{side:-1,frac:.57,hlen:18,vH:22,hw:5}]),
+    buildCrystal( 72, COL.purpFill, COL.purpHi, 68,10,[{side:-1,frac:.32,hlen:20,vH:28,hw:6},{side:1,frac:.58,hlen:18,vH:24,hw:5}]),
+    buildCrystal(116, COL.tealFill, COL.tealHi, 58, 9,[{side:1,frac:.35,hlen:22,vH:26,hw:5},{side:-1,frac:.62,hlen:16,vH:22,hw:5}]),
+    buildCrystal(161, COL.viotFill, COL.viotHi, 72,11,[{side:-1,frac:.28,hlen:24,vH:30,hw:7},{side:1,frac:.55,hlen:20,vH:25,hw:6}]),
+    buildCrystal(321, COL.cyanFill, COL.cyanHi, 64,10,[{side:-1,frac:.38,hlen:19,vH:27,hw:6},{side:1,frac:.60,hlen:21,vH:23,hw:5}]),
+    buildCrystal(367, COL.lilFill,  COL.lilHi,  60, 9,[{side:1,frac:.30,hlen:20,vH:25,hw:5},{side:-1,frac:.57,hlen:18,vH:22,hw:5}]),
     // unilateral — both arms same side
-    buildCrystal(600, COL.purpFill, COL.purpHi, 66,10,[{side:-1,frac:.33,hlen:22,vH:27,hw:6},{side:-1,frac:.60,hlen:18,vH:22,hw:5}]),
-    buildCrystal(140, COL.tealFill, COL.tealHi, 55, 8,[{side:1,frac:.36,hlen:16,vH:22,hw:5},{side:1,frac:.62,hlen:14,vH:18,hw:4}]),
+    buildCrystal(424, COL.purpFill, COL.purpHi, 66,10,[{side:-1,frac:.33,hlen:22,vH:27,hw:6},{side:-1,frac:.60,hlen:18,vH:22,hw:5}]),
+    buildCrystal(100, COL.tealFill, COL.tealHi, 55, 8,[{side:1,frac:.36,hlen:16,vH:22,hw:5},{side:1,frac:.62,hlen:14,vH:18,hw:4}]),
   ];
 
   // ═══════════════════════════════════════════
@@ -2686,7 +2704,7 @@ function underwaterCave(canvasId) {
   const CELEB_LO = 72, CELEB_HI = 180;
 
   const crab = {
-    x:340, y:350, baseY:350,
+    x:240, y:385, baseY:385,
     state:'idle', t:0, expr:'positive',
     aL:BASE_L, aR:BASE_R, open:0.14,
     hopVY:0, hopActive:false, scuttleDir:1,
@@ -2910,11 +2928,11 @@ function underwaterCave(canvasId) {
         break;
       case 'scuttle':
         crab.x += crab.scuttleDir*3.5;
-        if(crab.x>490||crab.x<190)crab.scuttleDir*=-1;
+        if(crab.x>340||crab.x<140)crab.scuttleDir*=-1;
         crab.aL=BASE_L+Math.sin(t*0.18)*0.28+wr;
         crab.aR=BASE_R-Math.sin(t*0.18)*0.22-wr;
         crab.open=0.2+Math.sin(t*0.18)*0.15;
-        if(t>200){crab.state='idle';crab.x=340;crab.t=0;}
+        if(t>200){crab.state='idle';crab.x=240;crab.t=0;}
         break;
       case 'celebLo':
         crab.y = crab.baseY + Math.sin(t*0.18)*4;
@@ -2954,18 +2972,18 @@ function underwaterCave(canvasId) {
   function drawBackground() {
     g.fillStyle=COL.bg; g.fillRect(0,0,W,H);
     g.fillStyle='rgba(0,180,200,0.025)';
-    for(let i=0;i<6;i++){g.beginPath();g.ellipse(120+i*90,H*0.5,60,H*0.43,0,0,Math.PI*2);g.fill();}
+    for(let i=0;i<6;i++){g.beginPath();g.ellipse(85+i*64,H*0.5,42,H*0.43,0,0,Math.PI*2);g.fill();}
     g.fillStyle='rgba(120,255,240,0.5)';
-    for(const[dx,dy]of[[180,150],[300,200],[400,130],[520,180],[160,260],[440,240],[580,130]]){
+    for(const[dx,dy]of[[127,164],[212,219],[282,142],[367,197],[113,285],[311,263],[410,142]]){
       g.beginPath();g.arc(dx,dy,2,0,Math.PI*2);g.fill();
     }
   }
   function drawWalls() {
     g.fillStyle=COL.wall;
-    g.beginPath();g.moveTo(0,0);g.lineTo(0,H);g.lineTo(90,H);g.lineTo(70,340);g.lineTo(55,280);g.lineTo(80,240);g.lineTo(50,200);g.lineTo(60,150);g.lineTo(30,100);g.lineTo(40,50);g.closePath();g.fill();
-    g.beginPath();g.moveTo(W,0);g.lineTo(W,H);g.lineTo(W-90,H);g.lineTo(W-70,340);g.lineTo(W-55,280);g.lineTo(W-80,240);g.lineTo(W-50,200);g.lineTo(W-60,150);g.lineTo(W-30,100);g.lineTo(W-40,50);g.closePath();g.fill();
+    g.beginPath();g.moveTo(0,0);g.lineTo(0,H);g.lineTo(64,H);g.lineTo(50,373);g.lineTo(40,307);g.lineTo(56,263);g.lineTo(35,219);g.lineTo(42,164);g.lineTo(21,110);g.lineTo(28,55);g.closePath();g.fill();
+    g.beginPath();g.moveTo(W,0);g.lineTo(W,H);g.lineTo(W-64,H);g.lineTo(W-50,373);g.lineTo(W-40,307);g.lineTo(W-56,263);g.lineTo(W-35,219);g.lineTo(W-42,164);g.lineTo(W-21,110);g.lineTo(W-28,55);g.closePath();g.fill();
     g.fillStyle=COL.ceil;
-    g.beginPath();g.moveTo(0,0);g.lineTo(W,0);g.lineTo(W,60);g.lineTo(620,40);g.lineTo(560,70);g.lineTo(500,45);g.lineTo(440,80);g.lineTo(380,50);g.lineTo(320,75);g.lineTo(260,45);g.lineTo(200,72);g.lineTo(140,48);g.lineTo(80,65);g.lineTo(0,50);g.closePath();g.fill();
+    g.beginPath();g.moveTo(0,0);g.lineTo(W,0);g.lineTo(W,66);g.lineTo(438,44);g.lineTo(395,77);g.lineTo(353,49);g.lineTo(311,88);g.lineTo(268,55);g.lineTo(226,82);g.lineTo(184,49);g.lineTo(141,79);g.lineTo(99,53);g.lineTo(56,71);g.lineTo(0,55);g.closePath();g.fill();
   }
 
   // ═══════════════════════════════════════════
