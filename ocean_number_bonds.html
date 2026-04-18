@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Ocean Number Bonds 🐙</title>
 <style>
@@ -19,685 +20,1575 @@ body {
   user-select: none;
 }
 
-#app { width: 100%; max-width: 580px; }
+#app { width: 100%; max-width: 600px; }
 
-/* ── CONFIG SCREEN ── */
-#config-screen {
-  padding: 20px 24px;
-  background: #0a1a3a;
+/* ── SCREEN MANAGEMENT ── */
+.screen { display: none; }
+.screen.active { display: block; }
+#game-screen { display: none; flex-direction: column; align-items: center; }
+#game-screen.active { display: flex; }
+
+/* ── USER SCREEN ── */
+#user-screen { padding: 28px 20px; text-align: center; }
+#user-screen h1 { color: #40ffcc; font-size: 24px; margin-bottom: 6px; }
+.subtitle { text-align: center; color: #60b0d0; font-size: 13px; margin-bottom: 18px; }
+.user-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.user-btn {
+  background: #0e3a6a; color: #d0eeff;
+  border: 2px solid #1a5090; padding: 11px 20px;
+  border-radius: 8px; cursor: pointer;
+  font-family: inherit; font-size: 15px; font-weight: bold;
+  text-align: left; display: flex; justify-content: space-between; align-items: center;
+  width: 100%;
 }
-#config-screen h1 {
-  text-align: center;
-  font-size: 22px;
-  color: #40ffcc;
-  margin-bottom: 4px;
+.user-btn:hover { background: #1a5090; }
+.user-btn.guest { color: #80a0b8; font-style: italic; font-weight: normal; font-size: 14px; }
+.user-row { display: flex; gap: 6px; align-items: stretch; }
+.user-row .user-btn { flex: 1; }
+.del-btn {
+  background: #0e2848; color: #406080;
+  border: 1px solid #1a4060; padding: 0 12px;
+  border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 18px;
 }
-#config-screen .subtitle {
-  text-align: center;
-  color: #60b0d0;
-  font-size: 13px;
-  margin-bottom: 16px;
+.del-btn:hover { color: #ff6060; background: #1a1028; }
+.new-user-row { display: flex; gap: 8px; margin-top: 4px; }
+.new-user-row input {
+  flex: 1; background: #0e2848; border: 1px solid #1a5090;
+  color: #d0eeff; padding: 9px 10px; border-radius: 6px;
+  font-family: inherit; font-size: 14px;
 }
-.config-cols {
-  display: flex;
-  gap: 28px;
-  justify-content: center;
+.new-user-row input::placeholder { color: #406080; }
+
+/* ── SETTINGS SCREEN ── */
+#settings-screen { padding: 16px 20px; background: #0a1a3a; }
+#settings-screen h1 { text-align: center; font-size: 20px; color: #40ffcc; margin-bottom: 2px; }
+.player-label { text-align: center; color: #60b0d0; font-size: 12px; margin-bottom: 12px; }
+.lock-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #071428; border: 1px solid #1a4060;
+  border-radius: 6px; padding: 7px 12px; margin-bottom: 12px;
 }
+.lock-icon { font-size: 15px; }
+.lock-label { font-size: 12px; color: #7090a8; flex: 1; }
+.lock-badge {
+  font-size: 11px; font-weight: bold;
+  padding: 3px 10px; border-radius: 4px; cursor: pointer; letter-spacing: 0.5px;
+}
+.lock-badge.locked   { background: #992200; color: #ffd0c0; }
+.lock-badge.unlocked { background: #005530; color: #80ffcc; }
+.config-cols { display: flex; gap: 20px; }
 .config-col { flex: 1; }
-.radio-group { margin-bottom: 12px; }
+.radio-group { margin-bottom: 10px; }
 .radio-group label.group-title {
-  display: block;
-  font-size: 13px;
-  font-weight: bold;
-  color: #d0eeff;
-  margin-bottom: 4px;
+  display: block; font-size: 12px; font-weight: bold; color: #a0c8e0; margin-bottom: 3px;
 }
 .radio-group label.option {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: #d0eeff;
-  padding: 2px 0 2px 14px;
-  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: #d0eeff; padding: 2px 0 2px 10px; cursor: pointer;
 }
 .radio-group input[type=radio] { accent-color: #00b8d4; }
-.option-disabled { opacity: 0.35; pointer-events: none; }
-.cfg-hint { font-size: 10px; color: #3a6080; margin-top: 2px; padding-left: 14px; line-height: 1.4; }
-#start-btn {
-  display: block;
-  margin: 18px auto 0;
-  background: #00b8d4;
-  color: #002030;
-  border: none;
-  padding: 10px 36px;
-  font-size: 16px;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: inherit;
+.settings-locked .radio-group label.option { opacity: 0.38; pointer-events: none; }
+
+/* ── LOCK MODAL ── */
+#lock-modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.78); z-index: 200;
+  align-items: center; justify-content: center;
 }
-#start-btn:hover { background: #00d4f0; }
+#lock-modal.open { display: flex; }
+.modal-box {
+  background: #0e2040; border: 2px solid #00b8d4;
+  border-radius: 12px; padding: 24px 28px;
+  text-align: center; max-width: 300px; width: 90%;
+}
+.modal-box h2 { color: #40ffcc; font-size: 16px; margin-bottom: 8px; }
+.modal-box p  { color: #a0c8e0; font-size: 13px; margin-bottom: 10px; }
+#lock-question { color: #ffff80; font-size: 22px; font-weight: bold; margin-bottom: 10px; }
+#lock-answer-inp {
+  background: #071428; border: 1.5px solid #1a5090;
+  color: #d0eeff; padding: 8px 4px; border-radius: 6px;
+  font-family: inherit; font-size: 20px; text-align: center; width: 80px;
+}
+#lock-feedback { min-height: 18px; font-size: 12px; margin: 6px 0; color: #ff8060; }
+.modal-btns { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+
+/* ── GAME SELECT SCREEN ── */
+#game-select-screen { padding: 22px 20px; text-align: center; }
+#game-select-screen h1 { color: #40ffcc; font-size: 20px; margin-bottom: 4px; }
+.settings-summary {
+  background: #071428; border: 1px solid #0e3060;
+  border-radius: 6px; padding: 8px 14px;
+  margin: 10px 0 14px; font-size: 11px; color: #5090b0;
+  text-align: left; line-height: 1.9;
+}
+.game-cards { display: flex; flex-direction: column; gap: 10px; }
+.game-card {
+  background: #0e2848; border: 2px solid #1a5090;
+  border-radius: 8px; padding: 13px 16px;
+  cursor: pointer; text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+.game-card:hover { background: #143060; border-color: #00b8d4; }
+.game-card h3 { color: #40ffcc; font-size: 15px; margin-bottom: 3px; }
+.game-card p  { color: #5090b0; font-size: 11px; }
+.game-card.stub { opacity: 0.4; cursor: default; }
+.game-card.stub:hover { background: #0e2848; border-color: #1a5090; }
+
+/* ── SHARED BUTTONS ── */
+.teal-btn {
+  background: #00b8d4; color: #002030;
+  border: none; padding: 9px 20px;
+  font-size: 14px; font-weight: bold;
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+}
+.teal-btn:hover { background: #00d4f0; }
+.nav-btn {
+  background: #0e3a6a; color: #d0eeff;
+  border: none; padding: 7px 16px;
+  font-size: 13px; border-radius: 5px;
+  cursor: pointer; font-family: inherit;
+}
+.nav-btn:hover { background: #1a5090; }
 
 /* ── GAME SCREEN ── */
-#game-screen { display: none; flex-direction: column; align-items: center; }
-
 #top-bar {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  padding: 8px 14px 4px;
-  gap: 10px;
+  display: flex; width: 100%;
+  align-items: center; padding: 8px 14px 4px; gap: 10px;
 }
-#score-label { font-size: 14px; font-weight: bold; flex: 1; }
+#score-label  { font-size: 14px; font-weight: bold; flex: 1; }
 #streak-label { font-size: 13px; font-weight: bold; color: #40ffcc; }
-#settings-btn {
-  background: #0e3a6a;
-  color: #d0eeff;
-  border: none;
-  padding: 5px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 12px;
-}
 #home-btn {
-  background: #0e3a6a;
-  color: #d0eeff;
-  border: none;
-  padding: 5px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 14px;
-  text-decoration: none;
-  display: inline-block;
+  background: #0e3a6a; color: #d0eeff;
+  border: none; padding: 5px 12px; border-radius: 4px;
+  cursor: pointer; font-family: inherit; font-size: 14px;
 }
-
-canvas#game-canvas {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-width: 480px;
-}
-
+canvas#game-canvas { display: block; }
 #sum-label {
-  font-size: 19px;
-  font-weight: bold;
-  color: #ffffff;
-  text-align: center;
-  padding: 4px 0 0;
-  min-height: 28px;
-  letter-spacing: 1px;
+  font-size: 19px; font-weight: bold; color: #ffffff;
+  text-align: center; padding: 4px 0 0; min-height: 28px; letter-spacing: 1px;
 }
 #feedback-label {
-  font-size: 14px;
-  text-align: center;
-  min-height: 22px;
-  padding: 2px 0;
-  font-weight: bold;
+  font-size: 14px; text-align: center;
+  min-height: 22px; padding: 2px 0; font-weight: bold;
 }
-#btn-row {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  padding: 6px 0 10px;
-}
+#btn-row { display: flex; gap: 12px; justify-content: center; padding: 6px 0 10px; }
 .game-btn {
-  padding: 8px 22px;
-  font-size: 14px;
-  font-weight: bold;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-family: inherit;
+  padding: 8px 22px; font-size: 14px; font-weight: bold;
+  border: none; border-radius: 5px; cursor: pointer; font-family: inherit;
 }
-#check-btn { background: #00b8d4; color: #002030; }
 #skip-btn  { background: #0e3a6a; color: #d0eeff; }
-#check-btn:hover { background: #00d4f0; }
 #skip-btn:hover  { background: #1a5090; }
-
-/* Entry overlay */
 #entry-overlay {
-  position: absolute;
-  background: transparent;
-  border: none;
-  outline: none;
-  text-align: center;
-  font-family: 'Trebuchet MS', sans-serif;
-  font-weight: bold;
-  color: #005f7a;
-  caret-color: #005f7a;
-  pointer-events: auto;
-  z-index: 10;
-  display: none;
+  position: fixed; background: transparent; border: none; outline: none;
+  text-align: center; font-family: 'Trebuchet MS', sans-serif;
+  font-weight: bold; color: #005f7a; caret-color: #005f7a;
+  pointer-events: auto; z-index: 10; display: none;
 }
-
-/* ── GAME LAYOUT WRAPPER ── */
-#game-layout {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: center;
-  width: 100%;
-  gap: 6px;
+.game-pad-layout {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; gap: 6px;
 }
-
-.canvas-wrap {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
+.game-pad-layout.layout-side  { flex-direction: row; }
+.game-pad-layout.layout-stack { flex-direction: column; }
+.canvas-wrap { position: relative; flex: 0 0 auto; min-width: 0; }
+.num-pad-panel {
+  display: grid; gap: 4px; flex-shrink: 0;
+  box-sizing: border-box;
 }
-
-canvas#game-canvas {
-  display: block;
-  width: 100%;
-  height: auto;
+.game-pad-layout.layout-side  .num-pad-panel {
+  grid-template-columns: 1fr;
+  grid-auto-rows: 1fr;
+  padding: 0 2px;
 }
-
-/* Number pad — left column (1–10) and right column (11–20) flanking canvas */
-#num-pad-left, #num-pad-right {
-  display: grid;
-  grid-template-columns: 44px;
-  grid-template-rows: repeat(10, 1fr);
-  gap: 4px;
-  flex-shrink: 0;
-  align-self: stretch;
+.game-pad-layout.layout-stack .num-pad-panel {
+  grid-template-rows: 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 2px 0;
 }
-#num-pad-left { padding: 4px 4px 4px 0; }
-#num-pad-right { padding: 4px 0 4px 4px; }
-
 .num-pad-btn {
-  width: 44px;
-  border-radius: 7px;
-  border: none;
-  background: #0e3a6a;
-  color: #d0eeff;
-  font-size: 15px;
-  font-weight: bold;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.1s, transform 0.08s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 7px; border: none;
+  background: #0e3a6a; color: #d0eeff;
+  font-size: var(--btn-font-size, 18px); font-weight: bold; font-family: inherit;
+  cursor: pointer; transition: background 0.1s, transform 0.08s;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0; min-height: 0; line-height: 1;
 }
 .num-pad-btn:hover  { background: #1a5090; }
 .num-pad-btn:active { transform: scale(0.92); background: #2060b0; }
 
-/* Narrow screens: both pads go below as rows */
-@media (max-width: 560px) {
-  #game-layout {
-    flex-direction: column;
-    align-items: center;
-  }
-  #num-pad-left, #num-pad-right {
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: auto;
-    width: 100%;
-    padding: 2px 6px;
-    align-self: auto;
-  }
-  .num-pad-btn {
-    width: 100%;
-    height: 36px;
-    font-size: 14px;
-  }
+/* ── CAVE GAME SCREEN ── */
+#bar-model-screen { display:none; }
+#bar-model-screen.active { display:block; }
+
+#cave-wrap { position:relative; }
+canvas#cave-canvas { display:block; }
+
+#cave-top-bar {
+  position:absolute; top:0; left:0; right:0;
+  display:flex; align-items:center; padding:8px 14px 4px; gap:10px; z-index:10;
 }
+#cave-score-label { font-size:14px; font-weight:bold; flex:1; }
+#cave-streak-label { font-size:13px; font-weight:bold; color:#40ffcc; }
+#cave-home-btn {
+  background:rgba(14,58,106,0.85); color:#d0eeff; border:none;
+  padding:5px 12px; border-radius:4px; cursor:pointer; font-family:inherit; font-size:14px;
+}
+
+/* bar-card-wrap: overlays lower portion of canvas, no card background */
+#bar-card-wrap {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:0 14px 10px; z-index:10;
+  font-family:'Nunito',sans-serif;
+}
+
+/* bars sit directly on the cave scene — no container */
+#bm-bar-total-wrap { margin-bottom:4px; }
+#bm-bar-parts-wrap { margin-bottom:10px; }
+
+.bm-bar-track {
+  position:relative; height:44px; border-radius:10px;
+  background:rgba(10,26,58,0.55);
+  overflow:visible; display:flex; align-items:stretch;
+}
+.bm-bar-total-fill {
+  width:100%; position:relative; border-radius:10px;
+  background:#9b6ee8;
+  display:flex; align-items:center; justify-content:center;
+  color:white; font-weight:900; font-size:1.35rem; font-family:'Baloo 2',cursive;
+  transition:background .3s;
+}
+.bm-bar-parts { display:flex; height:44px; border-radius:10px; }
+.bm-bar-part {
+  display:flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:1.2rem; font-family:'Baloo 2',cursive;
+  color:white; transition:width .5s cubic-bezier(.4,1.4,.6,1);
+  position:relative; min-width:0; flex-shrink:0;
+}
+.bm-bar-part.part-a { background:#ffb347; border-radius:10px 0 0 10px; }
+.bm-bar-part.part-b { background:#5ab4ff; border-left:3px solid rgba(255,255,255,0.5); border-radius:0 10px 10px 0; }
+.bm-bar-part.unknown, .bm-bar-total-fill.unknown {
+  background:rgba(10,26,58,0.55);
+  border:2.5px dashed rgba(255,255,255,0.6);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+}
+
+.bm-support-dot-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+.bm-support-dot { position:absolute; top:50%; width:11px; height:11px; transform:translate(-50%,-50%); border-radius:50%; background:rgba(255,255,255,0.25); border:2px solid currentColor; box-sizing:border-box; }
+.bm-support-label { position:absolute; left:50%; transform:translateX(-50%); z-index:2; font-weight:900; font-size:1rem; pointer-events:none; white-space:nowrap; text-shadow:0 1px 3px rgba(0,0,0,0.7); }
+.bm-support-label.whole { top:-32px; font-size:1.25rem; color:#e0d0ff; }
+.bm-support-label.part  { top:calc(100% + 3px); color:#ffe0b0; }
+
+/* input row — no card, elements float on dark background */
+#bm-input-row {
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;
+}
+.bm-answer-prompt {
+  font-weight:800; font-size:.95rem;
+  color:#d0eeff; text-shadow:0 1px 4px rgba(0,0,0,0.8);
+  font-family:'Nunito',sans-serif;
+}
+.bm-answer-prompt .missing-box {
+  border:2px solid #40ffcc; border-radius:8px; padding:2px 7px; margin:0 2px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-weight:900; color:#40ffcc;
+}
+.bm-answer-input {
+  width:72px; height:44px;
+  border:2.5px solid rgba(64,255,204,0.6); border-radius:10px;
+  font-family:'Baloo 2',cursive; font-size:1.5rem; font-weight:800;
+  color:#ffffff; text-align:center; outline:none;
+  background:rgba(14,40,72,0.85);
+  transition:border-color .2s, box-shadow .2s, transform .15s;
+  -moz-appearance:textfield;
+}
+.bm-answer-input::-webkit-inner-spin-button,
+.bm-answer-input::-webkit-outer-spin-button { -webkit-appearance:none; }
+.bm-answer-input:focus {
+  border-color:#40ffcc; box-shadow:0 0 0 3px rgba(64,255,204,0.25); transform:scale(1.04);
+}
+.bm-answer-input.correct-anim { border-color:#40ffcc; background:rgba(0,60,40,0.85); }
+.bm-answer-input.wrong-anim   { border-color:#ff7040; background:rgba(60,10,0,0.85); }
+.bm-feedback {
+  min-height:24px; font-size:.95rem; font-weight:800; text-align:center;
+  border-radius:8px; padding:2px 12px; margin-top:4px;
+  opacity:0; transition:opacity .3s; pointer-events:none;
+  font-family:'Nunito',sans-serif;
+  text-shadow:0 1px 4px rgba(0,0,0,0.8);
+}
+.bm-feedback.show { opacity:1; }
+.bm-feedback.correct { color:#40ffcc; }
+.bm-feedback.wrong   { color:#ff9070; }
+
+@keyframes bm-shake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+.bm-shake { animation:bm-shake .35s ease; }
+
+/* ── BOND MAP SCREEN ── */
+#bond-map-screen { padding:16px 14px; background:#0a1a3a; min-height:100vh; }
+#bond-map-inner { max-width:600px; margin:0 auto; }
+#bond-map-legend {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  font-size:11px; color:#80a8c0; margin-bottom:12px; padding:6px 10px;
+  background:#071428; border-radius:6px;
+}
+.bml-dot {
+  display:inline-block; width:11px; height:11px; border-radius:50%; flex-shrink:0;
+}
+.bml-new       { background:#1a3a5a; border:1.5px solid #2a5080; }
+.bml-learning  { background:#b06000; }
+.bml-probation { background:#0066aa; }
+.bml-free      { background:#00884a; }
+#bond-map-grid { display:flex; flex-direction:column; gap:4px; }
+.bm-whole-row {
+  display:flex; align-items:center; gap:4px; min-height:22px;
+}
+.bm-whole-label {
+  width:28px; text-align:right; font-size:11px; font-weight:bold;
+  color:#5090b0; flex-shrink:0; padding-right:4px;
+}
+.bm-bond-chips { display:flex; gap:3px; flex-wrap:wrap; flex:1; }
+.bm-chip {
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:4px; font-size:10px; font-weight:bold;
+  padding:2px 5px; cursor:default; white-space:nowrap;
+  font-family:'Trebuchet MS',sans-serif;
+}
+.bm-chip.phase-new       { background:#0e2848; color:#4a7090; border:1px solid #1a4060; }
+.bm-chip.phase-learning  { background:#7a4000; color:#ffcc80; }
+.bm-chip.phase-probation { background:#004488; color:#80ccff; }
+.bm-chip.phase-free      { background:#005530; color:#80ffcc; }
 </style>
 </head>
 <body>
 <div id="app">
 
-<!-- CONFIG -->
-<div id="config-screen">
+<!-- ── SCREEN 1: USER / GUEST ── -->
+<div id="user-screen" class="screen active">
   <h1>🐙 Ocean Number Bonds 🐙</h1>
-  <p class="subtitle">Choose your settings</p>
-  <div class="config-cols">
-    <div class="config-col">
-      <div class="radio-group">
-        <label class="group-title">🐚 Starting level</label>
-        <label class="option"><input type="radio" name="level" value="to5" checked> Bonds to 5</label>
-        <label class="option"><input type="radio" name="level" value="exact10"> Bonds to 10 (exactly)</label>
-        <label class="option"><input type="radio" name="level" value="doubles10"> Doubles up to 10</label>
-        <label class="option"><input type="radio" name="level" value="upto10"> Bonds up to 10</label>
-        <label class="option"><input type="radio" name="level" value="exact20"> Bonds to 20 (exactly)</label>
-        <label class="option"><input type="radio" name="level" value="doubles20"> Doubles up to 20</label>
-        <label class="option"><input type="radio" name="level" value="upto20"> Bonds up to 20</label>
-      </div>
-      <div class="radio-group">
-        <label class="group-title">🔊 Sound effects</label>
-        <label class="option"><input type="radio" name="sound" value="on"> On</label>
-        <label class="option"><input type="radio" name="sound" value="off" checked> Off</label>
-      </div>
-    </div>
-    <div class="config-col">
-      <div class="radio-group">
-        <label class="group-title">➕➖ Question type</label>
-        <label class="option"><input type="radio" name="mode" value="early"> Early maths</label>
-        <label class="option"><input type="radio" name="mode" value="add"> Addition only</label>
-        <label class="option"><input type="radio" name="mode" value="sub"> Subtraction only</label>
-        <label class="option"><input type="radio" name="mode" value="both" checked> Addition &amp; Subtraction</label>
-      </div>
-      <div class="radio-group">
-        <label class="group-title">🔢 Display</label>
-        <label class="option"><input type="radio" name="display" value="numbers" checked> Numbers only</label>
-        <label class="option"><input type="radio" name="display" value="both"> Counters &amp; Numbers</label>
-        <label class="option"><input type="radio" name="display" value="counters"> Counters only</label>
-      </div>
-      <div class="radio-group">
-        <label class="group-title">⏱ Timer</label>
-        <label class="option"><input type="radio" name="timer" value="off" checked> Off</label>
-        <label class="option"><input type="radio" name="timer" value="on"> On (10 sec)</label>
-      </div>
-      <div class="radio-group">
-        <label class="group-title">🎯 Bond selection</label>
-        <label class="option"><input type="radio" name="bondSelection" value="progress" checked> Progress onwards</label>
-        <label class="option"><input type="radio" name="bondSelection" value="practice"> Extra practice here</label>
-      </div>
-    </div>
+  <p class="subtitle">Who's playing?</p>
+  <div class="user-list" id="user-list"></div>
+  <div class="new-user-row">
+    <input type="text" id="new-name-input" placeholder="New player name…" maxlength="20" autocomplete="off">
+    <button class="teal-btn" id="add-user-btn">+ Add</button>
   </div>
-  <button id="start-btn">▶ Start Game</button>
 </div>
 
-<!-- GAME -->
-<div id="game-screen">
+<!-- ── SCREEN 2: SETTINGS ── -->
+<div id="settings-screen" class="screen">
+  <h1>⚙ Settings</h1>
+  <p class="player-label" id="settings-player-label">Guest</p>
+
+  <div class="lock-row">
+    <span class="lock-icon" id="lock-icon">🔒</span>
+    <span class="lock-label" id="lock-label">Settings locked — tap to change</span>
+    <span class="lock-badge locked" id="lock-badge">LOCKED</span>
+  </div>
+
+  <div id="settings-body" class="settings-locked">
+    <div class="config-cols">
+      <div class="config-col">
+        <div class="radio-group">
+          <label class="group-title">🐚 Starting level</label>
+          <label class="option"><input type="radio" name="cfg_level" value="to5"> Bonds to 5</label>
+          <label class="option"><input type="radio" name="cfg_level" value="exact10"> Bonds to 10 (exact)</label>
+          <label class="option"><input type="radio" name="cfg_level" value="doubles10"> Doubles up to 10</label>
+          <label class="option"><input type="radio" name="cfg_level" value="upto10"> Bonds up to 10</label>
+          <label class="option"><input type="radio" name="cfg_level" value="exact20"> Bonds to 20 (exact)</label>
+          <label class="option"><input type="radio" name="cfg_level" value="doubles20"> Doubles up to 20</label>
+          <label class="option"><input type="radio" name="cfg_level" value="upto20"> Bonds up to 20</label>
+        </div>
+        <div class="radio-group">
+          <label class="group-title">🔊 Sound effects</label>
+          <label class="option"><input type="radio" name="cfg_sound" value="on"> On</label>
+          <label class="option"><input type="radio" name="cfg_sound" value="off"> Off</label>
+        </div>
+        <div class="radio-group">
+          <label class="group-title">⏱ Timer</label>
+          <label class="option"><input type="radio" name="cfg_timer" value="off"> Off</label>
+          <label class="option"><input type="radio" name="cfg_timer" value="on"> On (10 sec)</label>
+        </div>
+      </div>
+      <div class="config-col">
+        <div class="radio-group">
+          <label class="group-title">➕ Override: Question type</label>
+          <label class="option"><input type="radio" name="cfg_omode" value="none"> No override</label>
+          <label class="option"><input type="radio" name="cfg_omode" value="add"> Addition only</label>
+          <label class="option"><input type="radio" name="cfg_omode" value="sub"> Subtraction only</label>
+          <label class="option"><input type="radio" name="cfg_omode" value="both"> Addition &amp; Subtraction</label>
+        </div>
+        <div class="radio-group">
+          <label class="group-title">🔢 Override: Display</label>
+          <label class="option"><input type="radio" name="cfg_odisp" value="none"> No override</label>
+          <label class="option"><input type="radio" name="cfg_odisp" value="numbers"> Numbers only</label>
+          <label class="option"><input type="radio" name="cfg_odisp" value="both"> Counters &amp; Numbers</label>
+          <label class="option"><input type="radio" name="cfg_odisp" value="counters"> Counters only</label>
+        </div>
+        <div class="radio-group">
+          <label class="group-title">🎯 Style</label>
+          <label class="option"><input type="radio" name="cfg_style" value="progress"> Progress</label>
+          <label class="option"><input type="radio" name="cfg_style" value="practice"> Practice</label>
+          <label class="option"><input type="radio" name="cfg_style" value="entry"> Entry</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;">
+    <button class="nav-btn" id="settings-back-btn">← Back</button>
+    <button class="nav-btn" id="bond-map-btn">🗺 Bond Map</button>
+    <button class="teal-btn" id="to-games-btn" style="padding:10px 32px;font-size:15px;">▶ Go to Games</button>
+  </div>
+</div>
+
+<!-- ── BOND MAP SCREEN ── -->
+<div id="bond-map-screen" class="screen">
+  <div id="bond-map-inner">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <button class="nav-btn" id="bond-map-back-btn">← Back</button>
+      <h2 style="color:#40ffcc;font-size:18px;flex:1;text-align:center;">🗺 Bond Map</h2>
+      <span style="width:60px;"></span>
+    </div>
+    <div id="bond-map-legend">
+      <span class="bml-dot bml-new"></span>New
+      <span class="bml-dot bml-learning"></span>Learning
+      <span class="bml-dot bml-probation"></span>Probation
+      <span class="bml-dot bml-free"></span>Learnt
+    </div>
+    <div id="bond-map-grid"></div>
+  </div>
+</div>
+
+<!-- ── DEBUG SCREEN (Stage 3.5 — temporary human debug view) ── -->
+<div id="debug-screen" class="screen">
+  <div style="padding:12px 14px;max-width:600px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <button class="nav-btn" id="debug-back-btn">← Back</button>
+      <h2 style="color:#40ffcc;font-size:17px;flex:1;text-align:center;">🔍 Debug readout</h2>
+      <button class="nav-btn" id="debug-refresh-btn" title="Refresh">↻</button>
+    </div>
+    <pre id="debug-content" style="
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #d0eeff;
+      background: #071428;
+      border: 1px solid #1a4060;
+      border-radius: 6px;
+      padding: 10px 12px;
+      white-space: pre;
+      overflow-x: auto;
+      max-height: 75vh;
+      overflow-y: auto;
+      margin: 0;
+    "></pre>
+  </div>
+</div>
+
+<!-- ── LOCK MODAL ── -->
+<div id="lock-modal">
+  <div class="modal-box">
+    <h2>🔐 Unlock Settings</h2>
+    <p>Answer to unlock:</p>
+    <div id="lock-question"></div>
+    <input type="text" id="lock-answer-inp" inputmode="numeric" maxlength="3" autocomplete="off">
+    <div id="lock-feedback"></div>
+    <div class="modal-btns">
+      <button class="teal-btn" id="lock-submit-btn">Check</button>
+      <button class="nav-btn"  id="lock-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN 3: GAME SELECT ── -->
+<div id="game-select-screen" class="screen">
+  <h1>🌊 Choose a Game</h1>
+  <p class="subtitle" id="game-select-player"></p>
+  <div class="settings-summary" id="settings-summary"></div>
+  <div class="game-cards">
+    <div class="game-card" id="reef-btn">
+      <h3>🐠 The Reef</h3>
+      <p>Match number bonds with the octopus in the coral reef</p>
+    </div>
+    <div class="game-card" id="bar-btn">
+      <h3>🦈 Cave</h3>
+      <p>Find the missing number in bar diagrams — with a friendly cave crab!</p>
+    </div>
+    <!-- Stage 3.5: debug/inspector screen registered as the 3rd game.
+         Temporary — will be superseded when a real 3rd game ships. -->
+    <div class="game-card" id="debug-btn">
+      <h3>🔍 Debug</h3>
+      <p>Full engine + settings readout (developer view)</p>
+    </div>
+  </div>
+  <button class="nav-btn" id="back-to-settings-btn" style="display:block;margin:14px auto 0;">← Back to Settings</button>
+</div>
+
+<!-- ── SCREEN 4: GAME ── -->
+<div id="game-screen" class="screen">
   <div id="top-bar">
-    <a id="home-btn" href="launcher.html">←</a>
+    <button id="home-btn">←</button>
     <span id="score-label">⭐ 0 / 0</span>
     <span id="streak-label"></span>
-    <button id="settings-btn">⚙ Settings</button>
   </div>
-  <div id="game-layout">
-    <div id="num-pad-left"></div>
+  <div id="game-layout" class="game-pad-layout layout-side">
+    <div id="num-pad-left" class="num-pad-panel"></div>
     <div class="canvas-wrap">
       <canvas id="game-canvas" width="480" height="460"></canvas>
       <input id="entry-overlay" type="text" inputmode="numeric" maxlength="2" autocomplete="off">
     </div>
-    <div id="num-pad-right"></div>
+    <div id="num-pad-right" class="num-pad-panel"></div>
   </div>
   <div id="sum-label"></div>
   <div id="feedback-label"></div>
   <div id="btn-row">
-    <button class="game-btn" id="check-btn">✓ Check</button>
     <button class="game-btn" id="skip-btn">Skip →</button>
   </div>
 </div>
 
+</div><!-- #app -->
+
+<!-- CAVE GAME SCREEN -->
+<div id="bar-model-screen" class="screen">
+  <div id="cave-game-layout" class="game-pad-layout layout-side">
+    <div id="cave-num-pad-left" class="num-pad-panel"></div>
+    <div id="cave-wrap" class="canvas-wrap">
+      <canvas id="cave-canvas" width="680" height="420"></canvas>
+      <div id="cave-top-bar">
+        <button id="cave-home-btn">←</button>
+        <span id="cave-score-label">⭐ 0 / 0</span>
+        <span id="cave-streak-label"></span>
+      </div>
+      <div id="bar-card-wrap">
+        <div id="bm-bar-total-wrap">
+          <div class="bm-bar-track"><div class="bm-bar-total-fill" id="bm-bar-total"></div></div>
+        </div>
+        <div id="bm-bar-parts-wrap">
+          <div class="bm-bar-parts">
+            <div class="bm-bar-part part-a" id="bm-part-a" style="width:50%"></div>
+            <div class="bm-bar-part part-b" id="bm-part-b" style="width:50%"></div>
+          </div>
+        </div>
+        <div id="bm-input-row">
+          <span class="bm-answer-prompt" id="bm-answer-prompt">?</span>
+          <input type="number" class="bm-answer-input" id="bm-answer-input" min="0" max="200" placeholder="?" autocomplete="off">
+        </div>
+        <div class="bm-feedback" id="bm-feedback"></div>
+      </div>
+    </div>
+    <div id="cave-num-pad-right" class="num-pad-panel"></div>
+  </div>
 </div>
 
 <script>
 
-// ── BOND ENGINE (minimal random) ──────────────────────────────────────────
-function BE_bondsExactly(whole) {
-  const b = [];
-  for (let a = 1; a <= Math.floor(whole / 2); a++) b.push([whole, a]);
-  return b;
+// ═══════════════════════════════════════════════════════════════════════════
+// OCEAN NUMBER BONDS — v5 (refactor in progress)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// SECTION INDEX (grep these labels to jump):
+//   ## CONFIG               — unified CONFIG object (levels/bonds/settings) ✓
+//   ## GAMES                — Games registry (reef, cave, debug)         ✓
+//   ## BOND ENGINE          — class BondEngine (question gen)
+//   ## STORAGE              — IndexedDB + localStorage fallback         ✓
+//   ## PERSISTENCE          — load/save users + per-user data           ✓
+//   ## SOUND                — Sound module (Web Audio tones)             ✓
+//   ## DRAW                 — Draw.constants + drawing primitives        ✓ (constants)
+//   ## ENGINE.PROGRESS      — player progress display (was "Bond Map")  ✓
+//   ## DEBUG GAME           — 3rd game: human-readable state inspector  ✓
+//   ## REEF GAME            — startGame() + stopReefGame + game loop     ✓ (registered)
+//   ## CAVE GAME            — startBarGame() + stopCaveGame + cave scenery ✓ (registered)
+//   ## SCREENS              — Screens.show() + screen-init helpers       ✓
+//   ## INIT                 — boot sequence (async Storage.init → render)✓
+//
+// REFACTOR STATUS:
+//   Stage 1 ✓ IndexedDB-backed durable storage with localStorage fallback.
+//   Stage 2 ✓ CONFIG unified. BondMap moved to EngineProgress. Back-compat
+//             aliases keep Reef/Cave game code working unchanged.
+//   Stage 3 ✓ Games registry; reef + cave registered as peer modules with
+//             start()/stop(). Button handlers routed through registry.
+//   Stage 3.5 ✓ Debug "game" registered as 3rd peer: full engine + settings
+//              readout. Temporary — supersede when a real 3rd game ships.
+//   Stage 4 ✓ Sound, Screens wrapped as modules. Draw.constants grouped.
+//             Drawing function bodies still in place (larger extraction
+//             deferred — low urgency, high touch count).
+//
+// Remaining technical debt (deferred):
+//   • Reef/Cave function bodies + state globals still live at module scope;
+//     could migrate into Games.reef.state / Games.cave.state incrementally.
+//   • Drawing functions (drawBackground, drawOctopus, …) still module-level.
+//   • v4 engine-reset-on-settings-change bug still present (user: fix later).
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// ## CONFIG — centralized engine/game configuration
+// ═══════════════════════════════════════════════════════════════
+//
+// Single source of truth for level definitions, bond generation, and
+// settings-to-engine mapping. Scoped to what the BondEngine and its
+// callers need. Visual/audio config still lives in ## DRAW and ## SOUND
+// sections (Stage 4 will consolidate those too).
+//
+//   CONFIG.levels     — which levels each game accepts + fallbacks
+//   CONFIG.bonds      — bond-list generation + the bondKey utility
+//   CONFIG.settings   — defaults and (level+style+overrides) → {display,mode}
+
+const CONFIG = (() => {
+  const levels = {
+    reef:     new Set(['to5','exact10','doubles10','upto10','exact20','doubles20','upto20']),
+    cave:     new Set(['to5','exact10','doubles10','upto10','exact20','doubles20','upto20',
+                       'exact100s','doubles100andexact10s','upto100']),
+    subStart: new Set(['exact10','exact20','doubles20']),   // engine boots in subtraction phase
+    fallback: 'upto20',
+    clipForReef(level) { return this.reef.has(level) ? level : this.fallback; },
+    clipForCave(level) { return this.cave.has(level) ? level : this.fallback; },
+  };
+
+  // Canonical bonds [w, a, b] with a >= b >= 1.
+  // Doubles first (ascending w), then rest (ascending w).
+  function forLevel(level) {
+    const doubles = [], rest = [];
+    function add(w, pa) {
+      const pb = w - pa; if (pb < 1) return;
+      const a = Math.max(pa, pb), b = Math.min(pa, pb);
+      (a === b ? doubles : rest).push([w, a, b]);
+    }
+    switch (level) {
+      case 'to5':       for (let w=2;w<=5;  w++)  for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+      case 'exact10':   for (let p=1;p<=5;  p++)  add(10,p); break;
+      case 'doubles10': for (let w=2;w<=10; w+=2) add(w, w/2); break;
+      case 'upto10':    for (let w=2;w<=10; w++)  for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+      case 'exact20':   for (let p=1;p<=10; p++)  add(20,p); break;
+      case 'doubles20': for (let w=2;w<=20; w+=2) add(w, w/2); break;
+      case 'exact100s': for (let w=10;w<=100;w+=10) for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+      case 'doubles100andexact10s':
+        for (let w=2; w<=100; w+=2)  add(w, w/2);
+        for (let w=10;w<=100; w+=10) for (let p=1;p<=Math.floor(w/2);p++) add(w,p);
+        break;
+      case 'upto100':   for (let w=2;w<=100;w++)  for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+      default:          for (let w=2;w<=20; w++)  for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+    }
+    doubles.sort((x,y) => x[0]-y[0]);
+    rest.sort   ((x,y) => x[0]-y[0]);
+    return [...doubles, ...rest];
+  }
+
+  // Reef engine uses upto20 as its master progression list.
+  function masterReef() { return forLevel('upto20'); }
+
+  // Cave's extended master list = upto20 bonds + challenge bonds 21..100.
+  // Note: v4 never actually wires Cave's engine to this extended list (the
+  // engine's _init uses getMasterList() = reef only). Left as-is; if Cave
+  // should progress through higher bonds, that's a Stage 3 decision.
+  function masterCave() {
+    const base  = masterReef();
+    const extra = [];
+    for (let w = 21; w <= 100; w++) {
+      for (let p = 1; p <= Math.floor(w/2); p++) {
+        const pb = w - p;
+        extra.push([w, Math.max(p, pb), Math.min(p, pb)]);
+      }
+    }
+    extra.sort((x,y) => x[0] - y[0]);
+    return [...base, ...extra];
+  }
+
+  function key(w, a, b) { const la = Math.max(a, b); return `${w}:${la}`; }
+
+  const settings = {
+    defaults: {
+      level:'exact10', sound:'off', timer:'off',
+      omode:'none', odisp:'none', style:'progress'
+    },
+    // level + style + overrides → { display, mode }
+    map(level, style, omode, odisp) {
+      let display, mode;
+      if (['exact100s','doubles100andexact10s','upto100'].includes(level)) {
+        display='numbers'; mode='both';
+      } else if (['exact20','doubles20','upto20'].includes(level)) {
+        display='numbers'; mode='both';
+      } else if (['doubles10','upto10'].includes(level)) {
+        mode='both'; display = style==='entry' ? 'both' : 'numbers';
+      } else if (level==='exact10') {
+        mode='both'; display = style==='entry' ? 'both' : 'numbers';
+      } else { // to5
+        mode='both';
+        if      (style==='entry')    display='counters';
+        else if (style==='practice') display='both';
+        else                         display='numbers';
+      }
+      if (omode !== 'none') mode    = omode;
+      if (odisp !== 'none') display = odisp;
+      return { display, mode };
+    },
+  };
+
+  return {
+    levels,
+    bonds:    { forLevel, masterReef, masterCave, key },
+    settings,
+  };
+})();
+
+// ── Backward-compat aliases (Stage 2). Callers elsewhere in this file
+//    still use these names; Stage 3+ will migrate call sites and then
+//    these aliases can be removed.
+const REEF_LEVELS = CONFIG.levels.reef;
+const SUB_START   = CONFIG.levels.subStart;
+function clipLevelForReef(level)  { return CONFIG.levels.clipForReef(level); }
+function getBondsForLevel(level)  { return CONFIG.bonds.forLevel(level); }
+function getMasterList()           { return CONFIG.bonds.masterReef(); }
+function bondKey(w, a, b)          { return CONFIG.bonds.key(w, a, b); }
+function mapSettings(level, style, omode, odisp) {
+  return CONFIG.settings.map(level, style, omode, odisp);
 }
-function BE_bondsUpTo(max) {
-  let r = [];
-  for (let w = 2; w <= max; w++) r = r.concat(BE_bondsExactly(w));
-  return r;
-}
-function BE_bondsDoublesOnly(max) {
-  const r = [];
-  for (let w = 2; w <= max; w += 2) r.push([w, w / 2]);
-  return r;
-}
-const BE_LEVEL_BONDS = {
-  to5:       function() { return BE_bondsUpTo(5); },
-  exact10:   function() { return BE_bondsExactly(10); },
-  doubles10: function() { return BE_bondsDoublesOnly(10); },
-  upto10:    function() { return BE_bondsUpTo(10); },
-  exact20:   function() { return BE_bondsExactly(20); },
-  doubles20: function() { return BE_bondsDoublesOnly(20); },
-  upto20:    function() { return BE_bondsUpTo(20); },
-};
+
+// ═══════════════════════════════════════════════════════════════
+// ## GAMES — registry of playable games (Stage 3)
+// ═══════════════════════════════════════════════════════════════
+//
+// Each game is a peer module that consumes the shared BondEngine.
+// The registry decouples screen-select wiring from game internals:
+// screens only need a game `id`; they call `Games.get(id).start()` /
+// `.stop()` without knowing anything about the implementation.
+//
+// Game descriptor:
+//   id         — unique key ('reef' | 'cave')
+//   label      — display name (future: use on game-select UI)
+//   buttonId   — DOM id of the game-select button that launches this game
+//   screenId   — DOM id of the in-game screen
+//   start()    — enter the game (builds/restores engine, wires input)
+//   stop()     — exit the game (clear timers, animations; caller then shows select)
+//
+// Game bodies (startGame, startBarGame, bm*, etc.) are still defined in
+// their current sections below; Games.register() is called once those
+// functions exist (see bottom of REEF GAME / CAVE GAME sections).
+
+const Games = (() => {
+  const _games = {};
+  function register(game) {
+    if (!game || !game.id) throw new Error('Games.register: missing id');
+    _games[game.id] = game;
+    return game;
+  }
+  function get(id)  { return _games[id] || null; }
+  function list()   { return Object.values(_games); }
+  function ids()    { return Object.keys(_games); }
+  return {
+    register, get, list, ids,
+    get reef() { return _games.reef; },
+    get cave() { return _games.cave; },
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// ## BOND ENGINE
+// ═══════════════════════════════════════════════════════════════
 
 class BondEngine {
   constructor(config) {
-    this.level   = config.level || 'upto10';
-    this.mode    = config.mode  || 'both';
-    this.bondSelection = config.bondSelection || 'progress';
-    const builder = BE_LEVEL_BONDS[this.level] || BE_LEVEL_BONDS['upto10'];
-    this._bonds  = builder();
-    this._lastQ  = null;
+    this.level  = config.level  || 'exact10';
+    this.mode   = config.mode   || 'both';
+    this.style  = config.style  || 'progress';
+    this.bonds  = new Map();
+    this.queue  = [];
+    this.bothWindow = []; this.addnWindow = []; this.subnWindow = [];
+    this.forcedSubBond = null; this.lastQ = null;
+    this._init();
   }
 
-  nextQuestion() {
-    const [w, a] = this._selectBond();
-    const b = w - a;
-    let pa = a, pb = b;
-    if (Math.random() < 0.5) { pa = b; pb = a; }
-
-    let miss;
-    if (this.mode === 'add') {
-      miss = 'whole';
-    } else if (this.mode === 'sub') {
-      miss = Math.random() < 0.5 ? 'partA' : 'partB';
-    } else {
-      const r = Math.random();
-      miss = r < 0.34 ? 'whole' : r < 0.67 ? 'partA' : 'partB';
+  _init() {
+    for (const [w,a,b] of getBondsForLevel(this.level))
+      this.bonds.set(bondKey(w,a,b), this._newState(w,a,b));
+    if (this.style === 'progress') {
+      for (const [w,a,b] of getMasterList()) {
+        const k = bondKey(w,a,b);
+        if (!this.bonds.has(k)) this.queue.push([w,a,b]);
+      }
     }
+  }
 
-    const correctAnswer = miss === 'whole' ? w : miss === 'partA' ? pa : pb;
-    const q = { whole: w, partA: pa, partB: pb, missing: miss, correctAnswer: correctAnswer };
+  _newState(w, a, b) {
+    const sub = SUB_START.has(this.level);
+    return {
+      w, a, b,
+      // ── Both mode ──
+      bPhase: sub ? 'subtraction' : 'checkBoth',
+      bCheckOrder: null,       // ['add','sub'] or ['sub','add'], set on first question
+      bCheckResults: {},       // { add: true/false, sub: true/false }
+      bAddDir: false,        // false = larger(a) first as partA
+      bAddConsec: 0,
+      bSubFirstDir: null,
+      bSubDir: 'large',      // 'large'=hide a, 'small'=hide b
+      bSubCorrLarge: 0,
+      bSubCorrSmall: 0,
+      bProbN: 0, bProbScore: 0,
+      // ── Addition only ──
+      aPhase: sub ? 'additionRetention' : 'additionLearning',
+      aStage: 'smaller_only', // 'smaller_only' | 'alternating'
+      aSmlCount: 0,
+      aDir: false,
+      aConsec: 0, aConsecDirs: [],
+      aRecent5: [],
+      // ── Subtraction only ──
+      sPhase: sub ? 'subtractionRetention' : 'subtractionLearning',
+      sStage: 'smaller_only',
+      sSmlCount: 0,
+      sDir: 'small',
+      sConsec: 0, sConsecDirs: [],
+      sRecent5: [],
+    };
+  }
 
-    // Avoid immediate identical repeat
-    if (this._lastQ && this._bonds.length > 1 &&
-        q.whole   === this._lastQ.whole   &&
-        q.partA   === this._lastQ.partA   &&
-        q.partB   === this._lastQ.partB   &&
-        q.missing === this._lastQ.missing) {
-      return this.nextQuestion();
-    }
-
-    // Avoid symmetric repeats: if partA==partB and we're flipping between partA and partB missing
-    if (this._lastQ && this._bonds.length > 1 &&
-        q.partA === q.partB &&
-        q.whole === this._lastQ.whole &&
-        q.partA === this._lastQ.partA &&
-        q.partB === this._lastQ.partB &&
-        q.missing === 'partA' && this._lastQ.missing === 'partB') {
-      return this.nextQuestion();
-    }
-
-    this._lastQ = q;
-    return q;
+  _curPhase(bs) {
+    if (this.mode==='both') return bs.bPhase;
+    if (this.mode==='add')  return bs.aPhase;
+    return bs.sPhase;
   }
 
   _selectBond() {
-    // For now, both 'progress' and 'practice' use simple random selection
-    // Smart algorithm to be defined later
-    if (this.bondSelection === 'progress') {
-      return this._smartBondSelect();
-    } else if (this.bondSelection === 'practice') {
-      return this._simpleBondSelect();
+    const t1=[],t2=[],t3=[];
+    for (const bs of this.bonds.values()) {
+      const ph = this._curPhase(bs);
+      if (this.mode==='both') {
+        if (['checkBoth','addition','subtraction','probation1'].includes(ph)) t1.push(bs);
+        else if (ph==='probation2') t2.push(bs);
+        else t3.push(bs);
+      } else {
+        if (['additionLearning','subtractionLearning'].includes(ph)) t1.push(bs);
+        else t3.push(bs);
+      }
     }
-    return this._simpleBondSelect();
+    let primary, retention;
+    if      (t1.length) { primary=t1; retention=[...t2,...t3]; }
+    else if (t2.length) { primary=t2; retention=t3; }
+    else                { primary=t3; retention=[]; }
+
+    let pool = (retention.length && Math.random()<0.1) ? retention : primary;
+    if (!pool.length) pool = [...this.bonds.values()];
+    if (pool.length>1 && this.lastQ) {
+      const f=pool.filter(bs=>bondKey(bs.w,bs.a,bs.b)!==this.lastQ.bondKey);
+      if (f.length) pool=f;
+    }
+    return pool[Math.floor(Math.random()*pool.length)];
   }
 
-  _smartBondSelect() {
-    // Placeholder: currently calls simple selection
-    // Will be replaced with adaptive algorithm
-    return this._simpleBondSelect();
+  _makeQ(bs) {
+    const ph = this._curPhase(bs);
+    if (this.mode==='both') {
+      if (ph==='checkBoth')    return this._checkBothQ(bs);
+      if (ph==='addition')    return this._addQ(bs);
+      if (ph==='subtraction') return this._subQ(bs);
+      return this._mixQ(bs);
+    }
+    return this.mode==='add' ? this._addOnlyQ(bs) : this._subOnlyQ(bs);
   }
 
-  _simpleBondSelect() {
-    const idx = Math.floor(Math.random() * this._bonds.length);
-    return this._bonds[idx];
+  _addQ(bs) {
+    const d=bs.bAddDir; bs.bAddDir=!d;
+    const pA=d?bs.b:bs.a, pB=d?bs.a:bs.b;
+    return {whole:bs.w,partA:pA,partB:pB,missing:'whole',correctAnswer:bs.w,bondKey:bondKey(bs.w,bs.a,bs.b)};
   }
 
-  recordAnswer() {
-    // Naive engine — no state to update
+  _subQ(bs) {
+    if (!bs.bSubFirstDir) {
+      bs.bSubFirstDir = Math.random()<0.5?'large':'small';
+      bs.bSubDir=bs.bSubFirstDir; bs.bSubCorrLarge=0; bs.bSubCorrSmall=0;
+    }
+    const hide=bs.bSubDir;
+    bs.bSubDir = (hide==='large')?'small':'large';
+    return this._hidePart(bs,hide);
+  }
+
+  _checkBothQ(bs) {
+    // Initialise random order on first call
+    if (!bs.bCheckOrder) {
+      bs.bCheckOrder = Math.random()<0.5 ? ['add','sub'] : ['sub','add'];
+      bs.bCheckResults = {};
+    }
+    // Serve the first question type not yet answered
+    const next = bs.bCheckOrder.find(t => !(t in bs.bCheckResults));
+    if (next==='add') {
+      const q = this._addQ(bs);
+      q._checkType = 'add';
+      return q;
+    }
+    const hide = Math.random()<0.5 ? 'large' : 'small';
+    const q = this._hidePart(bs, hide);
+    q._checkType = 'sub';
+    return q;
+  }
+
+  _hidePart(bs,hide) {
+    const missing = hide==='large'?'partA':'partB';
+    const correct = hide==='large'?bs.a:bs.b;
+    return {whole:bs.w,partA:bs.a,partB:bs.b,missing,correctAnswer:correct,
+            bondKey:bondKey(bs.w,bs.a,bs.b),_hide:hide};
+  }
+
+  _mixQ(bs) {
+    const flip=Math.random()<0.5;
+    const pA=flip?bs.b:bs.a, pB=flip?bs.a:bs.b;
+    const r=Math.random();
+    let missing,correct;
+    if      (r<1/3){missing='whole'; correct=bs.w;}
+    else if (r<2/3){missing='partA'; correct=pA;}
+    else           {missing='partB'; correct=pB;}
+    return {whole:bs.w,partA:pA,partB:pB,missing,correctAnswer:correct,bondKey:bondKey(bs.w,bs.a,bs.b)};
+  }
+
+  _addOnlyQ(bs) {
+    let dir;
+    if (bs.aStage==='smaller_only') { dir=false; }
+    else { dir=bs.aDir; bs.aDir=!dir; }
+    const pA=dir?bs.b:bs.a, pB=dir?bs.a:bs.b;
+    return {whole:bs.w,partA:pA,partB:pB,missing:'whole',correctAnswer:bs.w,
+            bondKey:bondKey(bs.w,bs.a,bs.b),_addDir:dir};
+  }
+
+  _subOnlyQ(bs) {
+    let hide;
+    if (bs.sStage==='smaller_only') { hide='small'; }
+    else { hide=bs.sDir; bs.sDir=(hide==='small')?'large':'small'; }
+    const q=this._hidePart(bs,hide); q._subHide=hide; return q;
+  }
+
+  nextQuestion() {
+    if (this.forcedSubBond) {
+      const bs=this.forcedSubBond; this.forcedSubBond=null;
+      const q=this._subQ(bs); this.lastQ=q; return q;
+    }
+    const bs=this._selectBond(); if(!bs) return null;
+    let q=this._makeQ(bs);
+    if (this.lastQ && this.bonds.size>1 && this._same(q,this.lastQ)) {
+      const bs2=this._selectBond(); q=this._makeQ(bs2||bs);
+    }
+    this.lastQ=q; return q;
+  }
+
+  _same(q1,q2) {
+    return q1.bondKey===q2.bondKey && q1.missing===q2.missing &&
+           q1.partA===q2.partA && q1.partB===q2.partB;
+  }
+
+  recordAnswer(q, ok) {
+    if (!q) return {correct:!!ok};
+    const k=q.bondKey||bondKey(q.whole,q.partA,q.partB);
+    const bs=this.bonds.get(k);
+    if (!bs) return {correct:ok};
+    const result={correct:ok};
+    if      (this.mode==='both') this._recBoth(bs,q,ok,result);
+    else if (this.mode==='add')  this._recAdd(bs,q,ok,result);
+    else                          this._recSub(bs,q,ok,result);
+    this._updateWindows(bs,ok,result);
+    return result;
+  }
+
+  _recBoth(bs,q,ok,result) {
+    const ph=bs.bPhase;
+    if (ph==='checkBoth') {
+      const type = q._checkType || 'add';
+      bs.bCheckResults[type] = ok;
+      // Resolve once both questions answered
+      if ('add' in bs.bCheckResults && 'sub' in bs.bCheckResults) {
+        const addOk = bs.bCheckResults.add;
+        const subOk = bs.bCheckResults.sub;
+        if (addOk && subOk) {
+          bs.bPhase='probation1'; bs.bProbN=0; bs.bProbScore=0;
+          result.bphase_advanced=true; result.new_both_phase='probation1';
+          result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+        } else if (addOk) {
+          bs.bPhase='subtraction'; bs.bSubFirstDir=null;
+          bs.bSubCorrLarge=0; bs.bSubCorrSmall=0;
+        } else {
+          bs.bPhase='addition'; bs.bAddConsec=0;
+        }
+        bs.bCheckOrder=null; bs.bCheckResults={};
+      }
+
+    } else if (ph==='addition') {
+      if (ok) {
+        if (++bs.bAddConsec>=5) {
+          bs.bPhase='subtraction'; bs.bSubFirstDir=null; bs.bAddConsec=0;
+          result.bphase_advanced=true; result.new_both_phase='subtraction';
+          result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+          this.forcedSubBond=bs;
+        }
+      } else { bs.bAddConsec=0; }
+
+    } else if (ph==='subtraction') {
+      if (ok) {
+        if (q.missing==='partA') bs.bSubCorrLarge++; else bs.bSubCorrSmall++;
+        if (bs.bSubCorrLarge>=2 && bs.bSubCorrSmall>=2) {
+          bs.bPhase='probation1'; bs.bProbN=0; bs.bProbScore=0;
+          result.bphase_advanced=true; result.new_both_phase='probation1';
+          result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+        }
+      }
+
+    } else if (['probation1','probation2','probation3'].includes(ph)) {
+      bs.bProbN++; if(ok) bs.bProbScore++;
+      if (bs.bProbN>=5) {
+        const sc=bs.bProbScore; let np=null;
+        if (ph==='probation1') {
+          if      (sc>=5) np='probation2';
+          else if (sc<3)  { np='addition'; bs.bAddConsec=0; bs.bAddDir=false; result.bphase_failed=true; }
+          else              np='probation1';
+        } else if (ph==='probation2') {
+          if      (sc>=5) np='probation3';
+          else if (sc<4)  { np='probation1'; result.bphase_failed=true; }
+          else              np='probation2';
+        } else { // probation3
+          if (sc>=5) { np='free'; result.graduation=true; result.graduation_bond={w:bs.w,a:bs.a,b:bs.b}; }
+          else       { np='probation2'; result.bphase_failed=true; }
+        }
+        if (np && np!==ph) {
+          bs.bPhase=np;
+          if (!result.bphase_failed) {
+            result.bphase_advanced=true; result.new_both_phase=np;
+            result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+          }
+        }
+        bs.bProbN=0; bs.bProbScore=0;
+      }
+    }
+  }
+
+  _recAdd(bs,q,ok,result) {
+    if (bs.aPhase==='additionLearning') {
+      const smlSecond=!(q._addDir||false);
+      if (ok) {
+        if (bs.aStage==='smaller_only') { if(++bs.aSmlCount>=3){bs.aStage='alternating';bs.aDir=true;} }
+        bs.aConsec++; bs.aConsecDirs.push(smlSecond);
+        if (bs.aConsec>=5) {
+          const ds=bs.aConsecDirs.slice(-5);
+          if (ds.filter(d=>d).length>=2 && ds.filter(d=>!d).length>=2) {
+            bs.aPhase='additionRetention'; bs.aConsec=0; bs.aConsecDirs=[];
+            result.aphase_advanced=true; result.new_addn_phase='additionRetention';
+            result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+          }
+        }
+      } else { bs.aConsec=0; bs.aConsecDirs=[]; }
+    } else {
+      bs.aRecent5.push(ok?1:0); if(bs.aRecent5.length>5) bs.aRecent5.shift();
+      if (bs.aRecent5.length===5 && bs.aRecent5.reduce((s,v)=>s+v,0)<4) {
+        bs.aPhase='additionLearning'; bs.aConsec=0; bs.aConsecDirs=[];
+        bs.aStage='smaller_only'; bs.aSmlCount=0; result.aphase_failed=true;
+      }
+    }
+  }
+
+  _recSub(bs,q,ok,result) {
+    if (bs.sPhase==='subtractionLearning') {
+      const smlHide=(q._subHide==='small');
+      if (ok) {
+        if (bs.sStage==='smaller_only') { if(++bs.sSmlCount>=3){bs.sStage='alternating';bs.sDir='large';} }
+        bs.sConsec++; bs.sConsecDirs.push(smlHide);
+        if (bs.sConsec>=5) {
+          const ds=bs.sConsecDirs.slice(-5);
+          if (ds.filter(d=>d).length>=2 && ds.filter(d=>!d).length>=2) {
+            bs.sPhase='subtractionRetention'; bs.sConsec=0; bs.sConsecDirs=[];
+            result.sphase_advanced=true; result.new_subn_phase='subtractionRetention';
+            result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+          }
+        }
+      } else { bs.sConsec=0; bs.sConsecDirs=[]; }
+    } else {
+      bs.sRecent5.push(ok?1:0); if(bs.sRecent5.length>5) bs.sRecent5.shift();
+      if (bs.sRecent5.length===5 && bs.sRecent5.reduce((s,v)=>s+v,0)<4) {
+        bs.sPhase='subtractionLearning'; bs.sConsec=0; bs.sConsecDirs=[];
+        bs.sStage='smaller_only'; bs.sSmlCount=0; result.sphase_failed=true;
+      }
+    }
+  }
+
+  _updateWindows(bs,ok,result) {
+    if (this.style!=='progress') return;
+    const ph=this._curPhase(bs);
+    const active = this.mode==='both'
+      ? ['checkBoth','addition','subtraction','probation1','probation2','probation3'].includes(ph)
+      : ['additionLearning','subtractionLearning'].includes(ph);
+    if (!active) return;
+
+    const win = this.mode==='both'?this.bothWindow : this.mode==='add'?this.addnWindow:this.subnWindow;
+    win.push(ok?1:0);
+    if (win.length>20) win.shift();
+    const streak10 = win.length>=10 && win.slice(-10).every(v=>v===1);
+    const window18 = win.length===20 && win.reduce((s,v)=>s+v,0)>=18;
+    if ((streak10 || window18) && this.queue.length) {
+      win.length=0;
+      const [nw,na,nb]=this.queue.shift();
+      const nbs=this._newState(nw,na,nb);
+      this.bonds.set(bondKey(nw,na,nb),nbs);
+      result.level_up=true;
+    }
+  }
+
+  getState() {
+    return {
+      level:this.level, mode:this.mode, style:this.style,
+      bonds:Object.fromEntries(this.bonds), queue:this.queue,
+      bothWindow:this.bothWindow, addnWindow:this.addnWindow, subnWindow:this.subnWindow,
+    };
+  }
+
+  static restore(s) {
+    const e=Object.create(BondEngine.prototype);
+    e.level=s.level; e.mode=s.mode; e.style=s.style;
+    e.bonds=new Map(Object.entries(s.bonds));
+    e.queue=s.queue||[]; e.bothWindow=s.bothWindow||[];
+    e.addnWindow=s.addnWindow||[]; e.subnWindow=s.subnWindow||[];
+    e.forcedSubBond=null; e.lastQ=null;
+    return e;
   }
 }
 
-// SOUND ENGINE (Web Audio API)
 // ═══════════════════════════════════════════════════════════════
-let audioCtx = null;
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-function playTones(notes, volume=0.4) {
-  try {
-    const ctx = getAudioCtx();
-    let t = ctx.currentTime;
-    notes.forEach(([freq, ms]) => {
-      if (freq === 0) { t += ms/1000; return; }
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(volume, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + ms/1000);
-      osc.start(t); osc.stop(t + ms/1000);
-      t += ms/1000;
+// ## STORAGE — IndexedDB with localStorage fallback
+// ═══════════════════════════════════════════════════════════════
+//
+// Why: localStorage is evicted aggressively on iOS Safari (and is the only
+// store available in PWAs without IDB). IndexedDB gives durable, larger
+// storage that survives app close on PC and on iOS once "Add to Home Screen"
+// is used. We keep a synchronous in-memory cache (hydrated at boot) so the
+// rest of the app can keep using sync reads.
+//
+// API (all the rest of the code uses loadData/saveData below — these wrap):
+//   await Storage.init();   // call ONCE at app boot, before any read
+//   Storage.read()          // → object  (sync, from cache)
+//   Storage.write(obj)      // sync to cache+localStorage, async to IDB
+//   Storage.status()        // → { idbAvailable, hasCache }
+//
+// Failure mode: if IDB is unavailable (private mode on old Safari, etc.),
+// silently falls back to localStorage only. Game still works; on iOS the
+// data may be evicted between sessions until PWA install.
+
+const Storage = (() => {
+  const DB_NAME = 'OceanNumberBonds';
+  const STORE   = 'kv';
+  const KEY     = 'data';
+  const LS_KEY  = 'numberbonds_v1';
+
+  let cache = {};
+  let db = null;
+  let idbAvailable = false;
+
+  function openDb() {
+    return new Promise(resolve => {
+      if (!('indexedDB' in window)) { resolve(null); return; }
+      let req;
+      try { req = indexedDB.open(DB_NAME, 1); }
+      catch(e) { resolve(null); return; }
+      req.onupgradeneeded = () => { req.result.createObjectStore(STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => resolve(null);
+      req.onblocked = () => resolve(null);
     });
-  } catch(e) {}
-}
-const SOUNDS = {
-  correct:  () => playTones([[300,80],[400,80],[600,140]], 0.4),
-  wrong:    () => playTones([[300,80],[240,160]], 0.3),
-  streak3:  () => playTones([[523,80],[659,80],[784,80],[1047,180]]),
-  streak5:  () => playTones([[523,70],[659,70],[784,70],[1047,70],[1319,200]]),
-  streak10: () => playTones([[392,60],[523,60],[659,60],[784,60],[1047,60],[1319,220]]),
-  streak20: () => playTones([[262,50],[330,50],[392,50],[523,50],[659,50],[784,50],[1047,50],[1319,250]]),
-  levelup:  () => playTones([[784,80],[880,80],[988,80],[1047,80],[1175,200]]),
-  timeout:  () => playTones([[330,100],[0,40],[280,180]], 0.3),
-};
+  }
+  function idbGet(database) {
+    return new Promise(resolve => {
+      try {
+        const tx  = database.transaction(STORE, 'readonly');
+        const req = tx.objectStore(STORE).get(KEY);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror   = () => resolve(undefined);
+      } catch(e) { resolve(undefined); }
+    });
+  }
+  function idbPut(database, value) {
+    return new Promise(resolve => {
+      try {
+        const tx = database.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put(value, KEY);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror    = () => resolve(false);
+      } catch(e) { resolve(false); }
+    });
+  }
+  function readLs() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; }
+    catch(e) { return {}; }
+  }
+  function writeLs(data) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); }
+    catch(e) { /* quota or disabled — IDB is the durable store anyway */ }
+  }
+
+  async function init() {
+    db = await openDb();
+    idbAvailable = !!db;
+    if (idbAvailable) {
+      const fromIdb = await idbGet(db);
+      if (fromIdb && typeof fromIdb === 'object') {
+        cache = fromIdb;
+        writeLs(cache);                                  // mirror for safety
+      } else {
+        cache = readLs();
+        if (Object.keys(cache).length) await idbPut(db, cache);
+      }
+    } else {
+      cache = readLs();
+    }
+    return idbAvailable;
+  }
+
+  function read() { return cache; }
+
+  function write(data) {
+    cache = data;
+    writeLs(cache);                                      // immediate sync mirror
+    if (idbAvailable && db) idbPut(db, cache);          // fire-and-forget durable
+  }
+
+  function status() {
+    return { idbAvailable, hasCache: Object.keys(cache).length > 0 };
+  }
+
+  return { init, read, write, status };
+})();
 
 // ═══════════════════════════════════════════════════════════════
+// ## PERSISTENCE  (Stage 1 — now backed by Storage module above)
 // ═══════════════════════════════════════════════════════════════
-// CANVAS & DRAWING CONSTANTS
+
+// DEFAULT_SETTINGS is defined in CONFIG.settings.defaults (Stage 2).
+// Alias retained for backward-compat with existing getUserData() callers.
+const DEFAULT_SETTINGS = CONFIG.settings.defaults;
+
+function loadData()        { return Storage.read(); }
+function saveData(data)    { Storage.write(data); }
+function getUsers()        { return loadData().users || []; }
+function saveUsers(users)  { const d=loadData(); d.users=users; saveData(d); }
+function getUserData(id)   { return loadData()[`u_${id}`] || {settings:{...DEFAULT_SETTINGS},engine:null}; }
+function saveUserData(id,ud){ const d=loadData(); d[`u_${id}`]=ud; saveData(d); }
+
 // ═══════════════════════════════════════════════════════════════
-const W = 480, H = 460;
-const CW = {cx:240, cy:145, r:85};
-const CA = {cx:118, cy:340, r:68};
-const CB = {cx:362, cy:340, r:68};
-const MON_X = W - 68, MON_Y = 72;
+// ## SOUND — Web Audio tone sequences (Stage 4)
+// ═══════════════════════════════════════════════════════════════
+//
+// Sound.play(name) — play a named sound if it exists.
+// Sound.playTones(notes, volume) — low-level sequencer: notes = [[hz, ms], ...].
+//                                  hz=0 emits a silent gap of `ms` ms.
+// Sound.SOUNDS — the named sound catalogue (useful for tests/debug).
 
-const COL = {
-  bg:           '#0a1a3a',
-  circleFill:   '#e8f4f8',
-  circleStroke: '#1a5a7a',
-  missingFill:  '#e0f8ff',
-  missingStroke:'#00b8d4',
-  missingText:  '#005f7a',
-  correctFill:  '#b0ffe8',
-  correctStroke:'#008860',
-  correctText:  '#003830',
-  wrongCol:     '#ff7040',
-  correctCol:   '#40ffcc',
-  timerSand:    '#40d8ff',
-  timerUrgent:  '#ff5030',
-};
+const Sound = (() => {
+  let ctx = null;
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx;
+  }
+  function playTones(notes, volume = 0.4) {
+    try {
+      const c = getCtx(); let t = c.currentTime;
+      notes.forEach(([freq, ms]) => {
+        if (freq === 0) { t += ms / 1000; return; }
+        const osc  = c.createOscillator();
+        const gain = c.createGain();
+        osc.connect(gain); gain.connect(c.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(volume, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + ms / 1000);
+        osc.start(t); osc.stop(t + ms / 1000);
+        t += ms / 1000;
+      });
+    } catch (e) { /* audio disabled or unsupported */ }
+  }
+  const SOUNDS = {
+    correct:  () => playTones([[300,80],[400,80],[600,140]], 0.4),
+    wrong:    () => playTones([[300,80],[240,160]], 0.3),
+    streak3:  () => playTones([[523,80],[659,80],[784,80],[1047,180]]),
+    streak5:  () => playTones([[523,70],[659,70],[784,70],[1047,70],[1319,200]]),
+    streak10: () => playTones([[392,60],[523,60],[659,60],[784,60],[1047,60],[1319,220]]),
+    streak20: () => playTones([[262,50],[330,50],[392,50],[523,50],[659,50],[784,50],[1047,50],[1319,250]]),
+    levelup:  () => playTones([[784,80],[880,80],[988,80],[1047,80],[1175,200]]),
+    timeout:  () => playTones([[330,100],[0,40],[280,180]], 0.3),
+  };
+  function play(name) { if (SOUNDS[name]) SOUNDS[name](); }
+  return { play, playTones, SOUNDS };
+})();
 
-const DICE_PATTERNS = {
-  1: [[0,0]],
-  2: [[-0.45,-0.45],[0.45,0.45]],
-  3: [[-0.62,-0.62],[0,0],[0.62,0.62]],
-  4: [[-0.62,-0.62],[0.62,-0.62],[-0.62,0.62],[0.62,0.62]],
-  5: [[-0.62,-0.62],[0.62,-0.62],[0,0],[-0.62,0.62],[0.62,0.62]],
-};
+// ── Backward-compat aliases (Stage 4). Existing call sites (snd() in REEF
+//    GAME, etc.) use SOUNDS[name]() and playTones(); both still work.
+const SOUNDS = Sound.SOUNDS;
+function playTones(notes, volume) { return Sound.playTones(notes, volume); }
 
+// ═══════════════════════════════════════════════════════════════
+// ## DRAW — canvas + drawing constants (Stage 4)
+// ═══════════════════════════════════════════════════════════════
+//
+// All layout/colour/pattern constants used by the Reef drawing functions.
+// Grouped under Draw.constants for a single source of truth; flattened to
+// module scope below so existing drawing function bodies (which reference
+// W, H, COL, etc. directly) keep working unchanged.
+//
+// Drawing *functions* (drawBackground, drawOctopus, drawBonds, …) remain
+// defined in their original places further down this section; lifting them
+// into Draw.* would be a bigger, higher-risk change and isn't needed yet.
+
+const Draw = (() => {
+  const constants = {
+    W: 480,
+    H: 460,
+    CW:    { cx:240, cy:145, r:85 },
+    CA:    { cx:118, cy:340, r:68 },
+    CB:    { cx:362, cy:340, r:68 },
+    MON_X: 480 - 68,   // monitor corner X (mirrors MON_X = W-68)
+    MON_Y: 72,
+    COL: {
+      bg:'#0a1a3a',       circleFill:'#e8f4f8',   circleStroke:'#1a5a7a',
+      missingFill:'#e0f8ff', missingStroke:'#00b8d4', missingText:'#005f7a',
+      correctFill:'#b0ffe8', correctStroke:'#008860', correctText:'#003830',
+      wrongCol:'#ff7040',    correctCol:'#40ffcc',
+      timerSand:'#40d8ff',   timerUrgent:'#ff5030',
+    },
+    DICE_PATTERNS: {
+      1: [[ 0,    0  ]],
+      2: [[-0.45,-0.45],[ 0.45, 0.45]],
+      3: [[-0.62,-0.62],[ 0,    0  ],[ 0.62, 0.62]],
+      4: [[-0.62,-0.62],[ 0.62,-0.62],[-0.62, 0.62],[ 0.62, 0.62]],
+      5: [[-0.62,-0.62],[ 0.62,-0.62],[ 0,    0  ],[-0.62, 0.62],[ 0.62, 0.62]],
+    },
+  };
+  return { constants };
+})();
+
+// Flatten Draw.constants to module scope for the existing drawing code.
+const { W, H, CW, CA, CB, MON_X, MON_Y, COL, DICE_PATTERNS } = Draw.constants;
 
 // ═══════════════════════════════════════════════════════════════
 // CANVAS SETUP
 // ═══════════════════════════════════════════════════════════════
+
 const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
-const entry = document.getElementById('entry-overlay');
+const ctx    = canvas.getContext('2d');
+const entry  = document.getElementById('entry-overlay');
 
 function resizeCanvas() {
+  const gs = document.getElementById('game-screen');
+  const bm = document.getElementById('bar-model-screen');
+  if (gs && gs.classList.contains('active')) fitReef();
+  if (bm && bm.classList.contains('active')) fitCave();
   positionEntry();
 }
 window.addEventListener('resize', resizeCanvas);
 
+// ═══════════════════════════════════════════════════════════════
+// ## GAME FIT — orientation-aware layout + canvas sizing (shared)
+// ═══════════════════════════════════════════════════════════════
+//
+// Given an aspect ratio and a layout containing two pad panels around a
+// canvas, chooses between side-pads and stack-pads based on which yields
+// a larger canvas, then sizes the canvas (preserving aspect) and pads.
+// Drawing coordinates stay in each game's internal canvas space; CSS scales
+// the display. Also sets --btn-font-size proportional to button dimensions.
+//
+function fitGameLayout(opts) {
+  const layout   = opts.layoutEl;
+  const canvasEl = opts.canvasEl;
+  const leftPad  = opts.leftPad;
+  const rightPad = opts.rightPad;
+  const screen   = opts.containerWidthEl;
+  if (!layout || layout.offsetParent === null) return;
+  if (!canvasEl || !leftPad || !rightPad || !screen) return;
 
-// Pre-generated static background elements (set once on game start)
-let bgSeaweed = [], bgStaticBubbles = [], bgFish = [], bgCoral = [];
+  const padThick = 48;
+  const gap      = 6;
+  const padCount = Keypad.dual ? 2 : 1;
+  const reserveAbove = opts.reserveAbove || 0;
+  const reserveBelow = opts.reserveBelow || 0;
+  const aW = opts.aspectW, aH = opts.aspectH;
+
+  const sw = screen.clientWidth;
+  const sh = window.innerHeight - reserveAbove - reserveBelow;
+  if (sw < 50 || sh < 50) return;
+
+  const sideAvailW = Math.max(50, sw - padCount*padThick - padCount*gap);
+  const sideAvailH = Math.max(50, sh);
+  const sideScale  = Math.min(sideAvailW/aW, sideAvailH/aH);
+
+  const stackAvailW = sw;
+  const stackAvailH = Math.max(50, sh - padCount*padThick - padCount*gap);
+  const stackScale  = Math.min(stackAvailW/aW, stackAvailH/aH);
+
+  const useSide = sideScale >= stackScale;
+  layout.classList.toggle('layout-side',  useSide);
+  layout.classList.toggle('layout-stack', !useSide);
+
+  const scale = useSide ? sideScale : stackScale;
+  const cw = aW * scale, ch = aH * scale;
+  canvasEl.style.width  = cw + 'px';
+  canvasEl.style.height = ch + 'px';
+  canvasEl.style.maxWidth = 'none';
+
+  if (useSide) {
+    leftPad.style.width  = padThick + 'px'; leftPad.style.height  = ch + 'px';
+    rightPad.style.width = padThick + 'px'; rightPad.style.height = ch + 'px';
+  } else {
+    leftPad.style.width  = cw + 'px'; leftPad.style.height  = padThick + 'px';
+    rightPad.style.width = cw + 'px'; rightPad.style.height = padThick + 'px';
+  }
+
+  const perPadMax = Math.max(leftPad.children.length, rightPad.children.length, 1);
+  const btnShort = useSide
+    ? Math.min(padThick, ch / perPadMax)
+    : Math.min(padThick, cw / perPadMax);
+  const fontPx = Math.max(12, Math.round(btnShort * 0.5));
+  layout.style.setProperty('--btn-font-size', fontPx + 'px');
+}
+
+function fitReef() {
+  const topBar = document.getElementById('top-bar');
+  const sumL   = document.getElementById('sum-label');
+  const fbL    = document.getElementById('feedback-label');
+  const btnRow = document.getElementById('btn-row');
+  fitGameLayout({
+    layoutEl:         document.getElementById('game-layout'),
+    canvasEl:         document.getElementById('game-canvas'),
+    leftPad:          document.getElementById('num-pad-left'),
+    rightPad:         document.getElementById('num-pad-right'),
+    containerWidthEl: document.getElementById('game-screen'),
+    aspectW: W, aspectH: H,
+    reserveAbove: topBar ? topBar.offsetHeight : 0,
+    reserveBelow: (sumL?sumL.offsetHeight:0)
+                + (fbL?fbL.offsetHeight:0)
+                + (btnRow?btnRow.offsetHeight:0) + 24,
+  });
+}
+
+function fitCave() {
+  fitGameLayout({
+    layoutEl:         document.getElementById('cave-game-layout'),
+    canvasEl:         document.getElementById('cave-canvas'),
+    leftPad:          document.getElementById('cave-num-pad-left'),
+    rightPad:         document.getElementById('cave-num-pad-right'),
+    containerWidthEl: document.getElementById('bar-model-screen'),
+    aspectW: 680, aspectH: 420,
+    reserveAbove: 0,
+    reserveBelow: 24,
+  });
+}
+
+let bgSeaweed=[], bgStaticBubbles=[], bgFish=[], bgCoral=[];
 
 function generateBackground() {
-  const swCols = ['#006644','#008855','#00aa66'];
-  bgSeaweed = [20,55,W-55,W-20,W/3-10,W/3+20,2*W/3-10,2*W/3+20].map(sx => ({
-    sx, col: swCols[Math.floor(Math.random()*3)],
-    segs: Array.from({length:5}, (_,seg) => ({sway: Math.sin(seg*1.2+sx*0.1)*6, seg}))
+  const swCols=['#006644','#008855','#00aa66'];
+  bgSeaweed=[20,55,W-55,W-20,W/3-10,W/3+20,2*W/3-10,2*W/3+20].map(sx=>({
+    sx, col:swCols[Math.floor(Math.random()*3)],
+    segs:Array.from({length:5},(_,seg)=>({sway:Math.sin(seg*1.2+sx*0.1)*6,seg}))
   }));
-  bgStaticBubbles = Array.from({length:14}, () => ({
-    x: 10+Math.random()*(W-20), y: 10+Math.random()*(H-50), r: 3+Math.random()*5
-  }));
-  bgFish = [[60,80,1],[W-80,120,-1],[200,50,1]];
-  bgCoral = [[W/2-60,H-18,'#cc4444'],[W/2-40,H-22,'#dd6622'],
-             [W/2+40,H-18,'#cc4488'],[W/2+60,H-20,'#cc4444']];
+  bgStaticBubbles=Array.from({length:14},()=>({x:10+Math.random()*(W-20),y:10+Math.random()*(H-50),r:3+Math.random()*5}));
+  bgFish=[[60,80,1],[W-80,120,-1],[200,50,1]];
+  bgCoral=[[W/2-60,H-18,'#cc4444'],[W/2-40,H-22,'#dd6622'],[W/2+40,H-18,'#cc4488'],[W/2+60,H-20,'#cc4444']];
 }
 
 function drawBackground() {
-  // Depth bands
-  const bands = ['#0e2a5a','#0a1e48','#081638'];
-  bands.forEach((col, i) => {
-    ctx.fillStyle = col;
-    ctx.fillRect(0, i*H/3, W, H/3);
+  ['#0e2a5a','#0a1e48','#081638'].forEach((col,i)=>{ctx.fillStyle=col;ctx.fillRect(0,i*H/3,W,H/3);});
+  ctx.fillStyle='#1a3a6a';
+  [60,160,280,380,440].forEach(rx=>{
+    ctx.beginPath();ctx.moveTo(rx-18,0);ctx.lineTo(rx+18,0);ctx.lineTo(rx+6,H/2);ctx.lineTo(rx-6,H/2);ctx.closePath();ctx.fill();
   });
-  // Light rays
-  ctx.fillStyle = '#1a3a6a';
-  [60,160,280,380,440].forEach(rx => {
-    ctx.beginPath();
-    ctx.moveTo(rx-18,0); ctx.lineTo(rx+18,0);
-    ctx.lineTo(rx+6,H/2); ctx.lineTo(rx-6,H/2);
-    ctx.closePath(); ctx.fill();
+  bgSeaweed.forEach(({sx,col,segs})=>{
+    ctx.fillStyle=col;
+    segs.forEach(({sway,seg})=>{ctx.beginPath();ctx.ellipse(sx+sway,H-20-seg*16,5,8,0,0,Math.PI*2);ctx.fill();});
   });
-  // Seaweed (pre-generated)
-  bgSeaweed.forEach(({sx, col, segs}) => {
-    ctx.fillStyle = col;
-    segs.forEach(({sway, seg}) => {
-      ctx.beginPath();
-      ctx.ellipse(sx+sway, H-20-seg*16, 5, 8, 0, 0, Math.PI*2);
-      ctx.fill();
-    });
+  bgCoral.forEach(([cx2,cy2,col])=>{
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.ellipse(cx2,cy2-7,8,14,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx2-7,cy2-4,5,8,-0.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx2+7,cy2-4,5,8,0.3,0,Math.PI*2);ctx.fill();
   });
-  // Coral (pre-generated)
-  bgCoral.forEach(([cx2,cy2,col]) => {
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.ellipse(cx2, cy2-7, 8, 14, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(cx2-7, cy2-4, 5, 8, -0.3, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(cx2+7, cy2-4, 5, 8, 0.3, 0, Math.PI*2); ctx.fill();
-  });
-  // Anemone
   drawAnemone();
-  // Fish (pre-generated)
-  bgFish.forEach(([fx,fy,fs]) => {
-    ctx.fillStyle = '#1a4a7a';
-    ctx.beginPath(); ctx.ellipse(fx+8*fs, fy, 8, 4, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(fx-2*fs,fy-5); ctx.lineTo(fx-8*fs,fy-9);
-    ctx.lineTo(fx-8*fs,fy+9); ctx.lineTo(fx-2*fs,fy+5);
-    ctx.closePath(); ctx.fill();
+  bgFish.forEach(([fx,fy,fs])=>{
+    ctx.fillStyle='#1a4a7a';
+    ctx.beginPath();ctx.ellipse(fx+8*fs,fy,8,4,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(fx-2*fs,fy-5);ctx.lineTo(fx-8*fs,fy-9);ctx.lineTo(fx-8*fs,fy+9);ctx.lineTo(fx-2*fs,fy+5);ctx.closePath();ctx.fill();
   });
-  // Static bubbles (pre-generated)
-  ctx.strokeStyle = '#2a6a9a'; ctx.lineWidth = 1;
-  bgStaticBubbles.forEach(({x,y,r}) => {
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
-  });
+  ctx.strokeStyle='#2a6a9a';ctx.lineWidth=1;
+  bgStaticBubbles.forEach(({x,y,r})=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();});
 }
 
 function drawAnemone() {
-  const ax = 28, ay = H - 20;
-  ctx.fillStyle = '#cc3366';
-  ctx.beginPath(); ctx.ellipse(ax, ay-9, 7, 9, 0, 0, Math.PI*2); ctx.fill();
-  const frondCols = ['#ff66aa','#ff44cc','#ee2299','#ff88bb','#dd1177','#ff55aa','#ee3388','#ff77bb'];
-  for (let fi = 0; fi < 9; fi++) {
-    const fdeg = -80 + fi*20;
-    const fang = (fdeg - 90) * Math.PI/180;
-    const flen = 28 + (fi%3)*6;
-    const fx1 = ax + 4*Math.cos(fang), fy1 = ay-12 + 4*Math.sin(fang);
-    const fmx = ax + flen*0.5*Math.cos(fang) + 6*Math.cos(fang+Math.PI/2);
-    const fmy = ay-12 + flen*0.5*Math.sin(fang) + 6*Math.sin(fang+Math.PI/2);
-    const ftx = ax + flen*Math.cos(fang), fty = ay-12 + flen*Math.sin(fang);
-    ctx.strokeStyle = frondCols[fi%frondCols.length];
-    ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(fx1,fy1); ctx.quadraticCurveTo(fmx,fmy,ftx,fty); ctx.stroke();
-    ctx.fillStyle = frondCols[fi%frondCols.length];
-    ctx.beginPath(); ctx.arc(ftx,fty,4,0,Math.PI*2); ctx.fill();
+  const ax=28,ay=H-20;
+  ctx.fillStyle='#cc3366';ctx.beginPath();ctx.ellipse(ax,ay-9,7,9,0,0,Math.PI*2);ctx.fill();
+  const fc=['#ff66aa','#ff44cc','#ee2299','#ff88bb','#dd1177','#ff55aa','#ee3388','#ff77bb'];
+  for(let fi=0;fi<9;fi++){
+    const fang=(-80+fi*20-90)*Math.PI/180, flen=28+(fi%3)*6;
+    const fx1=ax+4*Math.cos(fang),fy1=ay-12+4*Math.sin(fang);
+    const fmx=ax+flen*0.5*Math.cos(fang)+6*Math.cos(fang+Math.PI/2);
+    const fmy=ay-12+flen*0.5*Math.sin(fang)+6*Math.sin(fang+Math.PI/2);
+    const ftx=ax+flen*Math.cos(fang),fty=ay-12+flen*Math.sin(fang);
+    ctx.strokeStyle=fc[fi%fc.length];ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(fx1,fy1);ctx.quadraticCurveTo(fmx,fmy,ftx,fty);ctx.stroke();
+    ctx.fillStyle=fc[fi%fc.length];ctx.beginPath();ctx.arc(ftx,fty,4,0,Math.PI*2);ctx.fill();
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // DRAWING — OCTOPUS
 // ═══════════════════════════════════════════════════════════════
+
 function drawOctopus() {
-  const x = MON_X, y = MON_Y + Math.round(octopusBounce);
-  const mood = octopusMood, rot = octopusRot;
-  const bodyRx = 26, bodyRy = 38;
-  const cx = x, cy = y;
-  const armCy = cy + bodyRy * 0.6;
-  const BODY = '#cc5588', DARK = '#993366', SUCKER = '#ffaad4';
-  const EWHITE = '#f0f8ff', EDARK = '#1a0a2a', CHEEK = '#ff88bb';
-
-  const rotExtra = (mood==='excited'?-10 : mood==='sad'?15 : 0) + rot;
-
-  // Arms
-  [30,50,70,90].forEach(deg => {
-    [-1,1].forEach(side => {
-      const ang = Math.PI/2 + (deg*side + rotExtra*side)*Math.PI/180;
-      const len = 70, push = 18;
-      const sx = cx + push*Math.cos(ang), sy = armCy + push*Math.sin(ang);
-      const perp = ang + Math.PI/2*side;
-      const p1x = sx+(len-push)*0.45*Math.cos(ang)+13*Math.cos(perp);
-      const p1y = sy+(len-push)*0.45*Math.sin(ang)+13*Math.sin(perp);
-      const p2x = cx+len*Math.cos(ang)-7*Math.cos(perp);
-      const p2y = armCy+len*Math.sin(ang)-7*Math.sin(perp);
-      ctx.strokeStyle = BODY; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.quadraticCurveTo(p1x,p1y,p2x,p2y);
-      ctx.lineWidth = 7; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(p1x,p1y); ctx.quadraticCurveTo(p1x,p1y,p2x,p2y);
-      ctx.lineWidth = 3; ctx.stroke();
-      [0.35,0.72].forEach(t => {
-        const qx = sx*(1-t)**2 + 2*p1x*t*(1-t) + p2x*t**2;
-        const qy = sy*(1-t)**2 + 2*p1y*t*(1-t) + p2y*t**2;
-        const dr = t<0.5?4:3;
-        ctx.beginPath(); ctx.arc(qx,qy,dr,0,Math.PI*2);
-        ctx.fillStyle = SUCKER; ctx.fill();
-        ctx.strokeStyle = DARK; ctx.lineWidth = 1; ctx.stroke();
+  const x=MON_X, y=MON_Y+Math.round(octopusBounce);
+  const mood=octopusMood, rot=octopusRot;
+  const bodyRx=26,bodyRy=38, cx=x,cy=y, armCy=cy+bodyRy*0.6;
+  const BODY='#cc5588',DARK='#993366',SUCKER='#ffaad4',EWHITE='#f0f8ff',EDARK='#1a0a2a',CHEEK='#ff88bb';
+  const rotExtra=(mood==='excited'?-10:mood==='sad'?15:0)+rot;
+  [30,50,70,90].forEach(deg=>{
+    [-1,1].forEach(side=>{
+      const ang=Math.PI/2+(deg*side+rotExtra*side)*Math.PI/180;
+      const len=70,push=18;
+      const sx=cx+push*Math.cos(ang),sy=armCy+push*Math.sin(ang);
+      const perp=ang+Math.PI/2*side;
+      const p1x=sx+(len-push)*0.45*Math.cos(ang)+13*Math.cos(perp);
+      const p1y=sy+(len-push)*0.45*Math.sin(ang)+13*Math.sin(perp);
+      const p2x=cx+len*Math.cos(ang)-7*Math.cos(perp);
+      const p2y=armCy+len*Math.sin(ang)-7*Math.sin(perp);
+      ctx.strokeStyle=BODY;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(sx,sy);ctx.quadraticCurveTo(p1x,p1y,p2x,p2y);
+      ctx.lineWidth=7;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(p1x,p1y);ctx.quadraticCurveTo(p1x,p1y,p2x,p2y);
+      ctx.lineWidth=3;ctx.stroke();
+      [0.35,0.72].forEach(t=>{
+        const qx=sx*(1-t)**2+2*p1x*t*(1-t)+p2x*t**2;
+        const qy=sy*(1-t)**2+2*p1y*t*(1-t)+p2y*t**2;
+        ctx.beginPath();ctx.arc(qx,qy,t<0.5?4:3,0,Math.PI*2);
+        ctx.fillStyle=SUCKER;ctx.fill();ctx.strokeStyle=DARK;ctx.lineWidth=1;ctx.stroke();
       });
     });
   });
-
-  // Body oval
-  ctx.beginPath(); ctx.ellipse(cx, cy, bodyRx, bodyRy, 0, 0, Math.PI*2);
-  ctx.fillStyle = BODY; ctx.fill();
-  ctx.strokeStyle = DARK; ctx.lineWidth = 2; ctx.stroke();
-
-  // Face
-  const eyeY = cy - 14, mouthY = cy + 6;
-  if (mood === 'sad') {
-    [cx-9, cx+9].forEach(ex => {
-      ctx.beginPath(); ctx.arc(ex, eyeY, 6, 0.3, Math.PI-0.3);
-      ctx.strokeStyle = EDARK; ctx.lineWidth = 2; ctx.stroke();
-      // Teardrop
-      ctx.beginPath();
-      ctx.moveTo(ex-1, eyeY+4);
-      ctx.lineTo(ex+3, eyeY+7); ctx.lineTo(ex+2, eyeY+13);
-      ctx.lineTo(ex, eyeY+17); ctx.lineTo(ex-2, eyeY+13);
-      ctx.lineTo(ex-3, eyeY+7);
-      ctx.closePath();
-      ctx.fillStyle = '#80c8ff'; ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx,cy,bodyRx,bodyRy,0,0,Math.PI*2);ctx.fillStyle=BODY;ctx.fill();ctx.strokeStyle=DARK;ctx.lineWidth=2;ctx.stroke();
+  const eyeY=cy-14,mouthY=cy+6;
+  if (mood==='sad') {
+    [cx-9,cx+9].forEach(ex=>{
+      ctx.beginPath();ctx.arc(ex,eyeY,6,0.3,Math.PI-0.3);ctx.strokeStyle=EDARK;ctx.lineWidth=2;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(ex-1,eyeY+4);ctx.lineTo(ex+3,eyeY+7);ctx.lineTo(ex+2,eyeY+13);
+      ctx.lineTo(ex,eyeY+17);ctx.lineTo(ex-2,eyeY+13);ctx.lineTo(ex-3,eyeY+7);ctx.closePath();
+      ctx.fillStyle='#80c8ff';ctx.fill();
     });
-    ctx.beginPath(); ctx.arc(cx, mouthY+6, 9, Math.PI+0.35, -0.35);
-    ctx.strokeStyle = EDARK; ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,mouthY+6,9,Math.PI+0.35,-0.35);ctx.strokeStyle=EDARK;ctx.lineWidth=2;ctx.stroke();
   } else {
-    [cx-9, cx+9].forEach(ex => {
-      ctx.beginPath(); ctx.ellipse(ex, eyeY, 6, 6, 0, 0, Math.PI*2);
-      ctx.fillStyle = EWHITE; ctx.fill(); ctx.strokeStyle = EDARK; ctx.lineWidth=1; ctx.stroke();
-      ctx.beginPath(); ctx.arc(ex, eyeY+2, 3.5, 0, Math.PI*2);
-      ctx.fillStyle = EDARK; ctx.fill();
-      ctx.beginPath(); ctx.arc(ex-1.5, eyeY+0.5, 1.2, 0, Math.PI*2);
-      ctx.fillStyle = 'white'; ctx.fill();
-      if (mood === 'excited') {
-        ctx.fillStyle = '#ffe040'; ctx.font = 'bold 9px sans-serif';
-        ctx.fillText('★', ex-5, eyeY+8);
-      }
+    [cx-9,cx+9].forEach(ex=>{
+      ctx.beginPath();ctx.ellipse(ex,eyeY,6,6,0,0,Math.PI*2);ctx.fillStyle=EWHITE;ctx.fill();ctx.strokeStyle=EDARK;ctx.lineWidth=1;ctx.stroke();
+      ctx.beginPath();ctx.arc(ex,eyeY+2,3.5,0,Math.PI*2);ctx.fillStyle=EDARK;ctx.fill();
+      ctx.beginPath();ctx.arc(ex-1.5,eyeY+0.5,1.2,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();
+      if(mood==='excited'){ctx.fillStyle='#ffe040';ctx.font='bold 9px sans-serif';ctx.fillText('★',ex-5,eyeY+8);}
     });
-    if (mood === 'happy' || mood === 'excited') {
-      ctx.beginPath(); ctx.arc(cx, mouthY+4, 10, 0.25, Math.PI-0.25);
-      ctx.strokeStyle = EDARK; ctx.lineWidth = 2.5; ctx.stroke();
-      [cx-17, cx+17].forEach(chx => {
-        ctx.beginPath(); ctx.ellipse(chx, mouthY, 5, 4, 0, 0, Math.PI*2);
-        ctx.fillStyle = CHEEK; ctx.globalAlpha = 0.6; ctx.fill(); ctx.globalAlpha = 1;
-      });
-      if (mood === 'excited') {
-        ctx.fillStyle = '#ffe040'; ctx.strokeStyle = '#cc9900'; ctx.lineWidth = 1.5;
-        const crownY = cy - bodyRy - 4;
+    if (mood==='happy'||mood==='excited') {
+      ctx.beginPath();ctx.arc(cx,mouthY+4,10,0.25,Math.PI-0.25);ctx.strokeStyle=EDARK;ctx.lineWidth=2.5;ctx.stroke();
+      [cx-17,cx+17].forEach(chx=>{ctx.beginPath();ctx.ellipse(chx,mouthY,5,4,0,0,Math.PI*2);ctx.fillStyle=CHEEK;ctx.globalAlpha=0.6;ctx.fill();ctx.globalAlpha=1;});
+      if (mood==='excited') {
+        ctx.fillStyle='#ffe040';ctx.strokeStyle='#cc9900';ctx.lineWidth=1.5;
+        const crownY=cy-bodyRy-4;
         ctx.beginPath();
-        [[cx-14,crownY+8],[cx-10,crownY],[cx-5,crownY+8],[cx,crownY-4],
-         [cx+5,crownY+8],[cx+10,crownY],[cx+14,crownY+8]]
-          .forEach((p,i) => i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]));
-        ctx.closePath(); ctx.fill(); ctx.stroke();
+        [[cx-14,crownY+8],[cx-10,crownY],[cx-5,crownY+8],[cx,crownY-4],[cx+5,crownY+8],[cx+10,crownY],[cx+14,crownY+8]].forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+        ctx.closePath();ctx.fill();ctx.stroke();
       }
     } else {
-      ctx.beginPath(); ctx.moveTo(cx-7, mouthY+2); ctx.lineTo(cx+7, mouthY+2);
-      ctx.strokeStyle = EDARK; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx-7,mouthY+2);ctx.lineTo(cx+7,mouthY+2);ctx.strokeStyle=EDARK;ctx.lineWidth=2;ctx.stroke();
     }
   }
 }
@@ -705,441 +1596,286 @@ function drawOctopus() {
 // ═══════════════════════════════════════════════════════════════
 // DRAWING — SAND TIMER
 // ═══════════════════════════════════════════════════════════════
+
 function drawSandTimer() {
-  if (cfg.timer !== 'on') return;
-  const tx=28, ty=18, tw=30, th=54;
-  const frac = Math.max(0, timeLeft/10);
-  const urgent = timeLeft <= 3;
-  const sandCol = urgent ? COL.timerUrgent : COL.timerSand;
-  const frameCol = '#1a6090', glassCol = '#0a2848';
-  const midY = ty + th/2;
-
-  ctx.fillStyle = glassCol;
-  ctx.beginPath(); ctx.moveTo(tx-tw,ty); ctx.lineTo(tx+tw,ty); ctx.lineTo(tx,midY); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(tx-tw,ty+th); ctx.lineTo(tx+tw,ty+th); ctx.lineTo(tx,midY); ctx.closePath(); ctx.fill();
-
-  // Top sand
-  const topH = Math.floor(th/2 * frac);
-  if (topH > 1) {
-    const sandTop = ty + (th/2 - topH);
-    const wAtTop = tw * (midY - sandTop) / (th/2);
-    ctx.fillStyle = sandCol;
-    ctx.beginPath(); ctx.moveTo(tx-wAtTop,sandTop); ctx.lineTo(tx+wAtTop,sandTop); ctx.lineTo(tx,midY); ctx.closePath(); ctx.fill();
-  }
-  // Bottom sand
-  const botH = Math.floor(th/2 * (1-frac));
-  if (botH > 1) {
-    const baseY = ty+th, topY = baseY-botH;
-    const wAtBotTop = tw * (topY-midY)/(th/2);
-    ctx.fillStyle = sandCol;
-    ctx.beginPath(); ctx.moveTo(tx-wAtBotTop,topY); ctx.lineTo(tx+wAtBotTop,topY); ctx.lineTo(tx+tw,baseY); ctx.lineTo(tx-tw,baseY); ctx.closePath(); ctx.fill();
-  }
-  // Frame
-  ctx.strokeStyle = frameCol; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(tx-tw,ty); ctx.lineTo(tx+tw,ty); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(tx-tw,ty+th); ctx.lineTo(tx+tw,ty+th); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(tx-tw,ty); ctx.lineTo(tx,midY); ctx.lineTo(tx+tw,ty); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(tx-tw,ty+th); ctx.lineTo(tx,midY); ctx.lineTo(tx+tw,ty+th); ctx.stroke();
+  if (cfg.timer!=='on') return;
+  const tx=28,ty=18,tw=30,th=54;
+  const frac=Math.max(0,timeLeft/10), urgent=timeLeft<=3;
+  const sandCol=urgent?COL.timerUrgent:COL.timerSand, frameCol='#1a6090', glassCol='#0a2848';
+  const midY=ty+th/2;
+  ctx.fillStyle=glassCol;
+  ctx.beginPath();ctx.moveTo(tx-tw,ty);ctx.lineTo(tx+tw,ty);ctx.lineTo(tx,midY);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(tx-tw,ty+th);ctx.lineTo(tx+tw,ty+th);ctx.lineTo(tx,midY);ctx.closePath();ctx.fill();
+  const topH=Math.floor(th/2*frac);
+  if(topH>1){const sandTop=ty+(th/2-topH),wAtTop=tw*(midY-sandTop)/(th/2);ctx.fillStyle=sandCol;ctx.beginPath();ctx.moveTo(tx-wAtTop,sandTop);ctx.lineTo(tx+wAtTop,sandTop);ctx.lineTo(tx,midY);ctx.closePath();ctx.fill();}
+  const botH=Math.floor(th/2*(1-frac));
+  if(botH>1){const baseY=ty+th,topY=baseY-botH,wAtBotTop=tw*(topY-midY)/(th/2);ctx.fillStyle=sandCol;ctx.beginPath();ctx.moveTo(tx-wAtBotTop,topY);ctx.lineTo(tx+wAtBotTop,topY);ctx.lineTo(tx+tw,baseY);ctx.lineTo(tx-tw,baseY);ctx.closePath();ctx.fill();}
+  ctx.strokeStyle=frameCol;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(tx-tw,ty);ctx.lineTo(tx+tw,ty);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx-tw,ty+th);ctx.lineTo(tx+tw,ty+th);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx-tw,ty);ctx.lineTo(tx,midY);ctx.lineTo(tx+tw,ty);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx-tw,ty+th);ctx.lineTo(tx,midY);ctx.lineTo(tx+tw,ty+th);ctx.stroke();
 }
 
 // ═══════════════════════════════════════════════════════════════
 // DRAWING — BONDS / CIRCLES / DOTS
 // ═══════════════════════════════════════════════════════════════
+
 function decompose(n) {
-  const g = [];
-  let r = n;
-  while (r > 0) { const v = Math.min(5,r); g.push(v); r-=v; }
+  const g=[]; let r=n;
+  while(r>0){const v=Math.min(5,r);g.push(v);r-=v;}
   return g;
 }
 
 function getDotColours(circleIdx) {
-  // 0=whole, 1=partA, 2=partB
-  const disp = cfg.display;
-  if (circleIdx === 1) return Array(partA).fill('#e07010');
-  if (circleIdx === 2) return Array(partB).fill('#2060c0');
-  // whole
+  if (circleIdx===1) return Array(partA).fill('#e07010');
+  if (circleIdx===2) return Array(partB).fill('#2060c0');
   return Array(partA).fill('#e07010').concat(Array(partB).fill('#2060c0'));
 }
 
-function drawDots(cx, cy, r, n, withNumbers, colours, fullCircle) {
-  if (n === 0) return;
-  const groups = decompose(n);
-  const ng = groups.length;
-  const margin = r * 0.10;
-  // Dot zone: full circle when counters-only, lower portion otherwise
-  const dotTop = fullCircle ? cy - r + margin : cy + r * 0.07;
-  const dotBot = cy + r - margin;
-  const zoneH = dotBot - dotTop;
-  const zoneW = 2 * r - 2 * margin;
-  const midX = cx, midY = dotTop + zoneH / 2;
-
-  // How large each sub-dice box can be
-  const cols = ng <= 2 ? ng : 2;
-  const rows = Math.ceil(ng / cols);
-  const subW = zoneW / cols;
-  const subH = zoneH / rows;
-  // half-span: always derived from the lower-portion zone so counters-only
-  // matches counters-and-numbers dot sizes exactly
-  const refZoneH = r * 0.83;  // lower-portion height (cy+r*0.07 to cy+r-r*0.10)
-  const refZoneW = zoneW;      // width is the same either way
-  const refSubW  = refZoneW / cols;
-  const refSubH  = refZoneH / rows;
-  const half  = Math.min(refSubW, refSubH) * (n > 10 ? 0.42 : 0.34) * (fullCircle ? 1.2 : 1.0);
-  const dotR  = Math.max(2.5, Math.min(9, half * (n > 10 ? 0.40 : 0.34))) * 0.9;
-
-  // Build sub-dice centres on a grid
-  let centres = [];
-  if (n > 10 && cols === 2) {
-    const colSpacing = half * 2.4;
-    // In counters-only (fullCircle), pull rows closer together around midY
-    const rowSpacing = fullCircle ? half * 2.0 : subH;
-    const totalRowH = rowSpacing * (rows - 1);
-    for (let gi = 0; gi < ng; gi++) {
-      const col = gi % cols;
-      const row = Math.floor(gi / cols);
-      const scx = midX + (col === 0 ? -colSpacing / 2 : colSpacing / 2);
-      const scy = midY - totalRowH / 2 + row * rowSpacing;
-      centres.push([scx, scy]);
-    }
-  } else if (n >= 6 && cols === 2) {
-    const colSpacing = half * 2.0;
-    for (let gi = 0; gi < ng; gi++) {
-      const col = gi % cols;
-      const row = Math.floor(gi / cols);
-      const scx = midX + (col === 0 ? -colSpacing / 2 : colSpacing / 2);
-      const scy = dotTop + subH * row + subH / 2;
-      centres.push([scx, scy]);
-    }
+function drawDots(cx,cy,r,n,withNumbers,colours,fullCircle) {
+  if(n===0) return;
+  const groups=decompose(n), ng=groups.length;
+  const margin=r*0.10;
+  const dotTop=fullCircle?cy-r+margin:cy+r*0.07, dotBot=cy+r-margin;
+  const zoneH=dotBot-dotTop, zoneW=2*r-2*margin;
+  const midX=cx, midY=dotTop+zoneH/2;
+  const cols=ng<=2?ng:2, rows=Math.ceil(ng/cols);
+  const subW=zoneW/cols, subH=zoneH/rows;
+  const refZoneH=r*0.83, refZoneW=zoneW;
+  const refSubW=refZoneW/cols, refSubH=refZoneH/rows;
+  const half=Math.min(refSubW,refSubH)*(n>10?0.42:0.34)*(fullCircle?1.2:1.0);
+  const dotR=Math.max(2.5,Math.min(9,half*(n>10?0.40:0.34)))*0.9;
+  let centres=[];
+  if(n>10&&cols===2){
+    const colSpacing=half*2.4, rowSpacing=fullCircle?half*2.0:subH, totalRowH=rowSpacing*(rows-1);
+    for(let gi=0;gi<ng;gi++){const col=gi%cols,row=Math.floor(gi/cols);centres.push([midX+(col===0?-colSpacing/2:colSpacing/2),midY-totalRowH/2+row*rowSpacing]);}
+  } else if(n>=6&&cols===2){
+    const colSpacing=half*2.0;
+    for(let gi=0;gi<ng;gi++){const col=gi%cols,row=Math.floor(gi/cols);centres.push([midX+(col===0?-colSpacing/2:colSpacing/2),dotTop+subH*row+subH/2]);}
   } else {
-    for (let gi = 0; gi < ng; gi++) {
-      const col = gi % cols;
-      const row = Math.floor(gi / cols);
-      const scx = (cx - r + margin) + subW * col + subW / 2;
-      const scy = dotTop + subH * row + subH / 2;
-      centres.push([scx, scy]);
-    }
+    for(let gi=0;gi<ng;gi++){const col=gi%cols,row=Math.floor(gi/cols);centres.push([(cx-r+margin)+subW*col+subW/2,dotTop+subH*row+subH/2]);}
   }
-  // Special single-group: centre in zone
-  if (ng === 1) centres = [[midX, midY]];
-
-  const spread = n > 10 ? 0.95 : 0.78;
-  let dotIdx = 0;
-  groups.forEach((gval, gi) => {
-    const [scx, scy] = centres[gi];
-    const pat = DICE_PATTERNS[gval] || DICE_PATTERNS[5];
-    pat.forEach(([dx, dy]) => {
-      const px = scx + dx * half * spread;
-      const py = scy + dy * half * spread;
-      ctx.beginPath(); ctx.arc(px, py, dotR, 0, Math.PI * 2);
-      ctx.fillStyle = colours[dotIdx] || '#888';
-      ctx.fill();
-      dotIdx++;
+  if(ng===1) centres=[[midX,midY]];
+  const spread=n>10?0.95:0.78; let dotIdx=0;
+  groups.forEach((gval,gi)=>{
+    const [scx,scy]=centres[gi], pat=DICE_PATTERNS[gval]||DICE_PATTERNS[5];
+    pat.forEach(([dx,dy])=>{
+      const px=scx+dx*half*spread, py=scy+dy*half*spread;
+      ctx.beginPath();ctx.arc(px,py,dotR,0,Math.PI*2);
+      ctx.fillStyle=colours[dotIdx]||'#888';ctx.fill(); dotIdx++;
     });
   });
 }
 
-// ── PRE-ADDITION / SPLIT-DICE HELPERS ─────────────────────────────────────
-
-// True when the active game mode is early maths.
-function isEarlyMaths() { return cfg.mode === 'early'; }
-
-// True when the whole circle should display A and B as two side-by-side dice.
-// Applies in early maths mode AND in bonds-to-5 / doubles-to-10 counter modes.
-function useSplitDiceForWhole() {
-  const withDots = cfg.display === 'counters' || cfg.display === 'both';
-  if (!withDots) return false;
-  if (isEarlyMaths()) return true;
-  return cfg.level === 'to5' || cfg.level === 'doubles10';
+// Early maths: to5 or doubles10 with counters display
+function isEarlyMaths() {
+  return (cfg.level==='to5'||cfg.level==='doubles10') && cfg.display==='counters';
 }
 
-// Draw the whole circle's counters as two side-by-side dice:
-// left = partA (orange), right = partB (blue).
-function drawWholeSplitDice(c, withNum) {
-  const countersOnly = cfg.display === 'counters';
-  const r = c.r;
-  const margin = r * 0.10;
-  const dotTop = countersOnly ? c.cy - r + margin : c.cy + r * 0.07;
-  const dotBot = c.cy + r - margin;
-  const zoneH = dotBot - dotTop;
-  const zoneW = 2 * r - 2 * margin;
-  const gap = r * 0.08;
-  const halfW = (zoneW - gap) / 2;
-  const lcx = c.cx - gap / 2 - halfW / 2;
-  const rcx = c.cx + gap / 2 + halfW / 2;
-  const refZoneH = r * 0.83;
-  const half = Math.min(halfW, refZoneH) * 0.34 * (countersOnly ? 1.2 : 1.0);
-  const dotR = Math.max(2.5, Math.min(9, half * 0.34)) * 0.9;
-  const spread = 0.78;
+function useSplitDiceForWhole() {
+  const withDots=cfg.display==='counters'||cfg.display==='both';
+  if(!withDots) return false;
+  if(isEarlyMaths()) return true;
+  return cfg.level==='to5'||cfg.level==='doubles10';
+}
 
-  [[partA, lcx, '#e07010'], [partB, rcx, '#2060c0']].forEach(([val, scx, col]) => {
-    if (val === 0) return;
-    const groups = [];
-    let rem = val;
-    while (rem > 0) { const v = Math.min(5, rem); groups.push(v); rem -= v; }
-    const rowH = zoneH / groups.length;
-    groups.forEach((gval, gi) => {
-      const scy = dotTop + rowH * gi + rowH / 2;
-      (DICE_PATTERNS[gval] || DICE_PATTERNS[5]).forEach(([dx, dy]) => {
-        ctx.beginPath(); ctx.arc(scx + dx * half * spread, scy + dy * half * spread, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = col; ctx.fill();
+function drawWholeSplitDice(c,withNum) {
+  const countersOnly=cfg.display==='counters', r=c.r, margin=r*0.10;
+  const dotTop=countersOnly?c.cy-r+margin:c.cy+r*0.07, dotBot=c.cy+r-margin;
+  const zoneH=dotBot-dotTop, zoneW=2*r-2*margin, gap=r*0.08;
+  const halfW=(zoneW-gap)/2;
+  const lcx=c.cx-gap/2-halfW/2, rcx=c.cx+gap/2+halfW/2;
+  const refZoneH=r*0.83, half=Math.min(halfW,refZoneH)*0.34*(countersOnly?1.2:1.0);
+  const dotR=Math.max(2.5,Math.min(9,half*0.34))*0.9, spread=0.78;
+  [[partA,lcx,'#e07010'],[partB,rcx,'#2060c0']].forEach(([val,scx,col])=>{
+    if(val===0) return;
+    const groups=[]; let rem=val; while(rem>0){const v=Math.min(5,rem);groups.push(v);rem-=v;}
+    const rowH=zoneH/groups.length;
+    groups.forEach((gval,gi)=>{
+      const scy=dotTop+rowH*gi+rowH/2;
+      (DICE_PATTERNS[gval]||DICE_PATTERNS[5]).forEach(([dx,dy])=>{
+        ctx.beginPath();ctx.arc(scx+dx*half*spread,scy+dy*half*spread,dotR,0,Math.PI*2);
+        ctx.fillStyle=col;ctx.fill();
       });
     });
   });
-
-  // Faint dividing line
-  ctx.strokeStyle = 'rgba(100,140,160,0.35)'; ctx.lineWidth = 1;
-  ctx.setLineDash([3, 3]);
-  ctx.beginPath(); ctx.moveTo(c.cx, dotTop + r * 0.05); ctx.lineTo(c.cx, dotBot - r * 0.05); ctx.stroke();
+  ctx.strokeStyle='rgba(100,140,160,0.35)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(c.cx,dotTop+r*0.05);ctx.lineTo(c.cx,dotBot-r*0.05);ctx.stroke();
   ctx.setLineDash([]);
 }
 
-// ── DRAW BONDS ─────────────────────────────────────────────────────────────
 function drawBonds() {
-  const circles = [
-    {c:CW, val:whole,  isMiss:missing==='whole',  fsize:46, idx:0},
-    {c:CA, val:partA,  isMiss:missing==='partA',  fsize:38, idx:1},
-    {c:CB, val:partB,  isMiss:missing==='partB',  fsize:38, idx:2},
+  const circles=[
+    {c:CW,val:whole, isMiss:missing==='whole', fsize:46,idx:0},
+    {c:CA,val:partA, isMiss:missing==='partA', fsize:38,idx:1},
+    {c:CB,val:partB, isMiss:missing==='partB', fsize:38,idx:2},
   ];
+  ctx.strokeStyle='#ffffff';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(CW.cx,CW.cy);ctx.lineTo(CA.cx,CA.cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(CW.cx,CW.cy);ctx.lineTo(CB.cx,CB.cy);ctx.stroke();
 
-  // Lines
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(CW.cx,CW.cy); ctx.lineTo(CA.cx,CA.cy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(CW.cx,CW.cy); ctx.lineTo(CB.cx,CB.cy); ctx.stroke();
+  circles.forEach(({c,val,isMiss,fsize,idx})=>{
+    ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+    ctx.fillStyle=isMiss?COL.missingFill:COL.circleFill;ctx.fill();
+    ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+    if(isMiss){ctx.setLineDash([8,5]);ctx.strokeStyle=COL.missingStroke;ctx.lineWidth=3;}
+    else      {ctx.setLineDash([]);ctx.strokeStyle=COL.circleStroke;ctx.lineWidth=3;}
+    ctx.stroke();ctx.setLineDash([]);
 
-  circles.forEach(({c,val,isMiss,fsize,idx}) => {
-    // Fill
-    ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
-    ctx.fillStyle = isMiss ? COL.missingFill : COL.circleFill; ctx.fill();
-    // Stroke
-    ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
-    if (isMiss) {
-      ctx.setLineDash([8,5]); ctx.strokeStyle = COL.missingStroke; ctx.lineWidth=3;
-    } else {
-      ctx.setLineDash([]); ctx.strokeStyle = COL.circleStroke; ctx.lineWidth=3;
-    }
-    ctx.stroke(); ctx.setLineDash([]);
-
-    // ── In early maths mode: all missing circles show dots (even when missing) ──
-    if (isEarlyMaths() && isMiss) {
-      // Draw the circle as visibly present (not dashed) with dots inside
-      ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
-      ctx.fillStyle = COL.circleFill; ctx.fill();
-      ctx.setLineDash([]); ctx.strokeStyle = COL.circleStroke; ctx.lineWidth=3;
-      ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2); ctx.stroke();
-      
-      // Draw dots for missing circle
-      const disp = cfg.display;
-      const withDots = disp==='counters'||disp==='both';
-      const countersOnly = disp==='counters';
-      if (withDots) {
-        if (idx === 0) {
-          // Whole circle: show split dice
-          drawWholeSplitDice(c, false);
-        } else {
-          // Part circles: show dots
-          drawDots(c.cx, c.cy, c.r, val, false, getDotColours(idx), countersOnly);
-        }
+    if(isEarlyMaths()&&isMiss){
+      ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);ctx.fillStyle=COL.circleFill;ctx.fill();
+      ctx.setLineDash([]);ctx.strokeStyle=COL.circleStroke;ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);ctx.stroke();
+      const disp=cfg.display, withDots=disp==='counters'||disp==='both', countersOnly=disp==='counters';
+      if(withDots){
+        if(idx===0) drawWholeSplitDice(c,false);
+        else drawDots(c.cx,c.cy,c.r,val,false,getDotColours(idx),countersOnly);
       }
-      return; // skip the normal isMiss branch below
+      return;
     }
 
-    if (!isMiss) {
-      const disp = cfg.display;
-      const withDots = disp==='counters'||disp==='both';
-      const countersOnly = disp==='counters';
-      // In early maths mode, always show numbers above dots; otherwise use display setting
-      const withNum = isEarlyMaths() ? true : disp==='numbers'||disp==='both';
-      
-      if (withNum) {
-        const numY = withDots ? c.cy - c.r*0.45 : c.cy;
-        ctx.fillStyle = '#2a1a00';
-        ctx.font = `bold ${fsize}px Trebuchet MS`;
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(val, c.cx, numY);
+    if(!isMiss){
+      const disp=cfg.display, withDots=disp==='counters'||disp==='both', countersOnly=disp==='counters';
+      const withNum=isEarlyMaths()?true:disp==='numbers'||disp==='both';
+      if(withNum){
+        const numY=withDots?c.cy-c.r*0.45:c.cy;
+        ctx.fillStyle='#2a1a00';ctx.font=`bold ${fsize}px Trebuchet MS`;
+        ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(val,c.cx,numY);
       }
-      if (withDots) {
-        if (idx === 0 && useSplitDiceForWhole()) {
-          drawWholeSplitDice(c, withNum);
-        } else {
-          drawDots(c.cx, c.cy, c.r, val, withNum, getDotColours(idx), countersOnly);
-        }
+      if(withDots){
+        if(idx===0&&useSplitDiceForWhole()) drawWholeSplitDice(c,withNum);
+        else drawDots(c.cx,c.cy,c.r,val,withNum,getDotColours(idx),countersOnly);
       }
     }
   });
 }
 
-function drawRevealCircle(miss, correctVal) {
-  let c, fsize;
-  if (miss==='whole') { c=CW; fsize=46; }
-  else if (miss==='partA') { c=CA; fsize=38; }
-  else { c=CB; fsize=38; }
+function drawRevealCircle(miss,correctVal) {
+  let c,fsize;
+  if(miss==='whole'){c=CW;fsize=46;} else if(miss==='partA'){c=CA;fsize=38;} else{c=CB;fsize=38;}
 
-  ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
-  ctx.fillStyle = COL.correctFill; ctx.fill();
-  ctx.setLineDash([]); ctx.strokeStyle = COL.correctStroke; ctx.lineWidth=3;
-  ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+  ctx.fillStyle   = skipMode ? COL.circleFill   : COL.correctFill;   ctx.fill();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = skipMode ? COL.circleStroke : COL.correctStroke; ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);ctx.stroke();
 
-  const disp = cfg.display;
-  const withDots = disp==='counters'||disp==='both';
-  const countersOnly = disp==='counters';
-  // In early maths mode, always show numbers on reveal; otherwise use display setting
-  const withNum = isEarlyMaths() ? true : disp==='numbers'||disp==='both';
-
-  if (withNum) {
-    const numY = withDots ? c.cy - c.r*0.45 : c.cy;
-    ctx.fillStyle = COL.correctText;
-    ctx.font = `bold ${fsize}px Trebuchet MS`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(correctVal, c.cx, numY);
+  const disp=cfg.display, withDots=disp==='counters'||disp==='both', countersOnly=disp==='counters';
+  const withNum=isEarlyMaths()?true:disp==='numbers'||disp==='both';
+  if(withNum){
+    const numY=withDots?c.cy-c.r*0.45:c.cy;
+    ctx.fillStyle=skipMode?COL.missingText:COL.correctText;
+    ctx.font=`bold ${fsize}px Trebuchet MS`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(correctVal,c.cx,numY);
   }
-  if (withDots) {
-    const idx = miss==='whole'?0 : miss==='partA'?1:2;
-    // Early maths and split-dice levels: keep split dice on reveal of whole
-    if (idx === 0 && useSplitDiceForWhole()) {
-      drawWholeSplitDice(c, withNum);
-    } else {
-      drawDots(c.cx, c.cy, c.r, correctVal, withNum, getDotColours(idx), countersOnly);
+  if(withDots){
+    const idx=miss==='whole'?0:miss==='partA'?1:2;
+    if(idx===0&&useSplitDiceForWhole()) drawWholeSplitDice(c,withNum);
+    else drawDots(c.cx,c.cy,c.r,correctVal,withNum,getDotColours(idx),countersOnly);
+  }
+  if(!skipMode){
+    for(let i=0;i<6;i++){
+      const ang=Math.random()*Math.PI*2, dist=c.r+8+Math.random()*20;
+      ctx.fillStyle=['#ffe040','#ff8020','#c8f060'][Math.floor(Math.random()*3)];
+      ctx.font=`${5+Math.floor(Math.random()*6)}px sans-serif`;
+      ctx.fillText('★',c.cx+dist*Math.cos(ang),c.cy+dist*Math.sin(ang));
     }
-  }
-  // Stars outside
-  for (let i=0;i<6;i++) {
-    const ang=Math.random()*Math.PI*2, dist=c.r+8+Math.random()*20;
-    ctx.fillStyle=['#ffe040','#ff8020','#c8f060'][Math.floor(Math.random()*3)];
-    ctx.font=`${5+Math.floor(Math.random()*6)}px sans-serif`;
-    ctx.fillText('★', c.cx+dist*Math.cos(ang), c.cy+dist*Math.sin(ang));
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // DRAWING — BUBBLES
 // ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-// DRAWING — BUBBLES (positions updated by interval, drawn in redraw)
-// ═══════════════════════════════════════════════════════════════
+
 function spawnBubble(startY) {
-  bubbles.push({
-    x: 15+Math.random()*(W-30),
-    y: startY !== undefined ? startY : H-10,
-    r: 4+Math.random()*6,
-    speed: 0.6+Math.random()*1.2,
-  });
+  bubbles.push({x:15+Math.random()*(W-30),y:startY!==undefined?startY:H-10,r:4+Math.random()*6,speed:0.6+Math.random()*1.2});
 }
-
 function updateBubbles() {
-  if (Math.random() < 0.18) spawnBubble();
-  bubbles = bubbles.filter(b => {
-    b.x += (Math.random()-0.5)*0.8;
-    b.y -= b.speed;
-    return b.y + b.r > 0;
-  });
+  if(Math.random()<0.18) spawnBubble();
+  bubbles=bubbles.filter(b=>{b.x+=(Math.random()-0.5)*0.8;b.y-=b.speed;return b.y+b.r>0;});
 }
-
 function drawBubbles() {
-  ctx.strokeStyle = '#4ab8e0'; ctx.lineWidth = 1;
-  bubbles.forEach(b => {
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.stroke();
-    ctx.fillStyle = '#a0e0ff';
-    ctx.beginPath(); ctx.ellipse(b.x-b.r/3, b.y-b.r*0.5, b.r/3, b.r/4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#4ab8e0';ctx.lineWidth=1;
+  bubbles.forEach(b=>{
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#a0e0ff';ctx.beginPath();ctx.ellipse(b.x-b.r/3,b.y-b.r*0.5,b.r/3,b.r/4,0,0,Math.PI*2);ctx.fill();
   });
 }
-
 function startBubbles() {
-  if (bubbleAnimId) clearInterval(bubbleAnimId);
-  bubbleAnimId = setInterval(() => { updateBubbles(); redraw(); }, 80);
+  if(bubbleAnimId) clearInterval(bubbleAnimId);
+  bubbleAnimId=setInterval(()=>{updateBubbles();redraw();},80);
 }
-
 function stopBubbles() {
-  if (bubbleAnimId) { clearInterval(bubbleAnimId); bubbleAnimId = null; }
+  if(bubbleAnimId){clearInterval(bubbleAnimId);bubbleAnimId=null;}
 }
 
 // ═══════════════════════════════════════════════════════════════
 // DRAWING — STARBURST
 // ═══════════════════════════════════════════════════════════════
-let burstStep = 0, burstTotal = 8, burstRays = 16, burstCx = 240, burstCy = 230;
-const BURST_COLS = ['#40ffcc','#00d4ff','#ff80c0','#ffff60','#80ffff','#ff6090'];
+
+let burstStep=0,burstTotal=8,burstRays=16,burstCx=240,burstCy=230;
+const BURST_COLS=['#40ffcc','#00d4ff','#ff80c0','#ffff60','#80ffff','#ff6090'];
 
 function drawBurst() {
-  if (burstStep > burstTotal) return;
-  const frac = burstStep / burstTotal;
-  const length = 120 * frac;
-  for (let i=0;i<burstRays;i++) {
-    const ang = 2*Math.PI*i/burstRays;
-    const col = BURST_COLS[Math.floor(Math.random()*BURST_COLS.length)];
-    ctx.strokeStyle = col; ctx.lineCap='round';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(burstCx+length*0.15*Math.cos(ang), burstCy+length*0.15*Math.sin(ang));
-    ctx.lineTo(burstCx+length*0.45*Math.cos(ang), burstCy+length*0.45*Math.sin(ang));
-    ctx.stroke();
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(burstCx+length*0.45*Math.cos(ang), burstCy+length*0.45*Math.sin(ang));
-    ctx.lineTo(burstCx+length*Math.cos(ang), burstCy+length*Math.sin(ang));
-    ctx.stroke();
-    const sz = Math.max(6, Math.floor(14*frac));
-    ctx.fillStyle = col; ctx.font = `${sz}px sans-serif`;
-    ctx.fillText('★', burstCx+length*Math.cos(ang)-4, burstCy+length*Math.sin(ang)+4);
+  if(burstStep>burstTotal) return;
+  const frac=burstStep/burstTotal, length=120*frac;
+  for(let i=0;i<burstRays;i++){
+    const ang=2*Math.PI*i/burstRays, col=BURST_COLS[Math.floor(Math.random()*BURST_COLS.length)];
+    ctx.strokeStyle=col;ctx.lineCap='round';ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(burstCx+length*0.15*Math.cos(ang),burstCy+length*0.15*Math.sin(ang));ctx.lineTo(burstCx+length*0.45*Math.cos(ang),burstCy+length*0.45*Math.sin(ang));ctx.stroke();
+    ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(burstCx+length*0.45*Math.cos(ang),burstCy+length*0.45*Math.sin(ang));ctx.lineTo(burstCx+length*Math.cos(ang),burstCy+length*Math.sin(ang));ctx.stroke();
+    const sz=Math.max(6,Math.floor(14*frac));ctx.fillStyle=col;ctx.font=`${sz}px sans-serif`;ctx.fillText('★',burstCx+length*Math.cos(ang)-4,burstCy+length*Math.sin(ang)+4);
   }
   burstStep++;
-  const delay = burstStep < burstTotal/2 ? 40 : 60;
-  burstAnimId = setTimeout(redraw, delay);
+  burstAnimId=setTimeout(redraw,burstStep<burstTotal/2?40:60);
 }
-
-function startBurst(cx, cy, rays) {
-  if (burstAnimId) clearTimeout(burstAnimId);
-  burstStep = 0; burstRays = rays; burstCx = cx; burstCy = cy;
-  burstTotal = 8;
+function startBurst(cx,cy,rays) {
+  if(burstAnimId) clearTimeout(burstAnimId);
+  burstStep=0;burstRays=rays;burstCx=cx;burstCy=cy;burstTotal=8;
 }
 
 // ═══════════════════════════════════════════════════════════════
 // BANNERS
 // ═══════════════════════════════════════════════════════════════
+
 function showLevelUpBanner() {
-  banners.push({text1:'🐚  New bond unlocked!  🐚', text2:'Swim deeper!',
-    col1:'#40ffcc', col2:'#80d8ff', border:'#40ffcc', until:Date.now()+1800});
+  banners.push({text1:'🐚  New bond unlocked!  🐚',text2:'Swim deeper!',
+    col1:'#40ffcc',col2:'#80d8ff',border:'#40ffcc',until:Date.now()+1800});
 }
 function showGraduationBanner(w,a,b) {
-  banners.push({text1:`🎓  You learnt  ${a} + ${b} = ${w}  🎓`, text2:'This bond is now in free play!',
-    col1:'#ffd700', col2:'#80d8ff', border:'#ffd700', until:Date.now()+2500});
+  banners.push({text1:`🎓  You learnt  ${a} + ${b} = ${w}  🎓`,text2:'This bond is now in free play!',
+    col1:'#ffd700',col2:'#80d8ff',border:'#ffd700',until:Date.now()+2500});
   snd('levelup');
 }
-
 function drawBanners() {
-  const now = Date.now();
-  banners = banners.filter(b => b.until > now);
-  banners.forEach(b => {
-    const cx=240, cy=H/2;
-    ctx.fillStyle = '#0a1e40';
-    ctx.beginPath(); roundRect(ctx, cx-165, cy-32, 330, 64, 6); ctx.fill();
-    ctx.strokeStyle = b.border; ctx.lineWidth=3;
-    ctx.beginPath(); roundRect(ctx, cx-165, cy-32, 330, 64, 6); ctx.stroke();
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.font = 'bold 14px Trebuchet MS'; ctx.fillStyle = b.col1;
-    ctx.fillText(b.text1, cx, cy-10);
-    ctx.font = '11px Trebuchet MS'; ctx.fillStyle = b.col2;
-    ctx.fillText(b.text2, cx, cy+12);
+  const now=Date.now(); banners=banners.filter(b=>b.until>now);
+  banners.forEach(b=>{
+    const cx=240,cy=H/2;
+    ctx.fillStyle='#0a1e40';ctx.beginPath();roundRect(ctx,cx-165,cy-32,330,64,6);ctx.fill();
+    ctx.strokeStyle=b.border;ctx.lineWidth=3;ctx.beginPath();roundRect(ctx,cx-165,cy-32,330,64,6);ctx.stroke();
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='bold 14px Trebuchet MS';ctx.fillStyle=b.col1;ctx.fillText(b.text1,cx,cy-10);
+    ctx.font='11px Trebuchet MS';ctx.fillStyle=b.col2;ctx.fillText(b.text2,cx,cy+12);
   });
 }
-
-function roundRect(c2, x,y,w,h,r) {
-  c2.moveTo(x+r,y); c2.lineTo(x+w-r,y); c2.arcTo(x+w,y,x+w,y+r,r);
-  c2.lineTo(x+w,y+h-r); c2.arcTo(x+w,y+h,x+w-r,y+h,r);
-  c2.lineTo(x+r,y+h); c2.arcTo(x,y+h,x,y+h-r,r);
-  c2.lineTo(x,y+r); c2.arcTo(x,y,x+r,y,r); c2.closePath();
+function roundRect(c2,x,y,w,h,r) {
+  c2.moveTo(x+r,y);c2.lineTo(x+w-r,y);c2.arcTo(x+w,y,x+w,y+r,r);
+  c2.lineTo(x+w,y+h-r);c2.arcTo(x+w,y+h,x+w-r,y+h,r);
+  c2.lineTo(x+r,y+h);c2.arcTo(x,y+h,x,y+h-r,r);
+  c2.lineTo(x,y+r);c2.arcTo(x,y,x+r,y,r);c2.closePath();
 }
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN DRAW
 // ═══════════════════════════════════════════════════════════════
+
 function redraw() {
   ctx.clearRect(0,0,W,H);
-  drawBackground();
-  drawBubbles();
-  drawOctopus();
-  drawSandTimer();
+  drawBackground(); drawBubbles(); drawOctopus(); drawSandTimer();
   drawBonds();
-  if (revealed) drawRevealCircle(missing, correct);
-  if (burstStep <= burstTotal) drawBurst();
+  if(revealed) drawRevealCircle(missing,correct);
+  if(burstStep<=burstTotal) drawBurst();
   drawBanners();
   positionEntry();
 }
@@ -1147,356 +1883,1744 @@ function redraw() {
 // ═══════════════════════════════════════════════════════════════
 // ENTRY WIDGET POSITIONING
 // ═══════════════════════════════════════════════════════════════
+
 function positionEntry() {
-  // Don't show during reveal or if no question active
-  if (entry.disabled) { entry.style.display='none'; return; }
-
-  const scale = parseFloat(canvas.style.width) / W || 1;
-  let c, fsize, entryW, entryH;
-  if (missing === 'whole') { c=CW; fsize=38; }
-  else if (missing === 'partA') { c=CA; fsize=32; }
-  else if (missing === 'partB') { c=CB; fsize=32; }
-  else { entry.style.display='none'; return; }
-
-  const disp = cfg.display;
-  const withDots = disp==='counters'||disp==='both';
-  entryW = c.r * 1.1 * 2 * scale;
-  entryH = (withDots ? c.r*0.60 : c.r*0.80) * 2 * scale;
-  const entryY = withDots ? c.cy - c.r*0.38 : c.cy;
-
-  const rect = canvas.getBoundingClientRect();
-  entry.style.display = 'block';
-  entry.style.left = (rect.left + (c.cx - c.r*1.1)*scale) + 'px';
-  entry.style.top  = (rect.top  + (entryY - entryH/2/scale)*scale) + 'px';
-  entry.style.width  = entryW + 'px';
-  entry.style.height = entryH + 'px';
-  entry.style.fontSize = (fsize * scale) + 'px';
-  entry.style.lineHeight = entryH + 'px';
-  entry.style.position = 'fixed';
+  if(entry.disabled){entry.style.display='none';return;}
+  const rectW = canvas.getBoundingClientRect().width;
+  const scale = (rectW && W) ? (rectW / W) : 1;
+  let c,fsize,entryW,entryH;
+  if     (missing==='whole') {c=CW;fsize=38;}
+  else if(missing==='partA') {c=CA;fsize=32;}
+  else if(missing==='partB') {c=CB;fsize=32;}
+  else {entry.style.display='none';return;}
+  const disp=cfg.display, withDots=disp==='counters'||disp==='both';
+  entryW=c.r*1.1*2*scale; entryH=(withDots?c.r*0.60:c.r*0.80)*2*scale;
+  const entryY=withDots?c.cy-c.r*0.38:c.cy;
+  const rect=canvas.getBoundingClientRect();
+  entry.style.display='block';
+  entry.style.left=(rect.left+(c.cx-c.r*1.1)*scale)+'px';
+  entry.style.top =(rect.top +(entryY-entryH/2/scale)*scale)+'px';
+  entry.style.width=entryW+'px'; entry.style.height=entryH+'px';
+  entry.style.fontSize=(fsize*scale)+'px'; entry.style.lineHeight=entryH+'px';
+  entry.style.position='fixed';
 }
 
 // ═══════════════════════════════════════════════════════════════
 // OCTOPUS ANIMATION
 // ═══════════════════════════════════════════════════════════════
+
 function startOctopusBounce(cycles) {
-  if (octopusAnimId) clearInterval(octopusAnimId);
-  const framesPerCycle = 24;
-  const totalFrames = cycles * framesPerCycle;
-  let frame = 0;
-  octopusAnimId = setInterval(() => {
-    const phase = frame / framesPerCycle * Math.PI * 2;
-    octopusBounce = -Math.abs(Math.sin(phase)) * 18;
-    octopusRot = Math.sin(phase) * 10;
-    redraw();
-    frame++;
-    if (frame >= totalFrames) {
-      clearInterval(octopusAnimId); octopusAnimId = null;
-      octopusBounce = 0; octopusRot = 0;
-      octopusMood = 'happy';
-      redraw();
+  if(octopusAnimId) clearInterval(octopusAnimId);
+  const framesPerCycle=24, totalFrames=cycles*framesPerCycle; let frame=0;
+  octopusAnimId=setInterval(()=>{
+    const phase=frame/framesPerCycle*Math.PI*2;
+    octopusBounce=-Math.abs(Math.sin(phase))*18; octopusRot=Math.sin(phase)*10;
+    redraw(); frame++;
+    if(frame>=totalFrames){clearInterval(octopusAnimId);octopusAnimId=null;octopusBounce=0;octopusRot=0;octopusMood='happy';redraw();}
+  },50);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ## KEYPAD — shared number pad (Stage A)
+// ═══════════════════════════════════════════════════════════════
+//
+// Usage:
+//   Keypad.mount(leftEl, rightEl)
+//   Keypad.setChoices([1,2,3,...], pickFn)   // pickFn(number) called on tap
+//
+// Policy:
+//  - ≤10 choices -> single pad (right/below). Left pad hidden.
+//  - >10 choices -> split in two halves across left and right pads.
+// Buttons stretch to fill their parent; parent is sized by the per-game fit fn.
+//
+const Keypad = (function(){
+  let leftEl=null, rightEl=null;
+  let choices=[], pickCb=null;
+  let dual=false;
+
+  function mount(left, right) {
+    leftEl  = typeof left  === 'string' ? document.getElementById(left)  : left;
+    rightEl = typeof right === 'string' ? document.getElementById(right) : right;
+  }
+  function setChoices(nums, onPick) {
+    choices = nums.slice();
+    pickCb  = onPick || null;
+    dual    = choices.length > 10;
+    render();
+  }
+  function addBtn(parent, val) {
+    const b = document.createElement('button');
+    b.className = 'num-pad-btn';
+    b.textContent = val;
+    b.onclick = () => { if (pickCb) pickCb(val); };
+    parent.appendChild(b);
+  }
+  function render() {
+    if(!leftEl || !rightEl) return;
+    leftEl.innerHTML = ''; rightEl.innerHTML = '';
+    if (dual) {
+      const half = Math.ceil(choices.length/2);
+      choices.forEach((v, i) => addBtn(i < half ? leftEl : rightEl, v));
+      leftEl.style.display = ''; rightEl.style.display = '';
+    } else {
+      leftEl.style.display = 'none';
+      rightEl.style.display = '';
+      choices.forEach(v => addBtn(rightEl, v));
     }
-  }, 50);
-}
-
+  }
+  return { mount, setChoices, get dual(){return dual;} };
+})();
 
 // ═══════════════════════════════════════════════════════════════
-// GAME STATE
+// ## REEF GAME — GAME STATE  (Stage 3 → Games.reef.state)
 // ═══════════════════════════════════════════════════════════════
+
 let cfg    = {};
-let engine = null;   // BondEngine instance — replaces all old bond variables
-let score = 0, total = 0, streak = 0;
+let engine = null;
+let currentQ = null;
+let score=0, total=0, streak=0;
 let whole, partA, partB, missing, correct;
+let skipMode      = false;
 let octopusMood   = 'thinking';
-let octopusBounce = 0;
-let octopusRot    = 0;
-let octopusAnimId = null;
-let revealTimeout = null;
-let timerInterval = null;
-let timeLeft      = 10;
-let revealed      = false;
-let bubbleAnimId  = null;
-let bubbles       = [];
-let burstAnimId   = null;
-let banners       = [];
-let sadResetId    = null;
+let octopusBounce = 0, octopusRot = 0;
+let octopusAnimId = null, revealTimeout = null;
+let timerInterval = null, timeLeft = 10;
+let revealed = false;
+let bubbleAnimId = null, bubbles = [];
+let burstAnimId = null, banners = [];
+let sadResetId = null;
+
+// ─── session ───
+let currentUser   = null;  // { id, name } or null for guest
+let activeSettings = null; // raw settings from settings screen
+let lockQ = null;          // { a, b, answer }
 
 // ═══════════════════════════════════════════════════════════════
-// GAME FLOW
+// ## REEF GAME — GAME FLOW  (Stage 3 → Games.reef)
 // ═══════════════════════════════════════════════════════════════
-function snd(name) {
-  if (cfg.sound === 'on' && SOUNDS[name]) SOUNDS[name]();
-}
+
+function snd(name) { if(cfg.sound==='on'&&SOUNDS[name]) SOUNDS[name](); }
+
 function updateScore() {
-  document.getElementById('score-label').textContent = `⭐ ${score} / ${total}`;
+  document.getElementById('score-label').textContent=`⭐ ${score} / ${total}`;
 }
-function showFeedback(msg, col) {
-  const el = document.getElementById('feedback-label');
-  el.textContent = msg; el.style.color = col;
+function showFeedback(msg,col) {
+  const el=document.getElementById('feedback-label'); el.textContent=msg; el.style.color=col;
 }
 function updateSumLabel() {
-  const el = document.getElementById('sum-label');
-  if (missing === 'whole')
-    el.textContent = `${partA}  +  ${partB}  =  ?`;
-  else if (missing === 'partA')
-    el.textContent = `?  +  ${partB}  =  ${whole}    ·    ${whole}  −  ${partB}  =  ?`;
-  else
-    el.textContent = `${partA}  +  ?  =  ${whole}    ·    ${whole}  −  ${partA}  =  ?`;
+  const el=document.getElementById('sum-label');
+  if     (missing==='whole') el.textContent=`${partA}  +  ${partB}  =  ?`;
+  else if(missing==='partA') el.textContent=`?  +  ${partB}  =  ${whole}    ·    ${whole}  −  ${partB}  =  ?`;
+  else                        el.textContent=`${partA}  +  ?  =  ${whole}    ·    ${whole}  −  ${partA}  =  ?`;
 }
 
 function buildNumPad() {
-  const left  = document.getElementById('num-pad-left');
-  const right = document.getElementById('num-pad-right');
-  left.innerHTML = '';
-  right.innerHTML = '';
+  Keypad.mount('num-pad-left', 'num-pad-right');
+  // Button range is driven purely by the selected level.
+  const show20 = ['exact20','doubles20','upto20'].includes(cfg.level);
+  const nums = [];
+  for (let n=1; n<=10; n++) nums.push(n);
+  if (show20) for (let n=11; n<=20; n++) nums.push(n);
+  Keypad.setChoices(nums, (val) => {
+    if (entry.disabled) return;
+    entry.value = val;
+    checkAnswer();
+  });
+  fitReef();
+}
 
-  const needs20 = ['exact20','doubles20','upto20'].includes(cfg.level);
-  const show20 = needs20 || (whole > 10 || partA > 10 || partB > 10);
-
-  // Always show 1–10 on the left
-  for (let n = 1; n <= 10; n++) {
-    const btn = document.createElement('button');
-    btn.className = 'num-pad-btn';
-    btn.textContent = n;
-    btn.onclick = () => { if (entry.disabled) return; entry.value = n; checkAnswer(); };
-    left.appendChild(btn);
-  }
-
-  // Show 11–20 on the right only when needed
-  right.style.display = show20 ? '' : 'none';
-  if (show20) {
-    for (let n = 11; n <= 20; n++) {
-      const btn = document.createElement('button');
-      btn.className = 'num-pad-btn';
-      btn.textContent = n;
-      btn.onclick = () => { if (entry.disabled) return; entry.value = n; checkAnswer(); };
-      right.appendChild(btn);
-    }
-  }
+function saveEngineState() {
+  if(!currentUser) return;
+  const ud=getUserData(currentUser.id);
+  ud.engine=engine.getState();
+  saveUserData(currentUser.id,ud);
 }
 
 function newQuestion() {
-  stopTimer();
-  revealed = false;
-  entry.value = '';
-  entry.disabled = false;
-
-  const q = engine.nextQuestion();
-  whole   = q.whole;
-  partA   = q.partA;
-  partB   = q.partB;
-  missing = q.missing;
-  correct = q.correctAnswer;
-
+  stopTimer(); revealed=false; skipMode=false;
+  entry.value=''; entry.disabled=false;
+  currentQ=engine.nextQuestion();
+  if(!currentQ) return;
+  whole=currentQ.whole; partA=currentQ.partA; partB=currentQ.partB;
+  missing=currentQ.missing; correct=currentQ.correctAnswer;
   updateSumLabel();
-  if (!octopusAnimId) octopusMood = 'thinking';
-  buildNumPad();
-  redraw();
-  updateScore();
-  startTimer();
-  setTimeout(() => { entry.focus(); positionEntry(); }, 50);
+  if(!octopusAnimId) octopusMood='thinking';
+  buildNumPad(); redraw(); updateScore(); startTimer();
+  setTimeout(()=>{entry.focus();positionEntry();},50);
 }
 
 function checkAnswer() {
-  const raw = entry.value.trim();
-  if (!raw) { showFeedback('Type a number first!', COL.wrongCol); return; }
-  const val = parseInt(raw);
-  if (isNaN(val)) { showFeedback('Numbers only!', COL.wrongCol); return; }
-
+  const raw=entry.value.trim();
+  if(!raw){showFeedback('Type a number first!',COL.wrongCol);return;}
+  const val=parseInt(raw);
+  if(isNaN(val)){showFeedback('Numbers only!',COL.wrongCol);return;}
   stopTimer();
-  const isCorrect = val === correct;
-  total++;
-
-  engine.recordAnswer({ whole, partA, partB, missing }, isCorrect);
-  const result = { justSecured: false };
-
-  if (isCorrect) {
-    score++; streak++;
-    octopusMood = 'happy';
-    revealed = true;
-    redraw();
-    handleStreak();
-    updateScore();
-    entry.disabled = true;
-    entry.style.display = 'none';
-    if (result.justSecured) showGraduationBanner(whole, partA, partB);
-    if (revealTimeout) clearTimeout(revealTimeout);
-    revealTimeout = setTimeout(newQuestion, 1500);
+  const isCorrect=val===correct; total++;
+  const result=engine.recordAnswer(currentQ,isCorrect);
+  saveEngineState();
+  if(isCorrect){
+    score++;streak++;
+    octopusMood='happy'; skipMode=false; revealed=true; redraw();
+    handleStreak(); updateScore();
+    entry.disabled=true; entry.style.display='none';
+    if(result.graduation) showGraduationBanner(result.graduation_bond.w,result.graduation_bond.a,result.graduation_bond.b);
+    if(result.level_up)   showLevelUpBanner();
+    if(revealTimeout) clearTimeout(revealTimeout);
+    revealTimeout=setTimeout(newQuestion,1500);
   } else {
-    streak = 0;
-    document.getElementById('streak-label').textContent = '';
-    octopusMood = 'sad';
-    redraw();
-    showFeedback('Not quite — try again! 🐙', COL.wrongCol);
-    snd('wrong');
-    entry.value = '';
-    if (sadResetId) clearTimeout(sadResetId);
-    sadResetId = setTimeout(() => {
-      if (octopusMood === 'sad') { octopusMood = 'thinking'; redraw(); }
-    }, 1500);
-    updateScore();
-    startTimer();
+    streak=0; document.getElementById('streak-label').textContent='';
+    octopusMood='sad'; redraw();
+    showFeedback('Not quite — try again! 🐙',COL.wrongCol); snd('wrong');
+    entry.value='';
+    if(sadResetId) clearTimeout(sadResetId);
+    sadResetId=setTimeout(()=>{if(octopusMood==='sad'){octopusMood='thinking';redraw();}},1500);
+    updateScore(); startTimer();
   }
 }
 
 function handleStreak() {
-  const streakSounds = {3:'streak3',5:'streak5',10:'streak10',20:'streak20',
-                        50:'streak20',75:'streak20',100:'streak20'};
-  const STREAK_MESSAGES = {
-    3:  ["3 in a row! 🌊",                 "#40ffcc"],
-    5:  ["5 in a row! Amazing! 🐠",        "#00d4ff"],
-    10: ["10 in a row! SUPERSTAR! ⭐",     "#ffff60"],
-    20: ["20 IN A ROW! LEGENDARY! 🏆",     "#ff80c0"],
-    50: ["50 IN A ROW! UNBELIEVABLE! 🌟",  "#ff40ff"],
-    75: ["75 IN A ROW! INCREDIBLE! 🔱",    "#40ffff"],
-    100:["100 IN A ROW! CHAMPION! 👑",     "#ffffff"],
+  const STREAK_MSGS={
+    3:  ['3 in a row! 🌊','#40ffcc'],
+    5:  ['5 in a row! Amazing! 🐠','#00d4ff'],
+    10: ['10 in a row! SUPERSTAR! ⭐','#ffff60'],
+    20: ['20 IN A ROW! LEGENDARY! 🏆','#ff80c0'],
+    50: ['50 IN A ROW! UNBELIEVABLE! 🌟','#ff40ff'],
+    75: ['75 IN A ROW! INCREDIBLE! 🔱','#40ffff'],
+    100:['100 IN A ROW! CHAMPION! 👑','#ffffff'],
   };
-  const BRILLIANT_MSGS = [
-    "✓ Brilliant! Keep swimming! 🌊","✓ Fantastic! You're on a roll! 🐠",
-    "✓ Excellent! Don't stop now! ⭐","✓ Amazing work! Keep going! 🐙",
-    "✓ Super! Ride that wave! 🌊","✓ Wonderful! You're flying! 🐡",
-    "✓ Outstanding! More! More! 🦀","✓ Splendid! Keep it up! 🐚",
-  ];
-  if (STREAK_MESSAGES[streak]) {
-    const [msg,col] = STREAK_MESSAGES[streak];
-    showFeedback(msg, col);
+  const BRILLIANT=['✓ Brilliant! Keep swimming! 🌊','✓ Fantastic! You\'re on a roll! 🐠',
+    '✓ Excellent! Don\'t stop now! ⭐','✓ Amazing work! Keep going! 🐙',
+    '✓ Super! Ride that wave! 🌊','✓ Wonderful! You\'re flying! 🐡',
+    '✓ Outstanding! More! More! 🦀','✓ Splendid! Keep it up! 🐚'];
+  const streakSounds={3:'streak3',5:'streak5',10:'streak10',20:'streak20',50:'streak20',75:'streak20',100:'streak20'};
+  if(STREAK_MSGS[streak]){
+    const [msg,col]=STREAK_MSGS[streak];
+    showFeedback(msg,col);
     document.getElementById('streak-label').textContent=`🌊 ${streak} in a row!`;
-    snd(streakSounds[streak] || 'streak3');
-    const rays   = streak>=50?24 : streak>=10?20:14;
-    const cycles = streak>=50?5  : streak>=10?4 :3;
-    startBurst(W/2, H/2, rays);
-    octopusMood='excited';
-    startOctopusBounce(cycles);
-  } else if (streak >= 2) {
-    const msg = BRILLIANT_MSGS[Math.floor(Math.random()*BRILLIANT_MSGS.length)];
-    showFeedback(msg, COL.correctCol);
+    snd(streakSounds[streak]||'streak3');
+    const rays=streak>=50?24:streak>=10?20:14, cycles=streak>=50?5:streak>=10?4:3;
+    startBurst(W/2,H/2,rays); octopusMood='excited'; startOctopusBounce(cycles);
+  } else if(streak>=2){
+    showFeedback(BRILLIANT[Math.floor(Math.random()*BRILLIANT.length)],COL.correctCol);
     document.getElementById('streak-label').textContent=`🌊 ${streak} in a row!`;
     snd('correct');
   } else {
     document.getElementById('streak-label').textContent='';
-    showFeedback('✓ Correct! Well done! 🐠', COL.correctCol);
-    snd('correct');
+    showFeedback('✓ Correct! Well done! 🐠',COL.correctCol); snd('correct');
   }
 }
 
 function skipQuestion() {
-  total++; streak=0;
+  if(entry.disabled) return;
+  stopTimer(); total++; streak=0;
   document.getElementById('streak-label').textContent='';
-  engine.recordAnswer({ whole, partA, partB, missing }, false);
-  updateScore();
-  newQuestion();
+  engine.recordAnswer(currentQ,false);
+  saveEngineState(); updateScore();
+  // Show answer neutrally (no green, no celebration)
+  skipMode=true; revealed=true; redraw();
+  showFeedback(`Answer: ${correct}`,'#7090a8');
+  entry.disabled=true; entry.style.display='none';
+  if(revealTimeout) clearTimeout(revealTimeout);
+  revealTimeout=setTimeout(newQuestion,1500);
 }
 
 function startTimer() {
-  if (cfg.timer !== 'on') return;
-  stopTimer();
-  timeLeft = 10;
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    redraw();
-    if (timeLeft <= 0) {
-      stopTimer();
-      total++;
-      engine.recordAnswer();
-      octopusMood='sad'; revealed=false;
-      redraw();
-      showFeedback(`Time's up! Answer: ${correct} 🐙`, COL.wrongCol);
-      snd('timeout');
-      updateScore();
-      setTimeout(newQuestion, 1400);
+  if(cfg.timer!=='on') return;
+  stopTimer(); timeLeft=10;
+  timerInterval=setInterval(()=>{
+    timeLeft--; redraw();
+    if(timeLeft<=0){
+      stopTimer(); total++;
+      engine.recordAnswer(currentQ,false); saveEngineState();
+      octopusMood='sad'; revealed=false; redraw();
+      showFeedback(`Time's up! Answer: ${correct} 🐙`,COL.wrongCol); snd('timeout');
+      updateScore(); setTimeout(newQuestion,1400);
     }
-  }, 1000);
+  },1000);
 }
 function stopTimer() {
-  if (timerInterval) { clearInterval(timerInterval); timerInterval=null; }
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
 }
 
-
 // ═══════════════════════════════════════════════════════════════
-// CONFIG → GAME TRANSITION
+// ## SCREENS — screen navigation (Stage 4)
 // ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-// CONFIG — EARLY MATHS CONSTRAINTS
-// ═══════════════════════════════════════════════════════════════
-// Early maths is always compatible — it forces bonds to 5 and counters only
+//
+// Screens.show(id) — hide all .screen elements, show the one matching id.
+// Screens.current() — id of the currently-active screen (or null).
+//
+// Screen-specific init logic (initUserScreen, showSettingsScreen, etc.)
+// remains defined in its current section; those are *populate-then-show*
+// helpers, not pure screen navigation.
 
-// Run on page load and whenever level or display changes
-document.querySelectorAll('input[name="level"], input[name="display"]').forEach(el => {
-  el.addEventListener('change', updateModeAvailability);
-});
-updateModeAvailability();
-
-function updateModeAvailability() {
-  // Early maths is always available and doesn't have restrictions
-  // No special handling needed — it simply enforces its own settings when selected
-}
-
-function getRadio(name) {
-  return document.querySelector(`input[name="${name}"]:checked`)?.value;
-}
-
-document.getElementById('start-btn').onclick = () => {
-  cfg = {
-    level:   getRadio('level'),
-    mode:    getRadio('mode'),
-    display: getRadio('display'),
-    timer:   getRadio('timer'),
-    sound:   getRadio('sound'),
-    bondSelection: getRadio('bondSelection'),
-  };
-  // Early maths enforces: bonds to 5, counters only, all circles (both addition & subtraction)
-  if (cfg.mode === 'early') {
-    cfg.level   = 'to5';
-    cfg.display = 'counters';
+const Screens = (() => {
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
   }
-  // Engine uses 'both' for early maths (all three circles can be missing, all question types)
-  const engineMode = cfg.mode === 'early' ? 'both' : cfg.mode;
-  engine = new BondEngine({ level: cfg.level, mode: engineMode, bondSelection: cfg.bondSelection });
+  function current() {
+    const el = document.querySelector('.screen.active');
+    return el ? el.id : null;
+  }
+  return { show, current };
+})();
+
+// ── Backward-compat alias (Stage 4). Every call site uses showScreen(id).
+function showScreen(id) { return Screens.show(id); }
+
+// ═══════════════════════════════════════════════════════════════
+// ## SCREENS — USER SCREEN
+// ═══════════════════════════════════════════════════════════════
+
+function initUserScreen() {
+  const list=document.getElementById('user-list'); list.innerHTML='';
+  // Guest
+  const gBtn=document.createElement('button'); gBtn.className='user-btn guest';
+  gBtn.textContent='Play as Guest (no data saved)';
+  gBtn.onclick=()=>selectUser(null);
+  list.appendChild(gBtn);
+  // Named users
+  getUsers().forEach(u=>{
+    const row=document.createElement('div'); row.className='user-row';
+    const btn=document.createElement('button'); btn.className='user-btn';
+    btn.innerHTML=`<span>👤 ${u.name}</span>`; btn.onclick=()=>selectUser(u);
+    const del=document.createElement('button'); del.className='del-btn'; del.textContent='×'; del.title='Remove';
+    del.onclick=e=>{e.stopPropagation();saveUsers(getUsers().filter(x=>x.id!==u.id));initUserScreen();};
+    row.appendChild(btn); row.appendChild(del); list.appendChild(row);
+  });
+}
+
+function selectUser(u) {
+  currentUser=u;
+  showSettingsScreen();
+}
+
+document.getElementById('add-user-btn').addEventListener('click',()=>{
+  const inp=document.getElementById('new-name-input'), name=inp.value.trim();
+  if(!name) return;
+  const users=getUsers();
+  if(users.length>=5){alert('Maximum 5 players');return;}
+  users.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2),name});
+  saveUsers(users); inp.value=''; initUserScreen();
+});
+document.getElementById('new-name-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') document.getElementById('add-user-btn').click();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ## SCREENS — SETTINGS SCREEN
+// ═══════════════════════════════════════════════════════════════
+
+function showSettingsScreen() {
+  document.getElementById('settings-player-label').textContent=currentUser?currentUser.name:'Guest';
+  const s=(currentUser?getUserData(currentUser.id).settings:null)||{...DEFAULT_SETTINGS};
+  setRadio('cfg_level', s.level||'exact10');
+  setRadio('cfg_sound', s.sound||'off');
+  setRadio('cfg_timer', s.timer||'off');
+  setRadio('cfg_omode', s.omode||'none');
+  setRadio('cfg_odisp', s.odisp||'none');
+  setRadio('cfg_style', s.style||'progress');
+  setLocked(true);
+  showScreen('settings-screen');
+}
+
+function setRadio(name,value) {
+  const el=document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if(el) el.checked=true;
+}
+function getRadio(name) {
+  return document.querySelector(`input[name="${name}"]:checked`)?.value||'';
+}
+
+function setLocked(locked) {
+  const badge=document.getElementById('lock-badge');
+  const body=document.getElementById('settings-body');
+  const icon=document.getElementById('lock-icon');
+  const label=document.getElementById('lock-label');
+  if(locked){
+    badge.textContent='LOCKED'; badge.className='lock-badge locked';
+    body.classList.add('settings-locked');
+    icon.textContent='🔒'; label.textContent='Settings locked — tap to change';
+  } else {
+    badge.textContent='UNLOCKED'; badge.className='lock-badge unlocked';
+    body.classList.remove('settings-locked');
+    icon.textContent='🔓'; label.textContent='Settings unlocked — lock to prevent changes';
+  }
+}
+function isSettingsLocked() {
+  return document.getElementById('lock-badge').classList.contains('locked');
+}
+
+// Lock badge click
+document.getElementById('lock-badge').addEventListener('click',()=>{
+  if(isSettingsLocked()) showLockModal();
+  else setLocked(true);
+});
+
+// Lock modal
+function showLockModal() {
+  const factors=[6,7,8,9,12];
+  const a=factors[Math.floor(Math.random()*factors.length)];
+  const b=factors[Math.floor(Math.random()*factors.length)];
+  lockQ={a,b,answer:a*b};
+  document.getElementById('lock-question').textContent=`${a} × ${b} = ?`;
+  document.getElementById('lock-answer-inp').value='';
+  document.getElementById('lock-feedback').textContent='';
+  document.getElementById('lock-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('lock-answer-inp').focus(),80);
+}
+function hideLockModal() {
+  document.getElementById('lock-modal').classList.remove('open');
+}
+function checkLockAnswer() {
+  const val=parseInt(document.getElementById('lock-answer-inp').value);
+  if(val===lockQ.answer){
+    hideLockModal(); setLocked(false);
+  } else {
+    const fb=document.getElementById('lock-feedback');
+    fb.textContent='Not quite — try again!'; fb.style.color='#ff8060';
+    document.getElementById('lock-answer-inp').value='';
+    document.getElementById('lock-answer-inp').focus();
+  }
+}
+document.getElementById('lock-submit-btn').addEventListener('click',checkLockAnswer);
+document.getElementById('lock-cancel-btn').addEventListener('click',hideLockModal);
+document.getElementById('lock-answer-inp').addEventListener('keydown',e=>{if(e.key==='Enter')checkLockAnswer();});
+
+// "Go to Games" button
+document.getElementById('to-games-btn').addEventListener('click',()=>{
+  const s={
+    level: getRadio('cfg_level')||'exact10',
+    sound: getRadio('cfg_sound')||'off',
+    timer: getRadio('cfg_timer')||'off',
+    omode: getRadio('cfg_omode')||'none',
+    odisp: getRadio('cfg_odisp')||'none',
+    style: getRadio('cfg_style')||'progress',
+  };
+  if(currentUser){
+    const ud=getUserData(currentUser.id);
+    const prev=JSON.stringify(ud.settings||{});
+    if(prev!==JSON.stringify(s)){
+      ud.settings=s; ud.engine=null;  // settings changed: reset engine
+      saveUserData(currentUser.id,ud);
+    }
+  }
+  activeSettings=s;
+  showGameSelectScreen();
+});
+
+document.getElementById('settings-back-btn').addEventListener('click',()=>{
+  showScreen('user-screen'); initUserScreen();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ## SCREENS — GAME SELECT SCREEN
+// ═══════════════════════════════════════════════════════════════
+
+function showGameSelectScreen() {
+  const s=activeSettings;
+  const mapped=mapSettings(s.level,s.style,s.omode,s.odisp);
+  document.getElementById('game-select-player').textContent=currentUser?currentUser.name:'Guest';
+  const modeStr={both:'Add & Subtract',add:'Addition only',sub:'Subtraction only'}[mapped.mode]||mapped.mode;
+  const dispStr={numbers:'Numbers',both:'Counters & Numbers',counters:'Counters only'}[mapped.display]||mapped.display;
+  const styleStr={progress:'Progress',practice:'Practice',entry:'Entry'}[s.style]||s.style;
+  const earlyMaths=(s.level==='to5'||s.level==='doubles10')&&mapped.display==='counters';
+  document.getElementById('settings-summary').innerHTML=
+    `<b>Level:</b> ${s.level}&nbsp;&nbsp;<b>Style:</b> ${styleStr}<br>`+
+    `<b>Questions:</b> ${modeStr}&nbsp;&nbsp;<b>Display:</b> ${dispStr}`+
+    (earlyMaths?'&nbsp;&nbsp;<b>Early maths mode</b>':'')+
+    `<br><b>Timer:</b> ${s.timer==='on'?'10 sec':'Off'}&nbsp;&nbsp;<b>Sound:</b> ${s.sound==='on'?'On':'Off'}`;
+  showScreen('game-select-screen');
+}
+
+// reef-btn click is wired at the end of the CAVE section by the Games registry loop.
+document.getElementById('back-to-settings-btn').addEventListener('click', () => showScreen('settings-screen'));
+
+// ═══════════════════════════════════════════════════════════════
+// ## REEF GAME — START GAME (startGame)  (Stage 3 → Games.reef.start)
+// ═══════════════════════════════════════════════════════════════
+
+function startGame() {
+  const s=activeSettings;
+  const level=clipLevelForReef(s.level);
+  const mapped=mapSettings(level,s.style,s.omode,s.odisp);
+
+  cfg = {
+    level,
+    display: mapped.display,
+    mode:    mapped.mode,
+    sound:   s.sound,
+    timer:   s.timer,
+    style:   s.style,
+  };
+
+  // Build or restore engine
+  const engCfg={level,mode:mapped.mode,style:s.style};
+  if(currentUser){
+    const ud=getUserData(currentUser.id);
+    if(ud.engine && ud.engine.level===level && ud.engine.mode===mapped.mode && ud.engine.style===s.style){
+      engine=BondEngine.restore(ud.engine);
+    } else {
+      engine=new BondEngine(engCfg);
+    }
+  } else {
+    engine=new BondEngine(engCfg);
+  }
 
   // Reset visual state
-  score=0; total=0; streak=0; revealed=false;
-  octopusMood='thinking'; octopusBounce=0; octopusRot=0;
-  if (octopusAnimId) { clearInterval(octopusAnimId); octopusAnimId=null; }
-  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout=null; }
-  if (burstAnimId)   { clearTimeout(burstAnimId);   burstAnimId=null; }
-  burstStep=99; banners=[]; bubbles=[];
+  score=0;total=0;streak=0;revealed=false;skipMode=false;
+  octopusMood='thinking';octopusBounce=0;octopusRot=0;
+  if(octopusAnimId){clearInterval(octopusAnimId);octopusAnimId=null;}
+  if(revealTimeout){clearTimeout(revealTimeout);revealTimeout=null;}
+  if(burstAnimId) {clearTimeout(burstAnimId);burstAnimId=null;}
+  if(sadResetId)  {clearTimeout(sadResetId);sadResetId=null;}
+  burstStep=99;banners=[];bubbles=[];
 
   updateScore();
   generateBackground();
-
-  document.getElementById('config-screen').style.display='none';
-  document.getElementById('game-screen').style.display='flex';
+  showScreen('game-screen');
   resizeCanvas();
-
-  bubbles = [];
-  for (let i=0;i<5;i++) spawnBubble(Math.floor(Math.random()*H));
+  for(let i=0;i<5;i++) spawnBubble(Math.floor(Math.random()*H));
   startBubbles();
   newQuestion();
-};
+}
 
-document.getElementById('settings-btn').onclick = () => {
-  stopTimer();
-  stopBubbles();
-  if (octopusAnimId) { clearInterval(octopusAnimId); octopusAnimId=null; }
-  entry.style.display='none';
-  document.getElementById('game-screen').style.display='none';
-  document.getElementById('config-screen').style.display='block';
-};
+// ═══════════════════════════════════════════════════════════════
+// ## REEF GAME — GAME SCREEN EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════
 
-document.getElementById('check-btn').onclick = checkAnswer;
-document.getElementById('skip-btn').onclick  = skipQuestion;
+// Reef exit cleanup — stops timers + animations, hides entry widget.
+// Extracted so Games.reef.stop() can call it without the screen navigation.
+function stopReefGame() {
+  stopTimer(); stopBubbles();
+  if (octopusAnimId) { clearInterval(octopusAnimId); octopusAnimId = null; }
+  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout = null; }
+  entry.style.display = 'none';
+}
 
-entry.addEventListener('keydown', e => {
-  if (e.key==='Enter') { checkAnswer(); e.preventDefault(); }
-  if (e.key==='.' || e.key==='Delete') {
-    e.preventDefault();
-    entry.value = entry.value.slice(0,-1);
+document.getElementById('home-btn').addEventListener('click', () => {
+  Games.reef.stop();
+  showGameSelectScreen();
+});
+document.getElementById('skip-btn').addEventListener('click',skipQuestion);
+
+entry.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){checkAnswer();e.preventDefault();}
+  if(e.key==='.'||e.key==='Delete'){e.preventDefault();entry.value=entry.value.slice(0,-1);}
+});
+entry.addEventListener('input',()=>{if(entry.value.length>2)entry.value=entry.value.slice(0,2);});
+
+// ═══════════════════════════════════════════════════════════════
+// ## INIT
+// ═══════════════════════════════════════════════════════════════
+//
+// Boot is async: we await Storage.init() so loadData() returns the freshest
+// data (from IndexedDB if available) before any screen is rendered. Without
+// this await, the user list and per-user settings would briefly be empty
+// on the first frame even when IDB has data.
+
+(async () => {
+  await Storage.init();
+  initUserScreen();
+  resizeCanvas();
+  // For debugging: window.__storageStatus = Storage.status();
+})();
+
+
+// ===== UNDERWATER CAVE (embedded) =====
+/**
+ * UNDERWATER CAVE SCENE — v11  (full regenerable source)
+ * Drop into an HTML page with a <canvas id="cave" width="680" height="420"></canvas>
+ * and call: underwaterCave('cave');
+ *
+ * Public API (returned object):
+ *   .setExpr(name)   — 'positive'(default)|'neutral'|'happy'|'sad'|'blush'
+ *   .doAction(name)  — 'idle'|'wave'|'hop'|'scuttle'|'celebLo'|'celebHi'
+ *
+ * ITERATION LOG
+ *   v1   Basic cave, blob crystals, simple crab
+ *   v2   Jagged crystals, puppet claws, ripples
+ *   v3   Saguaro crystals, pac-man claws
+ *   v4   Saguaro arms (horiz+vert), half-ellipse claws
+ *   v5   7 crystals, 3 fixed ripples
+ *   v6   Static crystal geometry, 6-leg crab, portrait layout
+ *   v7   Bilateral/unilateral crystals, portrait depth layers
+ *   v8   IIFE isolation fix (portrait crash), symmetric ARM_OFF
+ *   v9   Arm anatomy redesign — both pincers correct, BASE_L/BASE_R
+ *   v10  Arms point up (BASE_L=π+0.30), shortened 20%, horizontal
+ *        pincers, wriggle added to arm angles
+ *   v11  Expressions (positive/neutral/happy/sad/blush), eyebrows,
+ *        sparkles, tear drops, celebLo (1.2s) + celebHi (3s) with
+ *        particles. Right arm shorter/higher/steeper (closer to body).
+ *        Asymmetric arms: left = display arm, right = tucked arm.
+ */
+
+function underwaterCave(canvasId) {
+  const cv = document.getElementById(canvasId);
+  const g  = cv.getContext('2d');
+  const W  = cv.width, H = cv.height;
+  const SANDY = Math.round(H * 0.881); // 370/420
+
+  // ═══════════════════════════════════════════
+  // COLOURS
+  // ═══════════════════════════════════════════
+  const COL = {
+    bg:        '#060e1a',
+    wall:      '#091825',
+    ceil:      '#0a1e30',
+    sand:      '#a89060',
+    sandLt:    '#b8a070',
+    ripple:    '#cdb87a',
+    dot:       'rgba(120,255,240,0.5)',
+    purpFill:  '#7a22c4', purpHi: '#c090ff',
+    tealFill:  '#0d9990', tealHi: '#60ffe0',
+    viotFill:  '#6a18b0', viotHi: '#b070f0',
+    cyanFill:  '#0b8080', cyanHi: '#40e0c0',
+    lilFill:   '#9a3fe0', lilHi:  '#d0a0ff',
+    legDark:   '#a03810', legMid: '#c86030',
+    shell:     '#e06820', carap:  '#d45c18', rib: '#f08040',
+    armDark:   '#a03810', armLt:  '#d07030',
+    clawUp:    '#d4631f', clawDn: '#bf4010', clawK: '#c05018',
+    clawHiU:   '#e8874a', clawHiD:'#d06028',
+    brow:      '#7a2800',
+  };
+
+  // ═══════════════════════════════════════════
+  // ARM CONSTANTS — v11
+  // ═══════════════════════════════════════════
+  // LEFT arm: display arm — longer, lower root, shallower angle
+  //   ROOT: (cx - ARM_OFF_L,  cy - ARM_UP_L)   = (cx-22, cy-6)
+  //   BASE_L = π + 0.30  → cos≈-0.955 (left✓)  sin≈-0.296 (up✓)
+  //   ARM_LEN_L = 43
+  //
+  // RIGHT arm: tucked arm — shorter, higher root, steeper angle
+  //   ROOT: (cx + ARM_OFF_R, cy - ARM_UP_R)    = (cx+16, cy-10)
+  //   BASE_R = -0.55       → cos≈+0.852 (right✓) sin≈-0.523 (up✓, steeper)
+  //   ARM_LEN_R = 34
+  //
+  // Both arm roots are inside shell rx=32, covered when shell drawn last.
+  // Pincer frame: isLeft→rotate(π), isRight→rotate(0) — stays horizontal.
+  const ARM_OFF_L = 22,  ARM_OFF_R = 16;
+  const ARM_UP_L  = 6,   ARM_UP_R  = 10;
+  const ARM_LEN_L = 43,  ARM_LEN_R = 34;
+  const BASE_L = Math.PI + 0.30;
+  const BASE_R = -0.55;
+
+  // ═══════════════════════════════════════════
+  // UTILITY
+  // ═══════════════════════════════════════════
+  function jag(seed, n=11) {
+    let s = seed;
+    return Array.from({length:n}, () => {
+      s = (s*1664525 + 1013904223) & 0xffffffff;
+      return ((s>>>0)/4294967296 - 0.5) * 3.5;
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // SAND — 3 static modulated ripples
+  // ═══════════════════════════════════════════
+  // Each ripple: cx (centre x), y (baseline y), ph (phase), amp (peak amplitude)
+  // Edge-fade: sin(t*π) where t=0..1 across ripple width
+  // Internal modulation: 0.72 + 0.28*cos((x-cx)*0.018 + ph*0.5)
+  // All ripples same half-width (160px landscape, 130px portrait)
+  const RIPPLES = [
+    {cx: 140, y: SANDY+6,  ph: 0.0, amp: 7},
+    {cx: 340, y: SANDY+12, ph: 1.9, amp: 9},
+    {cx: 540, y: SANDY+8,  ph: 0.8, amp: 6},
+  ];
+  const RH = 160, RF = 0.038;
+
+  function drawSand() {
+    g.fillStyle = COL.sand;    g.fillRect(0, SANDY, W, H-SANDY);
+    g.fillStyle = COL.sandLt;  g.fillRect(0, SANDY, W, 7);
+    g.strokeStyle = COL.ripple; g.lineWidth = 2;
+    for (const r of RIPPLES) {
+      const x0=r.cx-RH, x1=r.cx+RH;
+      g.beginPath(); let first=true;
+      for (let x=x0; x<=x1; x+=2) {
+        const t=(x-x0)/(2*RH), edge=Math.sin(t*Math.PI);
+        const mod=0.72+0.28*Math.cos((x-r.cx)*0.018+r.ph*0.5);
+        const y=r.y+Math.sin((x-r.cx)*RF+r.ph)*r.amp*edge*mod;
+        if(first){g.moveTo(x,y);first=false;}else g.lineTo(x,y);
+      }
+      g.stroke();
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // CRYSTAL GEOMETRY — saguaro style
+  // ═══════════════════════════════════════════
+  // TRUNK: tapered 7-vertex polygon with fixed jitter (never per-frame)
+  // ARM:   horizontal shard from trunk → elbow, then vertical upper shard
+  // 5 bilateral (arms on opposite sides) + 2 unilateral (same side)
+  // Geometry computed ONCE at startup, stored as vertex arrays.
+
+  function mkPoly(x, baseY, h, hw, jv) {
+    return [
+      [x-hw+jv[0], baseY],        [x+hw+jv[1], baseY],
+      [x+hw*0.7+jv[2], baseY-h*0.42+jv[3]],
+      [x+hw*0.5+jv[4], baseY-h*0.72+jv[5]],
+      [x+jv[6],    baseY-h],
+      [x-hw*0.5+jv[7], baseY-h*0.72+jv[8]],
+      [x-hw*0.7+jv[9], baseY-h*0.42+jv[10]],
+    ];
+  }
+  function mkHorizArm(tx, sy, side, hlen, hw) {
+    const ex = tx + side*hlen;
+    return {
+      pts: [[tx,sy+hw*0.75],[tx,sy-hw*0.75],[ex+side*2,sy-hw*0.5],[ex+side*3,sy],[ex+side*2,sy+hw*0.5]],
+      ex, ey: sy
+    };
+  }
+  function buildCrystal(cx, col, hi, trunkH, trunkHW, arms, baseY=SANDY) {
+    const tp = mkPoly(cx, baseY, trunkH, trunkHW, jag(cx*7+trunkH|0));
+    const ba = arms.map((a,i) => {
+      const sy = baseY - trunkH*a.frac;
+      const hz = mkHorizArm(cx, sy, a.side, a.hlen, a.hw);
+      const vp = mkPoly(hz.ex, hz.ey, a.vH, a.hw*0.88, jag(cx*13+i*31+a.vH|0));
+      return {hz, vp};
+    });
+    return {col, hi, tp, ba};
+  }
+  function drawCrystal(c) {
+    for (const a of c.ba) {
+      // horiz arm
+      g.fillStyle=c.col; g.beginPath();
+      g.moveTo(a.hz.pts[0][0],a.hz.pts[0][1]);
+      for(let i=1;i<a.hz.pts.length;i++) g.lineTo(a.hz.pts[i][0],a.hz.pts[i][1]);
+      g.closePath(); g.fill();
+      g.strokeStyle=c.hi; g.lineWidth=1;
+      g.beginPath(); g.moveTo(a.hz.pts[1][0],a.hz.pts[1][1]); g.lineTo(a.hz.pts[2][0],a.hz.pts[2][1]); g.stroke();
+      // vert shard
+      g.fillStyle=c.col; g.beginPath();
+      g.moveTo(a.vp[0][0],a.vp[0][1]);
+      for(let i=1;i<a.vp.length;i++) g.lineTo(a.vp[i][0],a.vp[i][1]);
+      g.closePath(); g.fill();
+      g.strokeStyle=c.hi; g.lineWidth=1.2;
+      g.beginPath(); g.moveTo(a.vp[4][0],a.vp[4][1]);
+      g.lineTo((a.vp[1][0]+a.vp[4][0])/2,(a.vp[0][1]+a.vp[4][1])/2);
+      g.lineTo(a.vp[1][0],a.vp[0][1]); g.stroke();
+    }
+    // trunk
+    g.fillStyle=c.col; g.beginPath();
+    g.moveTo(c.tp[0][0],c.tp[0][1]);
+    for(let i=1;i<c.tp.length;i++) g.lineTo(c.tp[i][0],c.tp[i][1]);
+    g.closePath(); g.fill();
+    g.strokeStyle=c.hi; g.lineWidth=1.2;
+    g.beginPath(); g.moveTo(c.tp[4][0],c.tp[4][1]);
+    g.lineTo((c.tp[1][0]+c.tp[4][0])/2,(c.tp[0][1]+c.tp[4][1])/2);
+    g.lineTo(c.tp[1][0],c.tp[0][1]); g.stroke();
+  }
+
+  // Crystal definitions — 5 bilateral + 2 unilateral
+  // Landscape crab zone [280..400] kept clear
+  const CRYSTALS = [
+    buildCrystal(100, COL.purpFill, COL.purpHi, 68,10,[{side:-1,frac:.32,hlen:20,vH:28,hw:6},{side:1,frac:.58,hlen:18,vH:24,hw:5}]),
+    buildCrystal(162, COL.tealFill, COL.tealHi, 58, 9,[{side:1,frac:.35,hlen:22,vH:26,hw:5},{side:-1,frac:.62,hlen:16,vH:22,hw:5}]),
+    buildCrystal(225, COL.viotFill, COL.viotHi, 72,11,[{side:-1,frac:.28,hlen:24,vH:30,hw:7},{side:1,frac:.55,hlen:20,vH:25,hw:6}]),
+    buildCrystal(455, COL.cyanFill, COL.cyanHi, 64,10,[{side:-1,frac:.38,hlen:19,vH:27,hw:6},{side:1,frac:.60,hlen:21,vH:23,hw:5}]),
+    buildCrystal(520, COL.lilFill,  COL.lilHi,  60, 9,[{side:1,frac:.30,hlen:20,vH:25,hw:5},{side:-1,frac:.57,hlen:18,vH:22,hw:5}]),
+    // unilateral — both arms same side
+    buildCrystal(600, COL.purpFill, COL.purpHi, 66,10,[{side:-1,frac:.33,hlen:22,vH:27,hw:6},{side:-1,frac:.60,hlen:18,vH:22,hw:5}]),
+    buildCrystal(140, COL.tealFill, COL.tealHi, 55, 8,[{side:1,frac:.36,hlen:16,vH:22,hw:5},{side:1,frac:.62,hlen:14,vH:18,hw:4}]),
+  ];
+
+  // ═══════════════════════════════════════════
+  // CRAB STATE
+  // ═══════════════════════════════════════════
+  // expr: 'positive'(default) | 'neutral' | 'happy' | 'sad' | 'blush'
+  // state: 'idle' | 'wave' | 'hop' | 'scuttle' | 'celebLo' | 'celebHi'
+  // celebLo duration: 72 frames @ 60fps ≈ 1.2s
+  // celebHi duration: 180 frames @ 60fps ≈ 3.0s
+  const CELEB_LO = 72, CELEB_HI = 180;
+
+  const crab = {
+    x:340, y:350, baseY:350,
+    state:'idle', t:0, expr:'positive',
+    aL:BASE_L, aR:BASE_R, open:0.14,
+    hopVY:0, hopActive:false, scuttleDir:1,
+    blush:0, eyeOff:0,
+    particles:[],
+  };
+
+  // 6 walking legs — 3 per side
+  // ox,oy: body attachment; tdx,tdy: thigh vector; sdx,sdy: shin vector
+  const LEGS = [
+    {ox:-27,oy:5, tdx:-22,tdy:-12,sdx:-16,sdy:24},
+    {ox:-18,oy:6, tdx:-28,tdy:0,  sdx:-18,sdy:26},
+    {ox: -9,oy:7, tdx:-22,tdy:10, sdx:-12,sdy:24},
+    {ox: 27,oy:5, tdx: 22,tdy:-12,sdx: 16,sdy:24},
+    {ox: 18,oy:6, tdx: 28,tdy:0,  sdx: 18,sdy:26},
+    {ox:  9,oy:7, tdx: 22,tdy:10, sdx: 12,sdy:24},
+  ];
+
+  // ═══════════════════════════════════════════
+  // PARTICLES
+  // ═══════════════════════════════════════════
+  const PCOLS = ['#ff6b6b','#ffe066','#7efff5','#c090ff','#ff9a3c','#60ffe0'];
+  function spawnParticles(n) {
+    for (let i=0; i<n; i++) {
+      const ang = Math.random()*Math.PI*2, spd=1.5+Math.random()*3.5;
+      crab.particles.push({
+        x:crab.x, y:crab.y-10,
+        vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd-3.5,
+        life:1, decay:0.012+Math.random()*0.012,
+        r:3+Math.random()*4, col:PCOLS[Math.floor(Math.random()*PCOLS.length)],
+      });
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // EXPRESSIONS
+  // ═══════════════════════════════════════════
+  // Returns {mc, es, ed, sp, ba} for current state+expr
+  // mc = mouthCurve  -1..+1  (negative=frown, 0=flat, positive=smile)
+  // es = eyeSquint   0..1    (0=round, 1=happy-arc)
+  // ed = eyeDrops    0..1    (tear drop opacity)
+  // sp = sparkles    bool
+  // ba = browAngle   (positive=worried inner-up, negative=happy)
+  function getExprParams() {
+    const s = crab.state, e = crab.expr;
+    if (s==='celebHi') return {mc:1,   es:.90, ed:0, sp:true,  ba:-1.0};
+    if (s==='celebLo') return {mc:.70, es:.50, ed:0, sp:true,  ba:-0.5};
+    if (s==='hop')     return {mc:.50, es:.30, ed:0, sp:false, ba:-0.3};
+    if (s==='wave')    return {mc:.55, es:.20, ed:0, sp:false, ba:-0.2};
+    switch(e) {
+      case 'neutral':  return {mc:0,   es:.00, ed:0, sp:false, ba: 0.0};
+      case 'happy':    return {mc:.90, es:.85, ed:0, sp:true,  ba:-1.0};
+      case 'sad':      return {mc:-.70,es:.00, ed:.8,sp:false, ba: 0.9};
+      case 'blush':    return {mc:.45, es:.10, ed:0, sp:false, ba:-0.1};
+      default:         return {mc:.35, es:.10, ed:0, sp:false, ba:-0.1}; // positive
+    }
+  }
+
+  function drawFace(cx, cy, mc, es, ed, sp, ba) {
+    const eY = cy - 24 + crab.eyeOff;
+
+    // eyebrows
+    g.strokeStyle = COL.brow; g.lineWidth = 1.8;
+    g.beginPath();
+    g.moveTo(cx-15, eY-8+ba*3);
+    g.quadraticCurveTo(cx-10, eY-10-Math.abs(ba), cx-5, eY-8-ba*3);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(cx+5, eY-8-ba*3);
+    g.quadraticCurveTo(cx+10, eY-10-Math.abs(ba), cx+15, eY-8+ba*3);
+    g.stroke();
+
+    // eyes
+    if (es < 0.5) {
+      const er = 6*(1-es*0.6);
+      g.fillStyle='#fff';
+      g.beginPath();g.arc(cx-10,eY,er,0,Math.PI*2);g.fill();
+      g.beginPath();g.arc(cx+10,eY,er,0,Math.PI*2);g.fill();
+      g.fillStyle='#111';
+      g.beginPath();g.arc(cx-9,eY+1,er*0.55,0,Math.PI*2);g.fill();
+      g.beginPath();g.arc(cx+11,eY+1,er*0.55,0,Math.PI*2);g.fill();
+      g.fillStyle='#fff';
+      g.beginPath();g.arc(cx-8,eY,er*0.22,0,Math.PI*2);g.fill();
+      g.beginPath();g.arc(cx+12,eY,er*0.22,0,Math.PI*2);g.fill();
+    } else {
+      g.strokeStyle='#111'; g.lineWidth=2.5;
+      g.beginPath();g.arc(cx-10,eY+3,5,Math.PI,0);g.stroke();
+      g.beginPath();g.arc(cx+10,eY+3,5,Math.PI,0);g.stroke();
+    }
+
+    // tears
+    if (ed > 0) {
+      g.fillStyle = `rgba(100,180,255,${ed*0.8})`;
+      g.beginPath();g.ellipse(cx-9, eY+12,2.5,4,0,0,Math.PI*2);g.fill();
+      g.beginPath();g.ellipse(cx+11,eY+12,2.5,4,0,0,Math.PI*2);g.fill();
+    }
+
+    // sparkles
+    if (sp) {
+      g.strokeStyle='#ffe066'; g.lineWidth=1.5;
+      for (const [sx,sy] of [[cx-22,eY-8],[cx+22,eY-8],[cx,eY-16]]) {
+        for (let a=0;a<4;a++) {
+          const ang = a*Math.PI/2 + crab.t*0.08;
+          g.beginPath();g.moveTo(sx,sy);g.lineTo(sx+Math.cos(ang)*5,sy+Math.sin(ang)*5);g.stroke();
+        }
+      }
+    }
+
+    // blush cheeks
+    const blushAmt = Math.max(crab.blush, crab.expr==='blush'?1:0);
+    if (blushAmt > 0) {
+      g.fillStyle = `rgba(220,80,80,${blushAmt*0.65})`;
+      g.beginPath();g.ellipse(cx-18,cy+2,8,5,0,0,Math.PI*2);g.fill();
+      g.beginPath();g.ellipse(cx+18,cy+2,8,5,0,0,Math.PI*2);g.fill();
+    }
+
+    // mouth
+    g.strokeStyle='#222'; g.lineWidth=1.8; g.beginPath();
+    if      (mc >= 0.6)  { g.arc(cx,cy+8,10,0.1,Math.PI-0.1); }
+    else if (mc >= 0.1)  { g.moveTo(cx-8,cy+11); g.quadraticCurveTo(cx,cy+8-mc*4, cx+8,cy+11); }
+    else if (mc > -0.1)  { g.moveTo(cx-7,cy+11); g.lineTo(cx+7,cy+11); }
+    else if (mc > -0.5)  { g.moveTo(cx-8,cy+10); g.quadraticCurveTo(cx,cy+14,cx+8,cy+10); }
+    else                 { g.moveTo(cx-9,cy+13); g.quadraticCurveTo(cx,cy+8,cx+9,cy+13); }
+    g.stroke();
+  }
+
+  // ═══════════════════════════════════════════
+  // PINCER
+  // ═══════════════════════════════════════════
+  // drPincer(rootX, rootY, armAngle, open, isLeft)
+  //   arm line root→tip along armAngle, length ARM_LEN_L or _R
+  //   pincer at tip in HORIZONTAL frame (not arm-angle rotated)
+  //   upper jaw: (0,-2)→(11,-sp-1)→(27,-sp*0.6)→(31,-sp*0.25)→(23,-1)
+  //   lower jaw: mirror
+  //   sp = 3 + open*12
+  function drPincer(rootX, rootY, armAngle, open, isLeft) {
+    const len = isLeft ? ARM_LEN_L : ARM_LEN_R;
+    const sp  = 3 + open*12;
+    const tx  = rootX + Math.cos(armAngle)*len;
+    const ty  = rootY + Math.sin(armAngle)*len;
+    g.lineCap='round';
+    g.strokeStyle=COL.armDark; g.lineWidth=6;
+    g.beginPath();g.moveTo(rootX,rootY);g.lineTo(tx,ty);g.stroke();
+    g.strokeStyle=COL.armLt;   g.lineWidth=4;
+    g.beginPath();g.moveTo(rootX,rootY);g.lineTo(tx,ty);g.stroke();
+    g.save(); g.translate(tx,ty); g.rotate(isLeft?Math.PI:0);
+    g.fillStyle=COL.clawUp; g.strokeStyle=COL.clawHiU; g.lineWidth=1.3;
+    g.beginPath();g.moveTo(0,-2);g.lineTo(11,-sp-1);g.lineTo(27,-sp*.6);g.lineTo(31,-sp*.25);g.lineTo(23,-1);g.closePath();g.fill();g.stroke();
+    g.fillStyle=COL.clawDn; g.strokeStyle=COL.clawHiD; g.lineWidth=1.3;
+    g.beginPath();g.moveTo(0,2);g.lineTo(11,sp+1);g.lineTo(27,sp*.6);g.lineTo(31,sp*.25);g.lineTo(23,1);g.closePath();g.fill();g.stroke();
+    g.fillStyle=COL.clawK;g.beginPath();g.arc(0,0,5,0,Math.PI*2);g.fill();
+    g.restore();
+  }
+
+  // ═══════════════════════════════════════════
+  // DRAW CRAB
+  // ═══════════════════════════════════════════
+  function drawCrab() {
+    const cx=crab.x, cy=crab.y, t=crab.t;
+    const lRX=cx-ARM_OFF_L, lRY=cy-ARM_UP_L;
+    const rRX=cx+ARM_OFF_R, rRY=cy-ARM_UP_R;
+    const isScuttle = crab.state==='scuttle'||crab.state==='celebHi';
+
+    // legs
+    g.lineCap='round'; g.lineJoin='round';
+    for (const [i,l] of LEGS.entries()) {
+      const w = Math.sin(t*0.07+i*0.9) * (isScuttle?6:2.5);
+      const kx=cx+l.ox+l.tdx, ky=cy+l.oy+l.tdy+w;
+      const fx=kx+l.sdx,       fy=ky+l.sdy+w*0.3;
+      g.strokeStyle=COL.legDark; g.lineWidth=5.5;
+      g.beginPath();g.moveTo(cx+l.ox,cy+l.oy);g.lineTo(kx,ky);g.lineTo(fx,fy);g.stroke();
+      g.strokeStyle=COL.legMid;  g.lineWidth=3.5;
+      g.beginPath();g.moveTo(cx+l.ox,cy+l.oy);g.lineTo(kx,ky);g.lineTo(fx,fy);g.stroke();
+    }
+
+    // arms + pincers (before shell)
+    drPincer(lRX, lRY, crab.aL, crab.open, true);
+    drPincer(rRX, rRY, crab.aR, crab.open, false);
+
+    // shell (covers arm roots)
+    g.fillStyle=COL.shell; g.beginPath();g.ellipse(cx,cy,32,22,0,0,Math.PI*2);g.fill();
+    g.fillStyle=COL.carap; g.beginPath();g.moveTo(cx-30,cy-6);g.lineTo(cx-20,cy-20);g.lineTo(cx+20,cy-20);g.lineTo(cx+30,cy-6);g.closePath();g.fill();
+    g.strokeStyle=COL.rib; g.lineWidth=1;
+    for (let s=-20;s<=20;s+=10) {g.beginPath();g.moveTo(cx+s,cy-20);g.lineTo(cx+s,cy+(s===0?20:18));g.stroke();}
+
+    // face
+    const ep = getExprParams();
+    drawFace(cx,cy,ep.mc,ep.es,ep.ed,ep.sp,ep.ba);
+
+    // particles
+    for (const p of crab.particles) {
+      g.globalAlpha=p.life; g.fillStyle=p.col;
+      g.beginPath();g.arc(p.x,p.y,p.r,0,Math.PI*2);g.fill();
+    }
+    g.globalAlpha=1;
+  }
+
+  // ═══════════════════════════════════════════
+  // UPDATE CRAB — state machine
+  // ═══════════════════════════════════════════
+  // wriggle: sin(t*0.038)*0.10 — in phase with body bob (t*0.038)*1.5
+  // Added to aL (positive) and subtracted from aR (mirror)
+  function updateCrab() {
+    crab.t++;
+    const t = crab.t;
+    const wr = Math.sin(t*0.038)*0.10;
+
+    switch(crab.state) {
+      case 'wave':
+        crab.aL = BASE_L + Math.sin(t*0.12)*0.75 + wr;
+        crab.aR = BASE_R - Math.sin(t*0.12)*0.55 - wr;
+        crab.open = 0.5+Math.sin(t*0.2)*0.45;
+        crab.eyeOff = Math.sin(t*0.1)*2;
+        if(t>150){crab.state='idle';crab.t=0;}
+        break;
+      case 'hop':
+        if(!crab.hopActive){crab.hopVY=-13;crab.hopActive=true;}
+        crab.hopVY+=0.85; crab.y+=crab.hopVY;
+        if(crab.y>=crab.baseY){crab.y=crab.baseY;crab.hopActive=false;crab.state='idle';crab.t=0;}
+        crab.aL=BASE_L+0.55; crab.aR=BASE_R-0.45; crab.open=0.9; crab.eyeOff=-3;
+        break;
+      case 'scuttle':
+        crab.x += crab.scuttleDir*3.5;
+        if(crab.x>490||crab.x<190)crab.scuttleDir*=-1;
+        crab.aL=BASE_L+Math.sin(t*0.18)*0.28+wr;
+        crab.aR=BASE_R-Math.sin(t*0.18)*0.22-wr;
+        crab.open=0.2+Math.sin(t*0.18)*0.15;
+        if(t>200){crab.state='idle';crab.x=340;crab.t=0;}
+        break;
+      case 'celebLo':
+        crab.y = crab.baseY + Math.sin(t*0.18)*4;
+        crab.aL = BASE_L+Math.sin(t*0.22)*0.5+wr;
+        crab.aR = BASE_R-Math.sin(t*0.22)*0.35-wr;
+        crab.open = 0.4+Math.sin(t*0.22)*0.35;
+        crab.eyeOff = Math.sin(t*0.18)*1.5;
+        if(t%18===0&&t<CELEB_LO) spawnParticles(3);
+        if(t>CELEB_LO){crab.state='idle';crab.y=crab.baseY;crab.t=0;}
+        break;
+      case 'celebHi':
+        crab.y = crab.baseY + Math.sin(t*0.25)*9;
+        crab.aL = BASE_L+Math.sin(t*0.28)*0.9+wr;
+        crab.aR = BASE_R-Math.sin(t*0.28)*0.7-wr;
+        crab.open = 0.6+Math.sin(t*0.28)*0.4;
+        crab.eyeOff = Math.sin(t*0.2)*3;
+        if(t%10===0&&t<CELEB_HI) spawnParticles(4);
+        if(t>CELEB_HI){crab.state='idle';crab.y=crab.baseY;crab.t=0;}
+        break;
+      default: // idle
+        crab.aL = BASE_L+Math.sin(t*0.035)*0.14+wr;
+        crab.aR = BASE_R-Math.sin(t*0.035)*0.11-wr;
+        crab.open = Math.sin(t*0.055)*0.1+0.14;
+        crab.eyeOff = Math.sin(t*0.045);
+        crab.blush = Math.max(0,crab.blush-0.02);
+        crab.y = crab.baseY + Math.sin(t*0.038)*1.5;
+    }
+
+    // update particles
+    for(const p of crab.particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.12;p.life-=p.decay;}
+    crab.particles = crab.particles.filter(p=>p.life>0);
+  }
+
+  // ═══════════════════════════════════════════
+  // BACKGROUND & WALLS
+  // ═══════════════════════════════════════════
+  function drawBackground() {
+    g.fillStyle=COL.bg; g.fillRect(0,0,W,H);
+    g.fillStyle='rgba(0,180,200,0.025)';
+    for(let i=0;i<6;i++){g.beginPath();g.ellipse(120+i*90,H*0.5,60,H*0.43,0,0,Math.PI*2);g.fill();}
+    g.fillStyle='rgba(120,255,240,0.5)';
+    for(const[dx,dy]of[[180,150],[300,200],[400,130],[520,180],[160,260],[440,240],[580,130]]){
+      g.beginPath();g.arc(dx,dy,2,0,Math.PI*2);g.fill();
+    }
+  }
+  function drawWalls() {
+    g.fillStyle=COL.wall;
+    g.beginPath();g.moveTo(0,0);g.lineTo(0,H);g.lineTo(90,H);g.lineTo(70,340);g.lineTo(55,280);g.lineTo(80,240);g.lineTo(50,200);g.lineTo(60,150);g.lineTo(30,100);g.lineTo(40,50);g.closePath();g.fill();
+    g.beginPath();g.moveTo(W,0);g.lineTo(W,H);g.lineTo(W-90,H);g.lineTo(W-70,340);g.lineTo(W-55,280);g.lineTo(W-80,240);g.lineTo(W-50,200);g.lineTo(W-60,150);g.lineTo(W-30,100);g.lineTo(W-40,50);g.closePath();g.fill();
+    g.fillStyle=COL.ceil;
+    g.beginPath();g.moveTo(0,0);g.lineTo(W,0);g.lineTo(W,60);g.lineTo(620,40);g.lineTo(560,70);g.lineTo(500,45);g.lineTo(440,80);g.lineTo(380,50);g.lineTo(320,75);g.lineTo(260,45);g.lineTo(200,72);g.lineTo(140,48);g.lineTo(80,65);g.lineTo(0,50);g.closePath();g.fill();
+  }
+
+  // ═══════════════════════════════════════════
+  // MAIN LOOP
+  // ═══════════════════════════════════════════
+  // Draw order:
+  //   1. background (dark fill, glow ellipses, bioluminescent dots)
+  //   2. cave walls (left, right, ceiling)
+  //   3. sand + ripples
+  //   4. crystals (bg→fg so trunk covers arm joints)
+  //   5. crab (legs → arms/pincers → shell → face → particles)
+  function loop() {
+    g.clearRect(0,0,W,H);
+    drawBackground();
+    drawWalls();
+    drawSand();
+    for(const c of CRYSTALS) drawCrystal(c);
+    updateCrab();
+    drawCrab();
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  // ═══════════════════════════════════════════
+  // PUBLIC API
+  // ═══════════════════════════════════════════
+  return {
+    setExpr(e) { crab.expr=e; crab.blush=(e==='blush'?1:0); },
+    doAction(s) {
+      crab.state=s; crab.t=0; crab.hopActive=false;
+      if(s==='celebLo') spawnParticles(12);
+      if(s==='celebHi') spawnParticles(28);
+    },
+  };
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// ## CAVE GAME — uses shared engine + shared common functions  (Stage 3 → Games.cave)
+// ═══════════════════════════════════════════════════════════════
+
+// Cave level config now lives in CONFIG (Stage 2). These names are kept
+// as thin aliases so Cave game code below continues to compile unchanged.
+// Stage 3 will migrate call sites and drop these aliases.
+//
+// NOTE (carried over from v4): the comment on v4 line 2639 claimed getMasterList
+// is patched "via a flag on the engine" for Cave — but the engine's _init()
+// unconditionally calls getMasterList() (reef only). So Cave's extended master
+// list (via CONFIG.bonds.masterCave) is defined but NOT wired into the engine
+// today. Left as-is; decision for Stage 3 when Cave is properly split out.
+const CAVE_LEVELS = CONFIG.levels.cave;
+function clipLevelForCave(level)  { return CONFIG.levels.clipForCave(level); }
+function getCaveMasterList()      { return CONFIG.bonds.masterCave(); }
+
+// Cave visual / game state (separate from reef state)
+var bmCaveScene    = null;   // underwaterCave instance
+var bmAnswered     = false;  // is current question answered?
+var bmRevealTimer  = null;   // auto-advance timer
+var bmCaveStarted  = false;  // true once cave has been entered this session
+
+// Score counters for the cave (reset each time you enter)
+var bmScore = 0, bmTotal = 0, bmStreak = 0;
+
+// The cave shares the global `engine`, `currentQ`, `cfg`, `activeSettings`,
+// `currentUser`, `score`, `total`, `streak` vars — but tracks its own
+// per-session display counters independently.
+
+function startBarGame() {
+  var s = activeSettings;
+  var level = clipLevelForCave(s.level);
+  var mapped = mapSettings(level, s.style, s.omode, s.odisp);
+
+  // Configure shared cfg for cave context
+  cfg = {
+    level:   level,
+    display: mapped.display,
+    mode:    mapped.mode,
+    sound:   s.sound,
+    timer:   'off',   // cave has no timer UI
+    style:   s.style,
+  };
+
+  // Build or RESTORE the shared engine — same instance as reef
+  var engCfg = {level: level, mode: mapped.mode, style: s.style};
+  if (currentUser) {
+    var ud = getUserData(currentUser.id);
+    if (ud.engine && ud.engine.level === level &&
+        ud.engine.mode === mapped.mode && ud.engine.style === s.style) {
+      engine = BondEngine.restore(ud.engine);
+    } else {
+      engine = new BondEngine(engCfg);
+    }
+  } else {
+    engine = new BondEngine(engCfg);
+  }
+
+  // Reset cave-local display counters
+  bmScore = 0; bmTotal = 0; bmStreak = 0;
+  bmAnswered = false;
+  if (bmRevealTimer) { clearTimeout(bmRevealTimer); bmRevealTimer = null; }
+
+  showScreen('bar-model-screen');
+
+  // Boot or reuse cave scene
+  if (!bmCaveScene) {
+    bmCaveScene = underwaterCave('cave-canvas');
+  }
+  bmCaveScene.setExpr('positive');
+  bmCaveScene.doAction('idle');
+
+  bmUpdateScore();
+  document.getElementById('cave-streak-label').textContent = '';
+  Keypad.mount('cave-num-pad-left', 'cave-num-pad-right');
+  bmNewQuestion();
+  // Fit after a tick so layout has settled.
+  requestAnimationFrame(fitCave);
+}
+
+// Generate Cave's 10-button choice set for a given correct answer:
+//   - correct, correct-10, correct+10 (each clipped to 0..100)
+//   - fill to 10 with random ints in [correct-20..correct+20] ∩ [0..100]
+//   - deduped, shuffled
+function caveGenerateChoices(correct) {
+  correct = Math.max(0, Math.min(100, correct|0));
+  const chosen = new Set([correct]);
+  const m10 = correct - 10, p10 = correct + 10;
+  if (m10 >= 0 && m10 <= 100) chosen.add(m10);
+  if (p10 >= 0 && p10 <= 100) chosen.add(p10);
+  const lo = Math.max(0, correct - 20), hi = Math.min(100, correct + 20);
+  let guard = 0;
+  while (chosen.size < 10 && guard++ < 400) {
+    chosen.add(lo + Math.floor(Math.random() * (hi - lo + 1)));
+  }
+  // Fallback: range may be too small to reach 10 distinct values (shouldn't
+  // happen for 0..100 with ±20, but guard anyway).
+  let filler = 0;
+  while (chosen.size < 10 && filler <= 100) { chosen.add(filler); filler++; }
+  const arr = Array.from(chosen).slice(0, 10);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── Score display ───────────────────────────────────────────────
+function bmUpdateScore() {
+  document.getElementById('cave-score-label').textContent = '\u2b50 ' + bmScore + ' / ' + bmTotal;
+}
+
+// ── Question loading ────────────────────────────────────────────
+// Translate engine question (whole/partA/partB/missing) to the cave display.
+// The cave needs to know which value is unknown so it can size bars and
+// display the ? in the right place.
+
+function bmNewQuestion() {
+  // Clear any pending auto-advance
+  if (bmRevealTimer) { clearTimeout(bmRevealTimer); bmRevealTimer = null; }
+
+  bmAnswered = false;
+  currentQ = engine.nextQuestion();
+  if (!currentQ) return;
+
+  // Pull values from the engine question
+  var whole  = currentQ.whole;
+  var partA  = currentQ.partA;
+  var partB  = currentQ.partB;
+  var miss   = currentQ.missing;        // 'whole'|'partA'|'partB'
+  var answer = currentQ.correctAnswer;
+
+  // Decide if we show support dots (small numbers with level to5 or supported)
+  var showDots = (cfg.level === 'to5') || (whole <= 5);
+
+  // Update prompt equation
+  var prompt = document.getElementById('bm-answer-prompt');
+  if (miss === 'whole') {
+    prompt.innerHTML = partA + ' + ' + partB + ' = <span class="missing-box" style="color:#7c5cbf;border-color:#7c5cbf;">?</span>';
+  } else if (miss === 'partA') {
+    prompt.innerHTML = '<span class="missing-box" style="color:#ff9f43;border-color:#ff9f43;">?</span> + ' + partB + ' = ' + whole;
+  } else {
+    prompt.innerHTML = partA + ' + <span class="missing-box" style="color:#54a0ff;border-color:#54a0ff;">?</span> = ' + whole;
+  }
+
+  // Render bars
+  var totalEl = document.getElementById('bm-bar-total');
+  var elA     = document.getElementById('bm-part-a');
+  var elB     = document.getElementById('bm-part-b');
+  var wA      = whole > 0 ? Math.round((partA / whole) * 100) : 50;
+
+  bmClearSupportDots(totalEl); totalEl.classList.remove('unknown');
+  if (miss === 'whole') {
+    totalEl.style.background = 'transparent';
+    totalEl.style.border = '3px dashed #7c5cbf';
+    totalEl.classList.add('unknown');
+    bmRenderMissingMarker(totalEl,'?','#7c5cbf','whole',showDots);
+  } else {
+    totalEl.style.background = '#7c5cbf'; totalEl.style.border = 'none';
+    bmRenderBarWithDots(totalEl, whole, '#7c5cbf', 'whole', showDots);
+  }
+
+  elA.style.width = wA + '%'; bmClearSupportDots(elA);
+  if (miss === 'partA') {
+    elA.classList.add('unknown'); elA.style.border = '3px dashed #ff9f43';
+    bmRenderMissingMarker(elA,'?','#ff9f43','part',showDots);
+  } else {
+    elA.classList.remove('unknown'); elA.style.border = 'none';
+    bmRenderBarWithDots(elA, partA, '#ff9f43', 'part', showDots);
+  }
+
+  elB.style.width = (100 - wA) + '%'; bmClearSupportDots(elB);
+  if (miss === 'partB') {
+    elB.classList.add('unknown'); elB.style.border = '3px dashed #54a0ff';
+    bmRenderMissingMarker(elB,'?','#54a0ff','part',showDots);
+  } else {
+    elB.classList.remove('unknown'); elB.style.border = 'none';
+    bmRenderBarWithDots(elB, partB, '#54a0ff', 'part', showDots);
+  }
+
+  // Reset input
+  var inp = document.getElementById('bm-answer-input');
+  inp.value = '';
+  inp.classList.remove('correct-anim','wrong-anim','bm-shake');
+  inp.disabled = false;
+  bmHideFeedback();
+
+  // Populate the keypad with 10 choices (correct, ±10, + randoms within ±20)
+  Keypad.setChoices(caveGenerateChoices(answer), function(val) {
+    if (bmAnswered) return;
+    inp.value = val;
+    bmCheckAnswer();
+  });
+  fitCave();
+
+  inp.focus();
+}
+
+// ── Answer checking (calls shared engine functions) ─────────────
+function bmCheckAnswer() {
+  if (bmAnswered) return;
+  var inp = document.getElementById('bm-answer-input');
+  var val = parseInt(inp.value, 10);
+  if (isNaN(val) || inp.value.trim() === '') {
+    inp.classList.add('bm-shake');
+    setTimeout(function(){ inp.classList.remove('bm-shake'); }, 400);
+    return;
+  }
+
+  var answer = currentQ.correctAnswer;
+  var isCorrect = (val === answer);
+  bmAnswered = true;
+  bmTotal++;
+  inp.disabled = true;
+
+  // Record with shared engine + save shared state
+  var result = engine.recordAnswer(currentQ, isCorrect);
+  saveEngineState();
+
+  if (isCorrect) {
+    bmScore++; bmStreak++;
+    inp.classList.add('correct-anim');
+    bmRevealBars();  // show all bars filled
+    bmHandleStreak(result);
+    if (result.graduation) showGraduationBanner(
+      result.graduation_bond.w, result.graduation_bond.a, result.graduation_bond.b);
+    if (result.level_up) showLevelUpBanner();
+  } else {
+    bmStreak = 0;
+    inp.classList.add('wrong-anim');
+    inp.value = answer;  // show correct answer in box
+    bmRevealBars();
+    bmShowFeedback('\u274c Not quite \u2014 the answer was ' + answer, 'wrong');
+    if (bmCaveScene) { bmCaveScene.setExpr('sad'); bmCaveScene.doAction('idle'); }
+  }
+
+  bmUpdateScore();
+  document.getElementById('cave-streak-label').textContent =
+    bmStreak >= 3 ? '\uD83C\uDF0A ' + bmStreak + ' in a row!' : '';
+
+  // Auto-advance after 1.2 s
+  bmRevealTimer = setTimeout(bmNewQuestion, 1200);
+}
+
+// ── Reveal all bars once answered ──────────────────────────────
+function bmRevealBars() {
+  var q       = currentQ;
+  var whole   = q.whole, partA = q.partA, partB = q.partB;
+  var showDots = (cfg.level === 'to5') || (whole <= 5);
+  var totalEl = document.getElementById('bm-bar-total');
+  var elA     = document.getElementById('bm-part-a');
+  var elB     = document.getElementById('bm-part-b');
+  totalEl.style.background = '#7c5cbf'; totalEl.style.border = 'none';
+  totalEl.classList.remove('unknown');
+  bmRenderBarWithDots(totalEl, whole,  '#7c5cbf', 'whole', showDots);
+  elA.classList.remove('unknown'); elA.style.border = 'none';
+  bmRenderBarWithDots(elA,     partA, '#ff9f43', 'part',  showDots);
+  elB.classList.remove('unknown'); elB.style.border = 'none';
+  bmRenderBarWithDots(elB,     partB, '#54a0ff', 'part',  showDots);
+}
+
+// ── Streak / celebration — cave-specific actions ────────────────
+function bmHandleStreak(result) {
+  var STREAK_MSGS = {
+    3:  ['\uD83C\uDF0A 3 in a row!',            '#40ffcc'],
+    5:  ['\uD83D\uDC20 5 in a row! Amazing!',    '#00d4ff'],
+    10: ['\u2B50 10 in a row! Superstar!',       '#ffff60'],
+    20: ['\uD83C\uDFC6 20 in a row! Legendary!', '#ff80c0'],
+  };
+  var CORRECT_MSGS = [
+    '\u2705 Brilliant!', '\u2705 Fantastic!', '\u2705 Excellent!',
+    '\u2705 Amazing!',   '\u2705 Super!',     '\u2705 Wonderful!'
+  ];
+
+  if (STREAK_MSGS[bmStreak]) {
+    var sm = STREAK_MSGS[bmStreak];
+    bmShowFeedback(sm[0], 'correct');
+    snd(bmStreak >= 10 ? 'streak10' : bmStreak >= 5 ? 'streak5' : 'streak3');
+    if (bmCaveScene) {
+      bmCaveScene.setExpr('happy');
+      bmCaveScene.doAction(bmStreak >= 10 ? 'celebHi' : 'celebLo');
+    }
+  } else if (bmStreak >= 2) {
+    bmShowFeedback(CORRECT_MSGS[Math.floor(Math.random()*CORRECT_MSGS.length)], 'correct');
+    snd('correct');
+    if (bmCaveScene) { bmCaveScene.setExpr('happy'); bmCaveScene.doAction('celebLo'); }
+  } else {
+    bmShowFeedback('\u2705 Correct!', 'correct');
+    snd('correct');
+    if (bmCaveScene) { bmCaveScene.setExpr('positive'); bmCaveScene.doAction('wave'); }
+  }
+}
+
+// ── Feedback helpers ────────────────────────────────────────────
+function bmShowFeedback(msg, type) {
+  var fb = document.getElementById('bm-feedback');
+  fb.textContent = msg; fb.className = 'bm-feedback show ' + type;
+}
+function bmHideFeedback() {
+  var fb = document.getElementById('bm-feedback');
+  fb.className = 'bm-feedback'; fb.textContent = '';
+}
+
+// ── Bar rendering helpers ───────────────────────────────────────
+function bmClearSupportDots(el) {
+  var ex = el.querySelector('.bm-support-dot-overlay'); if (ex) ex.remove();
+  var lb = el.querySelector('.bm-support-label');        if (lb) lb.remove();
+}
+function bmRenderSupportDots(count, color) {
+  var w = document.createElement('div'); w.className = 'bm-support-dot-overlay';
+  for (var i = 1; i <= count; i++) {
+    var d = document.createElement('span'); d.className = 'bm-support-dot';
+    d.style.borderColor = color;
+    d.style.left = (((2*i-1)/(2*count))*100) + '%';
+    w.appendChild(d);
+  }
+  return w;
+}
+function bmRenderBarWithDots(el, value, color, position, showDots) {
+  bmClearSupportDots(el);
+  el.style.position = 'relative'; el.textContent = '';
+  var label = document.createElement('span');
+  label.className = 'bm-support-label ' + (position === 'whole' ? 'whole' : 'part');
+  label.textContent = value;
+  label.style.color = showDots ? color : 'white';
+  if (showDots) {
+    label.style.top = position === 'whole' ? '-34px' : 'calc(100% + 4px)';
+    label.style.fontSize = position === 'whole' ? '1.3rem' : '1rem';
+    label.style.transform = 'translateX(-50%)';
+  } else {
+    label.style.top = '50%'; label.style.transform = 'translate(-50%,-50%)';
+    if (position === 'part') label.style.fontSize = '1.4rem';
+  }
+  el.appendChild(label);
+  if (showDots && value <= 20) el.appendChild(bmRenderSupportDots(value, color));
+}
+function bmRenderMissingMarker(el, symbol, color, position, showDots) {
+  bmClearSupportDots(el);
+  el.style.position = 'relative'; el.textContent = '';
+  var label = document.createElement('span');
+  label.className = 'bm-support-label ' + (position === 'whole' ? 'whole' : 'part');
+  label.textContent = symbol; label.style.color = color;
+  label.style.top = '50%'; label.style.transform = 'translate(-50%,-50%)';
+  if (position === 'part') label.style.fontSize = showDots ? '1rem' : '1.4rem';
+  el.appendChild(label);
+}
+
+// ── Event listeners ─────────────────────────────────────────────
+document.getElementById('bm-answer-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.stopPropagation();
+    bmCheckAnswer();
   }
 });
-entry.addEventListener('input', () => {
-  if (entry.value.length > 2) entry.value = entry.value.slice(0,2);
+// Cave exit cleanup — clears the reveal timer. Extracted so Games.cave.stop()
+// matches the same shape as Games.reef.stop().
+function stopCaveGame() {
+  if (bmRevealTimer) { clearTimeout(bmRevealTimer); bmRevealTimer = null; }
+}
+
+document.getElementById('cave-home-btn').addEventListener('click', () => {
+  Games.cave.stop();
+  showGameSelectScreen();
 });
 
-resizeCanvas();
+// ═══════════════════════════════════════════════════════════════
+// ## DEBUG GAME — human-readable engine/settings readout (Stage 3.5)
+// ═══════════════════════════════════════════════════════════════
+//
+// Temporary inspector for development use. Will be superseded by a real
+// 3rd game later. Registered as a peer game so it sits in the selector.
+// Pure read-only render of live state: user, raw settings, inferred
+// settings, Storage status, Games registry, engine state, per-bond phases.
+
+const Debug = (() => {
+
+  function pad(s, n) { s = String(s); return s + ' '.repeat(Math.max(0, n - s.length)); }
+
+  function fmtUser() {
+    if (typeof currentUser !== 'undefined' && currentUser) {
+      return `  id=${currentUser.id}  name=${currentUser.name}`;
+    }
+    return '  (Guest — no user selected)';
+  }
+
+  function fmtSettings() {
+    const s = (typeof activeSettings !== 'undefined' && activeSettings) ? activeSettings : null;
+    if (!s) return '  (none — open a game once to populate activeSettings)';
+    const keys = ['level','style','sound','timer','omode','odisp'];
+    return keys.map(k => `  ${pad(k,8)}: ${s[k]}`).join('\n');
+  }
+
+  function fmtInferred() {
+    const s = (typeof activeSettings !== 'undefined' && activeSettings) ? activeSettings : null;
+    if (!s) return '  (no settings yet)';
+    const m = CONFIG.settings.map(s.level, s.style, s.omode, s.odisp);
+    const reefClip = CONFIG.levels.clipForReef(s.level);
+    const caveClip = CONFIG.levels.clipForCave(s.level);
+    return [
+      `  display  : ${m.display}`,
+      `  mode     : ${m.mode}`,
+      `  reef-clip: ${reefClip}    cave-clip: ${caveClip}`,
+      `  subStart?: ${CONFIG.levels.subStart.has(reefClip) ? 'yes (engine boots in subtraction phase)' : 'no'}`,
+    ].join('\n');
+  }
+
+  function fmtStorage() {
+    const st = Storage.status();
+    return `  IndexedDB available : ${st.idbAvailable}\n  cache populated     : ${st.hasCache}`;
+  }
+
+  function fmtGames() {
+    return Games.list()
+      .map(g => `  ${pad(g.id,6)} → buttonId=${pad(g.buttonId,12)} screenId=${g.screenId}`)
+      .join('\n');
+  }
+
+  // Current mode's raw phase name for a bondState
+  function rawPhase(bs, mode) {
+    if (mode === 'both') return bs.bPhase;
+    if (mode === 'add')  return bs.aPhase;
+    return bs.sPhase;
+  }
+
+  function fmtEngine() {
+    if (typeof engine === 'undefined' || !engine) {
+      return '  (no engine yet — start a game to create one)';
+    }
+    const lines = [];
+    lines.push(`  level=${engine.level}  mode=${engine.mode}  style=${engine.style}`);
+    lines.push(`  bonds active : ${engine.bonds.size}`);
+    const qPreview = engine.queue.slice(0, 5).map(([w,a,b]) => `${w}:${Math.max(a,b)}`).join(', ');
+    lines.push(`  queue length : ${engine.queue.length}${engine.queue.length ? '   (next: '+qPreview+(engine.queue.length>5?'…':'')+')' : ''}`);
+    lines.push(`  windows      : both=[${(engine.bothWindow||[]).join(',')}]`);
+    lines.push(`                 add =[${(engine.addnWindow||[]).join(',')}]`);
+    lines.push(`                 sub =[${(engine.subnWindow||[]).join(',')}]`);
+    if (engine.lastQ) {
+      const q = engine.lastQ;
+      lines.push(`  lastQ        : whole=${q.whole} A=${q.partA} B=${q.partB} missing=${q.missing} →${q.correctAnswer}`);
+    }
+    return lines.join('\n');
+  }
+
+  function fmtBonds() {
+    if (typeof engine === 'undefined' || !engine) return '  (no engine)';
+    const mode = engine.mode;
+    // Group by phase
+    const byPhase = {};
+    for (const bs of engine.bonds.values()) {
+      const ph = rawPhase(bs, mode);
+      (byPhase[ph] ||= []).push(bs);
+    }
+    const order = [
+      'checkBoth','addition','subtraction',
+      'probation1','probation2','probation3','free',
+      'additionLearning','additionRetention',
+      'subtractionLearning','subtractionRetention',
+    ];
+    const phases = [...new Set([...order, ...Object.keys(byPhase)])].filter(p => byPhase[p]);
+    const lines = [];
+    for (const ph of phases) {
+      lines.push(`  [${ph}]  (${byPhase[ph].length})`);
+      for (const bs of byPhase[ph]) {
+        let extra = '';
+        if (mode === 'both') {
+          if (ph === 'checkBoth')      extra = `results=${JSON.stringify(bs.bCheckResults||{})}`;
+          else if (ph === 'addition')  extra = `addConsec=${bs.bAddConsec}`;
+          else if (ph === 'subtraction') extra = `corrLarge=${bs.bSubCorrLarge} corrSmall=${bs.bSubCorrSmall}`;
+          else if (ph.startsWith('probation')) extra = `probN=${bs.bProbN}/5 score=${bs.bProbScore}`;
+        } else if (mode === 'add') {
+          extra = `stage=${bs.aStage} consec=${bs.aConsec} recent5=[${(bs.aRecent5||[]).join(',')}]`;
+        } else {
+          extra = `stage=${bs.sStage} consec=${bs.sConsec} recent5=[${(bs.sRecent5||[]).join(',')}]`;
+        }
+        lines.push(`      ${pad(CONFIG.bonds.key(bs.w,bs.a,bs.b), 6)} w=${bs.w} a=${bs.a} b=${bs.b}   ${extra}`);
+      }
+    }
+    return lines.join('\n') || '  (no bonds)';
+  }
+
+  function render() {
+    const now  = new Date().toISOString().replace('T',' ').slice(0,19);
+    const SEP  = '══════════════════════════════════════════════════════════════════';
+    const text = [
+      SEP,
+      `🔍 DEBUG READOUT    (refreshed ${now})`,
+      SEP,
+      '',
+      'USER',
+      fmtUser(),
+      '',
+      'SELECTED SETTINGS  (from settings screen)',
+      fmtSettings(),
+      '',
+      'INFERRED  (via CONFIG.settings.map)',
+      fmtInferred(),
+      '',
+      'STORAGE',
+      fmtStorage(),
+      '',
+      'GAMES REGISTRY',
+      fmtGames(),
+      '',
+      'BOND ENGINE',
+      fmtEngine(),
+      '',
+      'PER-BOND STATE  (grouped by phase, for current mode)',
+      SEP,
+      fmtBonds(),
+      '',
+    ].join('\n');
+    const el = document.getElementById('debug-content');
+    if (el) el.textContent = text;
+  }
+
+  function start() {
+    render();
+    showScreen('debug-screen');
+  }
+
+  function stop() { /* nothing to clean up */ }
+
+  return { start, stop, render };
+})();
+
+// Debug screen buttons
+document.getElementById('debug-back-btn').addEventListener('click', () => {
+  Debug.stop();
+  showGameSelectScreen();
+});
+document.getElementById('debug-refresh-btn').addEventListener('click', Debug.render);
+
+// Register all three games with the registry now that start/stop exist.
+Games.register({
+  id:       'reef',
+  label:    'Reef',
+  buttonId: 'reef-btn',
+  screenId: 'game-screen',
+  start:    startGame,
+  stop:     stopReefGame,
+});
+Games.register({
+  id:       'cave',
+  label:    'Cave',
+  buttonId: 'bar-btn',
+  screenId: 'bar-model-screen',
+  start:    startBarGame,
+  stop:     stopCaveGame,
+});
+Games.register({
+  id:       'debug',
+  label:    'Debug',
+  buttonId: 'debug-btn',
+  screenId: 'debug-screen',
+  start:    Debug.start,
+  stop:     Debug.stop,
+});
+
+// Wire game-select buttons through the registry. Kept at the end of the
+// Cave section so both games are registered before listeners are attached.
+for (const g of Games.list()) {
+  const btn = document.getElementById(g.buttonId);
+  if (btn) btn.addEventListener('click', () => g.start());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ## ENGINE.PROGRESS — player progress display (formerly "Bond Map")
+// ═══════════════════════════════════════════════════════════════
+//
+// Conceptually part of the engine: it's a read-only view of the learner's
+// mastery state, not a game. Reads from the live engine if one exists,
+// otherwise from saved user data.
+//
+// Pure-logic helper `phaseFor(bondState, mode)` is testable without DOM.
+// DOM rendering `render()` builds the chip grid into #bond-map-grid.
+
+const EngineProgress = (() => {
+
+  // Map raw engine phase names to display buckets used by the chip CSS.
+  function phaseFor(bondState, mode) {
+    if (!bondState) return 'new';
+    const raw = mode === 'both' ? bondState.bPhase
+             : mode === 'add'  ? bondState.aPhase
+             :                   bondState.sPhase;
+    if (raw === 'free') return 'free';
+    if (raw === 'probation1' || raw === 'probation2' || raw === 'probation3') return 'probation';
+    if (raw === 'additionRetention' || raw === 'subtractionRetention')        return 'probation';
+    if (raw === 'checkBoth' || raw === 'addition' || raw === 'subtraction'
+        || raw === 'additionLearning' || raw === 'subtractionLearning')       return 'learning';
+    return 'new';
+  }
+
+  // Resolve the bonds Map to display: live engine first, then saved user data.
+  function resolveBonds() {
+    if (typeof engine !== 'undefined' && engine && engine.bonds) return engine.bonds;
+    if (typeof currentUser !== 'undefined' && currentUser) {
+      const ud = getUserData(currentUser.id);
+      if (ud.engine && ud.engine.bonds) return new Map(Object.entries(ud.engine.bonds));
+    }
+    return null;
+  }
+
+  function currentMode() {
+    return (typeof engine !== 'undefined' && engine && engine.mode) ? engine.mode : 'both';
+  }
+
+  function show() {
+    showScreen('bond-map-screen');
+    render();
+  }
+
+  function render() {
+    const grid = document.getElementById('bond-map-grid');
+    grid.innerHTML = '';
+
+    const bonds = resolveBonds();
+    const mode  = currentMode();
+
+    // Baseline = upto20 bond set, grouped by whole.
+    const byWhole = {};
+    for (const [w, a, b] of CONFIG.bonds.forLevel('upto20')) {
+      (byWhole[w] ||= []).push({ w, a, b });
+    }
+    const wholes = Object.keys(byWhole).map(Number).sort((x, y) => x - y);
+
+    for (const whole of wholes) {
+      const row = document.createElement('div');
+      row.className = 'bm-whole-row';
+
+      const lbl = document.createElement('span');
+      lbl.className   = 'bm-whole-label';
+      lbl.textContent = whole;
+      row.appendChild(lbl);
+
+      const chips = document.createElement('div');
+      chips.className = 'bm-bond-chips';
+
+      for (const bond of byWhole[whole]) {
+        const key   = CONFIG.bonds.key(bond.w, bond.a, bond.b);
+        const bs    = bonds ? (bonds.get ? bonds.get(key) : bonds[key]) : null;
+        const phase = phaseFor(bs, mode);
+
+        const chip = document.createElement('span');
+        chip.className   = 'bm-chip phase-' + phase;
+        chip.textContent = bond.a + '+' + bond.b;
+        chip.title       = `${bond.w} = ${bond.a} + ${bond.b} (${phase})`;
+        chips.appendChild(chip);
+      }
+
+      row.appendChild(chips);
+      grid.appendChild(row);
+    }
+  }
+
+  return { show, render, phaseFor };
+})();
+
+// ── Backward-compat aliases
+function showBondMap()   { return EngineProgress.show(); }
+function renderBondMap() { return EngineProgress.render(); }
+
+document.getElementById('bond-map-btn').addEventListener('click', EngineProgress.show);
+document.getElementById('bond-map-back-btn').addEventListener('click', () => {
+  showScreen('settings-screen');
+});
+
 </script>
 </body>
 </html>
