@@ -181,10 +181,26 @@ canvas#game-canvas { display: block; }
 
 /* Compact bottom chrome on short-height landscape (phones turned sideways). */
 @media (orientation: landscape) and (max-height: 480px) {
-  #sum-label { font-size: 15px; min-height: 18px; padding: 1px 0 0; letter-spacing: 0.5px; }
-  #feedback-label { font-size: 12px; min-height: 14px; padding: 0; }
-  #btn-row { padding: 2px 0 4px; gap: 8px; }
-  .game-btn { padding: 4px 14px; font-size: 12px; border-radius: 4px; }
+  /* Move chrome from above/below into 64px side rails. */
+  #left-rail, #right-rail {
+    position: fixed; top: var(--top-bar-h, 40px); bottom: 0; width: 64px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    gap: 6px; padding: 4px; z-index: 5;
+  }
+  #left-rail  { left: 0; }
+  #right-rail { right: 0; }
+  #left-rail #sum-label {
+    font-size: 12px; min-height: 14px; padding: 0;
+    letter-spacing: 0; width: 100%;
+  }
+  #left-rail #feedback-label {
+    font-size: 11px; min-height: 13px; padding: 0; width: 100%;
+  }
+  #right-rail #btn-row { width: 100%; padding: 0; gap: 0; justify-content: center; }
+  #right-rail .game-btn {
+    width: 100%; padding: 6px 4px; font-size: 11px; border-radius: 4px;
+  }
 }
 #entry-overlay {
   position: fixed; background: transparent; border: none; outline: none;
@@ -554,10 +570,14 @@ canvas#cave-canvas { display:block; }
     </div>
     <div id="num-pad-right" class="num-pad-panel"></div>
   </div>
-  <div id="sum-label"></div>
-  <div id="feedback-label"></div>
-  <div id="btn-row">
-    <button class="game-btn" id="skip-btn">Skip →</button>
+  <div id="left-rail">
+    <div id="sum-label"></div>
+    <div id="feedback-label"></div>
+  </div>
+  <div id="right-rail">
+    <div id="btn-row">
+      <button class="game-btn" id="skip-btn">Skip →</button>
+    </div>
   </div>
 </div>
 
@@ -1411,9 +1431,10 @@ function fitGameLayout(opts) {
   const gap      = 6;
   const reserveAbove = opts.reserveAbove || 0;
   const reserveBelow = opts.reserveBelow || 0;
+  const reserveSide  = opts.reserveSide  || 0;
   const aW = opts.aspectW, aH = opts.aspectH;
 
-  const sw = screen.clientWidth;
+  const sw = screen.clientWidth - reserveSide;
   const sh = window.innerHeight - reserveAbove - reserveBelow;
   if (sw < 50 || sh < 50) return;
 
@@ -1501,6 +1522,10 @@ function fitReef() {
   const sumL   = document.getElementById('sum-label');
   const fbL    = document.getElementById('feedback-label');
   const btnRow = document.getElementById('btn-row');
+  const topH   = topBar ? topBar.offsetHeight : 0;
+  // Phone-landscape: chrome moves into 64px side rails (CSS rule mirrors this query).
+  const phoneLandscape = window.matchMedia('(orientation: landscape) and (max-height: 480px)').matches;
+  document.documentElement.style.setProperty('--top-bar-h', topH + 'px');
   fitGameLayout({
     layoutEl:         document.getElementById('game-layout'),
     canvasEl:         document.getElementById('game-canvas'),
@@ -1508,10 +1533,12 @@ function fitReef() {
     rightPad:         document.getElementById('num-pad-right'),
     containerWidthEl: document.getElementById('game-screen'),
     aspectW: W, aspectH: H,
-    reserveAbove: topBar ? topBar.offsetHeight : 0,
-    reserveBelow: (sumL?sumL.offsetHeight:0)
-                + (fbL?fbL.offsetHeight:0)
-                + (btnRow?btnRow.offsetHeight:0) + 24,
+    reserveAbove: topH,
+    reserveBelow: phoneLandscape ? 0
+                  : (sumL?sumL.offsetHeight:0)
+                  + (fbL?fbL.offsetHeight:0)
+                  + (btnRow?btnRow.offsetHeight:0) + 24,
+    reserveSide:  phoneLandscape ? 128 : 0,
   });
 }
 
