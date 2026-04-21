@@ -184,7 +184,7 @@ canvas#game-canvas, canvas#cave2-canvas { display: block; }
   /* Move chrome from above/below into 64px side rails. */
   #left-rail, #right-rail,
   #cave2-left-rail, #cave2-right-rail {
-    position: fixed; top: var(--top-bar-h, 40px); bottom: 0; width: 64px;
+    position: fixed; top: var(--top-bar-h, 40px); bottom: 0; width: 128px;
     display: flex; flex-direction: column;
     justify-content: center; align-items: center;
     gap: 6px; padding: 4px; z-index: 5;
@@ -300,8 +300,11 @@ canvas#cave-canvas { display:block; }
 .bm-bar-part.unknown, .bm-bar-total-fill.unknown {
   background:rgba(10,26,58,0.55);
   border:2.5px dashed rgba(255,255,255,0.6);
-  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  display:flex; align-items:center; justify-content:center;
 }
+.bm-bar-total-fill.unknown { border-radius:10px; }
+.bm-bar-part.part-a.unknown { border-radius:10px 0 0 10px; }
+.bm-bar-part.part-b.unknown { border-radius:0 10px 10px 0; }
 
 .bm-support-dot-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
 .bm-support-dot { position:absolute; top:50%; width:11px; height:11px; transform:translate(-50%,-50%); border-radius:50%; background:rgba(255,255,255,0.25); border:2px solid currentColor; box-sizing:border-box; }
@@ -356,6 +359,55 @@ canvas#cave-canvas { display:block; }
   80%{transform:translateX(4px)}
 }
 .bm-shake { animation:bm-shake .35s ease; }
+
+/* ── CAVE2 BAR OVERLAY ── */
+/* Centred over the canvas, no card background */
+#cave2-bar-wrap {
+  position:absolute; left:0; right:0;
+  top:50%; transform:translateY(-50%);
+  padding:0 18px; z-index:10;
+  font-family:'Nunito',sans-serif;
+  pointer-events:none;  /* let canvas clicks fall through; inputs re-enable below */
+}
+#cave2-bar-wrap > * { pointer-events:auto; }
+#cave2-bm-bar-total-wrap { margin-bottom:6px; }
+#cave2-bm-bar-parts-wrap { margin-bottom:10px; }
+/* Answer-input styled as the missing bar segment */
+.cave2-missing-input {
+  display:flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:1.2rem; font-family:'Baloo 2',cursive;
+  color:#ffffff; min-width:0; flex-shrink:0;
+  border:2.5px dashed rgba(255,255,255,0.7);
+  background:rgba(10,26,58,0.55);
+  outline:none; text-align:center;
+  caret-color:#ffffff;
+  -moz-appearance:textfield;
+}
+.cave2-missing-input::-webkit-inner-spin-button,
+.cave2-missing-input::-webkit-outer-spin-button { -webkit-appearance:none; }
+.cave2-missing-input:focus { box-shadow:0 0 0 3px rgba(64,255,204,0.35); }
+.cave2-missing-input.part-a { border-radius:10px 0 0 10px; }
+.cave2-missing-input.part-b { border-radius:0 10px 10px 0; }
+.cave2-missing-input.whole  { border-radius:10px; width:100%; height:44px; }
+#cave2-bm-answer-prompt {
+  font-weight:800; font-size:.95rem;
+  color:#d0eeff; text-shadow:0 1px 4px rgba(0,0,0,0.8);
+  font-family:'Nunito',sans-serif; text-align:center; margin-bottom:2px;
+}
+#cave2-bm-answer-prompt .missing-box {
+  border:2px solid #40ffcc; border-radius:8px; padding:2px 7px; margin:0 2px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-weight:900; color:#40ffcc;
+}
+#cave2-bm-feedback {
+  min-height:24px; font-size:.95rem; font-weight:800; text-align:center;
+  border-radius:8px; padding:2px 12px; margin-top:4px;
+  opacity:0; transition:opacity .3s; pointer-events:none;
+  font-family:'Nunito',sans-serif; text-shadow:0 1px 4px rgba(0,0,0,0.8);
+}
+#cave2-bm-feedback.show { opacity:1; }
+#cave2-bm-feedback.correct { color:#40ffcc; }
+#cave2-bm-feedback.wrong   { color:#ff9070; }
 
 /* ── BOND MAP SCREEN ── */
 #bond-map-screen { padding:16px 14px; background:#0a1a3a; min-height:100vh; }
@@ -588,7 +640,7 @@ canvas#cave-canvas { display:block; }
   </div>
 </div>
 
-<!-- ── SCREEN 4b: CAVE2 (WIP — reef clone, will morph into new Cave) ── -->
+<!-- ── SCREEN 4b: CAVE2 ── -->
 <div id="cave2-screen" class="screen">
   <div id="cave2-top-bar">
     <button id="cave2-home-btn">←</button>
@@ -599,7 +651,22 @@ canvas#cave-canvas { display:block; }
     <div id="cave2-num-pad-left" class="num-pad-panel"></div>
     <div class="canvas-wrap">
       <canvas id="cave2-canvas" width="480" height="460"></canvas>
-      <input id="cave2-entry-overlay" type="text" inputmode="none" maxlength="2" autocomplete="off">
+      <!-- Bar-model overlay — centred vertically over canvas -->
+      <div id="cave2-bar-wrap">
+        <div id="cave2-bm-bar-total-wrap">
+          <div class="bm-bar-track">
+            <div class="bm-bar-total-fill" id="cave2-bm-bar-total"></div>
+          </div>
+        </div>
+        <div id="cave2-bm-bar-parts-wrap">
+          <div class="bm-bar-parts">
+            <div class="bm-bar-part part-a" id="cave2-bm-part-a" style="width:50%"></div>
+            <div class="bm-bar-part part-b" id="cave2-bm-part-b" style="width:50%"></div>
+          </div>
+        </div>
+        <div id="cave2-bm-answer-prompt"></div>
+        <div id="cave2-bm-feedback"></div>
+      </div>
     </div>
     <div id="cave2-num-pad-right" class="num-pad-panel"></div>
   </div>
@@ -1633,7 +1700,7 @@ function fitReef() {
                   : (sumL?sumL.offsetHeight:0)
                   + (fbL?fbL.offsetHeight:0)
                   + (btnRow?btnRow.offsetHeight:0) + 24,
-    reserveSide:  phoneLandscape ? 128 : 0,
+    reserveSide:  phoneLandscape ? 256 : 0,
   });
 }
 
@@ -2651,192 +2718,281 @@ entry.addEventListener('keydown',e=>{
 entry.addEventListener('input',()=>{if(entry.value.length>2)entry.value=entry.value.slice(0,2);});
 
 // ═══════════════════════════════════════════════════════════════
-// ## CAVE2 GAME — cave scene + circle-line display (Stage 3)
+// ## CAVE2 GAME — cave scene + bar-model display (Stage 4)
 // ═══════════════════════════════════════════════════════════════
 //
-// Cave2 uses its own underwaterCave scene (self-animating RAF loop on
-// cave2-canvas). Reef's ocean draw (redraw/bubbles/octopus) is NOT used.
-// Circle-line bond display is retained (Stage 4 will swap to bar-model).
-// Engine, Storage, CONFIG, Sound, Screens, Keypad, fitGameLayout shared.
+// underwaterCave RAF loop runs on cave2-canvas independently.
+// Bar-model overlay (#cave2-bar-wrap) sits centred over the canvas.
+// The missing bar segment is replaced by a text input styled to match.
+// Keypad + keyboard both submit answers via cave2_checkAnswer().
 
-var cave2Scene = null;  // underwaterCave instance for cave2-canvas
+var cave2Scene    = null;   // underwaterCave instance
+var cave2Answered = false;  // guard against double-submit
+
+// ── Helpers ─────────────────────────────────────────────────────
 
 function cave2_updateScore() {
   document.getElementById('cave2-score-label').textContent=`⭐ ${score} / ${total}`;
 }
-function cave2_showFeedback(msg,col) {
-  const el=document.getElementById('cave2-feedback-label'); el.textContent=msg; el.style.color=col;
+
+function cave2_bmShowFeedback(msg, cls) {
+  const el = document.getElementById('cave2-bm-feedback');
+  el.textContent = msg;
+  el.className = 'bm-feedback show ' + cls;
 }
-function cave2_updateSumLabel() {
-  const el=document.getElementById('cave2-sum-label');
-  if     (missing==='whole') el.textContent=`${partA}  +  ${partB}  =  ?`;
-  else if(missing==='partA') el.textContent=`?  +  ${partB}  =  ${whole}    ·    ${whole}  −  ${partB}  =  ?`;
-  else                        el.textContent=`${partA}  +  ?  =  ${whole}    ·    ${whole}  −  ${partA}  =  ?`;
+function cave2_bmHideFeedback() {
+  const el = document.getElementById('cave2-bm-feedback');
+  el.className = 'bm-feedback'; el.textContent = '';
 }
+
+// ── Bar rendering ────────────────────────────────────────────────
+
+// Returns an input element styled as a missing bar, or a plain div if known.
+function cave2_makeBarSegment(isMissing, value, colorClass, cornerClass) {
+  if (isMissing) {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.inputMode = 'numeric'; inp.autocomplete = 'off';
+    inp.maxLength = 3;
+    inp.className = 'cave2-missing-input ' + cornerClass;
+    inp.style.flex = '1'; inp.style.height = '44px';
+    inp.addEventListener('input', () => {
+      if (inp.value.length > 3) inp.value = inp.value.slice(0, 3);
+    });
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { cave2_checkAnswer(); ev.preventDefault(); }
+    });
+    return inp;
+  } else {
+    const div = document.createElement('div');
+    div.className = 'bm-bar-part ' + colorClass;
+    div.style.flex = '1'; div.style.height = '44px';
+    div.textContent = value;
+    return div;
+  }
+}
+
+function cave2_renderBars(q, isRevealed) {
+  const { whole, partA, partB, missing } = q;
+  const wA = whole > 0 ? Math.round((partA / whole) * 100) : 50;
+
+  // Whole bar
+  const totalWrap = document.getElementById('cave2-bm-bar-total-wrap');
+  totalWrap.innerHTML = '';
+  const track = document.createElement('div'); track.className = 'bm-bar-track';
+  if (missing === 'whole' && !isRevealed) {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.inputMode = 'numeric'; inp.autocomplete = 'off';
+    inp.maxLength = 3;
+    inp.className = 'cave2-missing-input whole';
+    inp.style.width = '100%';
+    inp.addEventListener('input', () => { if(inp.value.length>3) inp.value=inp.value.slice(0,3); });
+    inp.addEventListener('keydown', ev => { if(ev.key==='Enter'){cave2_checkAnswer();ev.preventDefault();} });
+    track.appendChild(inp);
+  } else {
+    const fill = document.createElement('div');
+    fill.className = 'bm-bar-total-fill';
+    fill.textContent = whole;
+    track.appendChild(fill);
+  }
+  totalWrap.appendChild(track);
+
+  // Parts bar
+  const partsWrap = document.getElementById('cave2-bm-bar-parts-wrap');
+  partsWrap.innerHTML = '';
+  const parts = document.createElement('div'); parts.className = 'bm-bar-parts';
+
+  const aEl = cave2_makeBarSegment(missing==='partA' && !isRevealed, partA, 'part-a', 'part-a');
+  aEl.style.width = wA + '%';
+  const bEl = cave2_makeBarSegment(missing==='partB' && !isRevealed, partB, 'part-b', 'part-b');
+  bEl.style.width = (100 - wA) + '%';
+  parts.appendChild(aEl); parts.appendChild(bEl);
+  partsWrap.appendChild(parts);
+
+  // Equation prompt
+  const prompt = document.getElementById('cave2-bm-answer-prompt');
+  if (missing === 'whole') {
+    prompt.innerHTML = `${partA} + ${partB} = <span class="missing-box">?</span>`;
+  } else if (missing === 'partA') {
+    prompt.innerHTML = `<span class="missing-box">?</span> + ${partB} = ${whole}`;
+  } else {
+    prompt.innerHTML = `${partA} + <span class="missing-box">?</span> = ${whole}`;
+  }
+
+  // Focus the input after render
+  if (!isRevealed) {
+    requestAnimationFrame(() => {
+      const inp = partsWrap.querySelector('input') || totalWrap.querySelector('input');
+      if (inp) inp.focus();
+    });
+  }
+}
+
+function cave2_getMissingInput() {
+  const partsWrap = document.getElementById('cave2-bm-bar-parts-wrap');
+  const totalWrap = document.getElementById('cave2-bm-bar-total-wrap');
+  return partsWrap.querySelector('input') || totalWrap.querySelector('input');
+}
+
+// ── Pad ──────────────────────────────────────────────────────────
 
 function cave2_buildNumPad() {
   Keypad.mount('cave2-num-pad-left', 'cave2-num-pad-right');
-  const show20 = ['exact20','doubles20','upto20'].includes(cfg.level);
-  const nums = [];
-  for (let n=1; n<=10; n++) nums.push(n);
-  if (show20) for (let n=11; n<=20; n++) nums.push(n);
-  Keypad.setChoices(nums, (val) => {
-    if (entry.disabled) return;
-    entry.value = val;
-    cave2_checkAnswer();
-  });
+  const answer = currentQ ? currentQ.correctAnswer : 1;
+  if (whole > 20) {
+    Keypad.setChoices(caveGenerateChoices(answer), val => {
+      if (cave2Answered) return;
+      const inp = cave2_getMissingInput();
+      if (inp) { inp.value = val; cave2_checkAnswer(); }
+    });
+  } else {
+    const tenOnly = ['to5','exact10','doubles10','upto10'].includes(cfg.level);
+    const nums = [];
+    for (let n=1; n<=10; n++) nums.push(n);
+    if (!tenOnly) for (let n=11; n<=20; n++) nums.push(n);
+    Keypad.setChoices(nums, val => {
+      if (cave2Answered) return;
+      const inp = cave2_getMissingInput();
+      if (inp) { inp.value = val; cave2_checkAnswer(); }
+    });
+  }
   fitCave2();
 }
 
+// ── Question flow ────────────────────────────────────────────────
+
 function cave2_newQuestion() {
-  cave2_stopTimer(); revealed=false; skipMode=false;
-  entry.value=''; entry.disabled=false;
-  currentQ=engine.nextQuestion();
-  if(!currentQ) return;
-  whole=currentQ.whole; partA=currentQ.partA; partB=currentQ.partB;
-  missing=currentQ.missing; correct=currentQ.correctAnswer;
-  cave2_updateSumLabel();
-  if(cave2Scene) { cave2Scene.setExpr('positive'); cave2Scene.doAction('idle'); }
-  cave2_buildNumPad(); cave2_updateScore(); cave2_startTimer();
-  setTimeout(()=>{entry.focus();positionEntry();},50);
+  cave2_stopTimer(); cave2Answered = false;
+  cave2_bmHideFeedback();
+  currentQ = engine.nextQuestion();
+  if (!currentQ) return;
+  whole = currentQ.whole; partA = currentQ.partA;
+  partB = currentQ.partB; missing = currentQ.missing; correct = currentQ.correctAnswer;
+  if (cave2Scene) { cave2Scene.setExpr('positive'); cave2Scene.doAction('idle'); }
+  cave2_renderBars(currentQ, false);
+  cave2_buildNumPad();
+  cave2_updateScore();
+  cave2_startTimer();
 }
 
 function cave2_checkAnswer() {
-  const raw=entry.value.trim();
-  if(!raw){cave2_showFeedback('Type a number first!',COL.wrongCol);return;}
-  const val=parseInt(raw);
-  if(isNaN(val)){cave2_showFeedback('Numbers only!',COL.wrongCol);return;}
-  cave2_stopTimer();
-  const isCorrect=val===correct; total++;
-  const result=engine.recordAnswer(currentQ,isCorrect);
+  if (cave2Answered) return;
+  const inp = cave2_getMissingInput();
+  const raw = inp ? inp.value.trim() : '';
+  if (!raw) {
+    if (inp) { inp.classList.add('bm-shake'); setTimeout(()=>inp.classList.remove('bm-shake'),400); }
+    return;
+  }
+  const val = parseInt(raw, 10);
+  if (isNaN(val)) return;
+
+  cave2Answered = true; cave2_stopTimer(); total++;
+  if (inp) inp.disabled = true;
+
+  const isCorrect = val === correct;
+  const result = engine.recordAnswer(currentQ, isCorrect);
   saveEngineState();
   maybeAdvanceAchievedLevel(result, isCorrect);
-  if(isCorrect){
-    score++;streak++;
-    skipMode=false; revealed=true;
-    if(cave2Scene) { cave2Scene.setExpr('happy'); cave2Scene.doAction(streak>=5?'celebHi':'celebLo'); }
-    cave2_handleStreak(); cave2_updateScore();
-    entry.disabled=true; entry.style.display='none';
-    if(result.graduation) showGraduationBanner(result.graduation_bond.w,result.graduation_bond.a,result.graduation_bond.b);
-    if(result.level_up)   showLevelUpBanner();
-    if(revealTimeout) clearTimeout(revealTimeout);
-    revealTimeout=setTimeout(cave2_newQuestion,1500);
+
+  if (isCorrect) {
+    score++; streak++;
+    if (cave2Scene) cave2Scene.setExpr('happy');
+    if (cave2Scene) cave2Scene.doAction(streak >= 5 ? 'celebHi' : 'celebLo');
+    cave2_bmShowFeedback(cave2_streakMsg(), 'correct');
+    cave2_updateScore();
+    if (result.graduation) showGraduationBanner(result.graduation_bond.w,result.graduation_bond.a,result.graduation_bond.b);
+    if (result.level_up)   showLevelUpBanner();
+    document.getElementById('cave2-streak-label').textContent = streak >= 3 ? `🌊 ${streak} in a row!` : '';
+    snd(streak===3?'streak3':streak===5?'streak5':streak>=10?'streak10':'correct');
+    if (revealTimeout) clearTimeout(revealTimeout);
+    revealTimeout = setTimeout(cave2_newQuestion, 1500);
   } else {
-    streak=0; document.getElementById('cave2-streak-label').textContent='';
-    if(cave2Scene) { cave2Scene.setExpr('sad'); cave2Scene.doAction('idle'); }
-    cave2_showFeedback('Not quite — try again! 🦀',COL.wrongCol); snd('wrong');
-    entry.value='';
-    if(sadResetId) clearTimeout(sadResetId);
-    sadResetId=setTimeout(()=>{ if(cave2Scene) cave2Scene.setExpr('positive'); },1500);
-    cave2_updateScore(); cave2_startTimer();
+    streak = 0; document.getElementById('cave2-streak-label').textContent = '';
+    if (cave2Scene) { cave2Scene.setExpr('sad'); cave2Scene.doAction('idle'); }
+    // Reveal correct answer in the bar
+    cave2_renderBars(currentQ, true);
+    cave2_bmShowFeedback(`Not quite — the answer was ${correct}`, 'wrong');
+    snd('wrong'); cave2_updateScore();
+    if (sadResetId) clearTimeout(sadResetId);
+    sadResetId = setTimeout(() => { if (cave2Scene) cave2Scene.setExpr('positive'); }, 1500);
+    if (revealTimeout) clearTimeout(revealTimeout);
+    revealTimeout = setTimeout(cave2_newQuestion, 1500);
   }
 }
 
-function cave2_handleStreak() {
-  const STREAK_MSGS={
-    3:  ['3 in a row! 🌊','#40ffcc'],
-    5:  ['5 in a row! Amazing! 🐠','#00d4ff'],
-    10: ['10 in a row! SUPERSTAR! ⭐','#ffff60'],
-    20: ['20 IN A ROW! LEGENDARY! 🏆','#ff80c0'],
-    50: ['50 IN A ROW! UNBELIEVABLE! 🌟','#ff40ff'],
-    75: ['75 IN A ROW! INCREDIBLE! 🔱','#40ffff'],
-    100:['100 IN A ROW! CHAMPION! 👑','#ffffff'],
+function cave2_streakMsg() {
+  const MSGS = {
+    3:'3 in a row! 🦀', 5:'5 in a row! Amazing! 🦀',
+    10:'10 in a row! SUPERSTAR! ⭐', 20:'20 IN A ROW! LEGENDARY! 🏆',
+    50:'50 IN A ROW! UNBELIEVABLE! 🌟', 75:'75 IN A ROW! INCREDIBLE! 🔱',
+    100:'100 IN A ROW! CHAMPION! 👑',
   };
-  const BRILLIANT=['✓ Brilliant! Keep swimming! 🌊','✓ Fantastic! You\'re on a roll! 🐠',
-    '✓ Excellent! Don\'t stop now! ⭐','✓ Amazing work! Keep going! 🐙',
-    '✓ Super! Ride that wave! 🌊','✓ Wonderful! You\'re flying! 🐡',
-    '✓ Outstanding! More! More! 🦀','✓ Splendid! Keep it up! 🐚'];
-  const streakSounds={3:'streak3',5:'streak5',10:'streak10',20:'streak20',50:'streak20',75:'streak20',100:'streak20'};
-  if(STREAK_MSGS[streak]){
-    const [msg,col]=STREAK_MSGS[streak];
-    cave2_showFeedback(msg,col);
-    document.getElementById('cave2-streak-label').textContent=`🌊 ${streak} in a row!`;
-    snd(streakSounds[streak]||'streak3');
-    const rays=streak>=50?24:streak>=10?20:14, cycles=streak>=50?5:streak>=10?4:3;
-    startBurst(W/2,H/2,rays); octopusMood='excited'; startOctopusBounce(cycles);
-  } else if(streak>=2){
-    cave2_showFeedback(BRILLIANT[Math.floor(Math.random()*BRILLIANT.length)],COL.correctCol);
-    document.getElementById('cave2-streak-label').textContent=`🌊 ${streak} in a row!`;
-    snd('correct');
-  } else {
-    document.getElementById('cave2-streak-label').textContent='';
-    cave2_showFeedback('✓ Correct! Well done! 🐠',COL.correctCol); snd('correct');
+  if (MSGS[streak]) return MSGS[streak];
+  if (streak >= 2) {
+    const BRILLIANT = ['✓ Brilliant! 🦀','✓ Fantastic!','✓ Excellent! ⭐','✓ Amazing work!','✓ Splendid! 🦀'];
+    return BRILLIANT[Math.floor(Math.random()*BRILLIANT.length)];
   }
+  return '✓ Correct! Well done! 🦀';
 }
 
 function cave2_skipQuestion() {
-  if(entry.disabled) return;
-  cave2_stopTimer(); total++; streak=0;
-  document.getElementById('cave2-streak-label').textContent='';
-  engine.recordAnswer(currentQ,false);
+  if (cave2Answered) return;
+  cave2Answered = true; cave2_stopTimer(); total++; streak = 0;
+  document.getElementById('cave2-streak-label').textContent = '';
+  engine.recordAnswer(currentQ, false);
   saveEngineState(); cave2_updateScore();
-  skipMode=true; revealed=true;
-  if(cave2Scene) { cave2Scene.setExpr('neutral'); cave2Scene.doAction('idle'); }
-  cave2_showFeedback(`Answer: ${correct}`,'#7090a8');
-  entry.disabled=true; entry.style.display='none';
-  if(revealTimeout) clearTimeout(revealTimeout);
-  revealTimeout=setTimeout(cave2_newQuestion,1500);
+  if (cave2Scene) { cave2Scene.setExpr('neutral'); cave2Scene.doAction('idle'); }
+  cave2_renderBars(currentQ, true);
+  cave2_bmShowFeedback(`Answer: ${correct}`, 'wrong');
+  if (revealTimeout) clearTimeout(revealTimeout);
+  revealTimeout = setTimeout(cave2_newQuestion, 1500);
 }
 
 function cave2_startTimer() {
-  if(cfg.timer!=='on') return;
-  cave2_stopTimer(); timeLeft=10;
-  timerInterval=setInterval(()=>{
+  if (cfg.timer !== 'on') return;
+  cave2_stopTimer(); timeLeft = 10;
+  timerInterval = setInterval(() => {
     timeLeft--;
-    if(timeLeft<=0){
-      cave2_stopTimer(); total++;
-      engine.recordAnswer(currentQ,false); saveEngineState();
-      if(cave2Scene) { cave2Scene.setExpr('sad'); cave2Scene.doAction('idle'); }
-      revealed=false;
-      cave2_showFeedback(`Time's up! Answer: ${correct} 🦀`,COL.wrongCol); snd('timeout');
-      cave2_updateScore(); setTimeout(cave2_newQuestion,1400);
+    if (timeLeft <= 0) {
+      cave2Answered = true; cave2_stopTimer(); total++;
+      engine.recordAnswer(currentQ, false); saveEngineState();
+      if (cave2Scene) { cave2Scene.setExpr('sad'); cave2Scene.doAction('idle'); }
+      cave2_renderBars(currentQ, true);
+      cave2_bmShowFeedback(`Time's up! Answer: ${correct} 🦀`, 'wrong');
+      snd('timeout'); cave2_updateScore();
+      setTimeout(cave2_newQuestion, 1400);
     }
-  },1000);
+  }, 1000);
 }
 function cave2_stopTimer() {
-  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
 
 function cave2_startGame() {
-  bindActiveCanvas('cave2-canvas', 'cave2-entry-overlay');
-  const s=activeSettings;
-  const ud=currentUser ? getUserData(currentUser.id) : null;
-  // cave2 uses cave clipping but allows extended domain via achievedLevel.
-  const level=computeEffectiveLevel(s.level, ud?.achievedLevel, s.style, clipLevelForCave);
-  const mapped=mapSettings(level,s.style,s.omode,s.odisp);
+  const s = activeSettings;
+  const ud = currentUser ? getUserData(currentUser.id) : null;
+  const level = computeEffectiveLevel(s.level, ud?.achievedLevel, s.style, clipLevelForCave);
+  const mapped = mapSettings(level, s.style, s.omode, s.odisp);
 
-  cfg = {
-    level,
-    display: mapped.display,
-    mode:    mapped.mode,
-    sound:   s.sound,
-    timer:   s.timer,
-    style:   s.style,
-  };
+  cfg = { level, display:mapped.display, mode:mapped.mode, sound:s.sound, timer:s.timer, style:s.style };
 
-  // Shared engine state (same ud.engine slot as reef); use setActiveLevel if only level changed.
-  const engCfg={level,mode:mapped.mode,style:s.style};
-  if(currentUser && ud){
-    if(ud.engine && ud.engine.mode===mapped.mode && ud.engine.style===s.style){
-      engine=BondEngine.restore(ud.engine);
-      if(ud.engine.level !== level) engine.setActiveLevel(level);
-    } else {
-      engine=new BondEngine(engCfg);
-    }
-  } else {
-    engine=new BondEngine(engCfg);
-  }
+  const engCfg = { level, mode:mapped.mode, style:s.style };
+  if (currentUser && ud) {
+    if (ud.engine && ud.engine.mode===mapped.mode && ud.engine.style===s.style) {
+      engine = BondEngine.restore(ud.engine);
+      if (ud.engine.level !== level) engine.setActiveLevel(level);
+    } else { engine = new BondEngine(engCfg); }
+  } else { engine = new BondEngine(engCfg); }
 
-  score=0;total=0;streak=0;revealed=false;skipMode=false;
-  if(revealTimeout){clearTimeout(revealTimeout);revealTimeout=null;}
-  if(sadResetId)  {clearTimeout(sadResetId);sadResetId=null;}
+  score=0; total=0; streak=0; cave2Answered=false;
+  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout=null; }
+  if (sadResetId)    { clearTimeout(sadResetId);    sadResetId=null; }
 
   cave2_updateScore();
+  cave2_bmHideFeedback();
   showScreen('cave2-screen');
   resizeCanvas();
 
-  // Boot cave scene lazily (persists across game sessions).
-  if(!cave2Scene) cave2Scene = underwaterCave('cave2-canvas');
+  if (!cave2Scene) cave2Scene = underwaterCave('cave2-canvas');
   cave2Scene.setExpr('positive');
   cave2Scene.doAction('idle');
 
@@ -2845,15 +3001,11 @@ function cave2_startGame() {
 
 function cave2_stopGame() {
   cave2_stopTimer();
-  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout = null; }
-  entry.style.display = 'none';
+  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout=null; }
 }
 
-// cave2 fit (mirrors fitReef; same aspect since cave2 clones reef)
 function fitCave2() {
   const topBar = document.getElementById('cave2-top-bar');
-  const sumL   = document.getElementById('cave2-sum-label');
-  const fbL    = document.getElementById('cave2-feedback-label');
   const btnRow = document.getElementById('cave2-btn-row');
   const topH   = topBar ? topBar.offsetHeight : 0;
   const phoneLandscape = window.matchMedia('(orientation: landscape) and (max-height: 480px)').matches;
@@ -2866,33 +3018,16 @@ function fitCave2() {
     containerWidthEl: document.getElementById('cave2-screen'),
     aspectW: W, aspectH: H,
     reserveAbove: topH,
-    reserveBelow: phoneLandscape ? 0
-                  : (sumL?sumL.offsetHeight:0)
-                  + (fbL?fbL.offsetHeight:0)
-                  + (btnRow?btnRow.offsetHeight:0) + 24,
-    reserveSide:  phoneLandscape ? 128 : 0,
+    reserveBelow: phoneLandscape ? 0 : (btnRow ? btnRow.offsetHeight : 0) + 12,
+    reserveSide:  phoneLandscape ? 256 : 0,
   });
 }
 
-// cave2 event listeners (home, skip, entry keydown/input)
 document.getElementById('cave2-home-btn').addEventListener('click', () => {
   Games.get('cave2').stop();
   showGameSelectScreen();
 });
 document.getElementById('cave2-skip-btn').addEventListener('click', cave2_skipQuestion);
-
-(function wireCave2Entry() {
-  const e = document.getElementById('cave2-entry-overlay');
-  e.addEventListener('keydown', ev => {
-    if (ev.key==='Enter') { cave2_checkAnswer(); ev.preventDefault(); }
-    if (ev.key==='.' || ev.key==='Delete') {
-      ev.preventDefault(); e.value = e.value.slice(0,-1);
-    }
-  });
-  e.addEventListener('input', () => {
-    if (e.value.length > 2) e.value = e.value.slice(0,2);
-  });
-})();
 
 // ═══════════════════════════════════════════════════════════════
 // ## INIT
