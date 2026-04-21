@@ -25,8 +25,8 @@ body {
 /* ── SCREEN MANAGEMENT ── */
 .screen { display: none; }
 .screen.active { display: block; }
-#game-screen { display: none; flex-direction: column; align-items: center; }
-#game-screen.active { display: flex; }
+#game-screen, #cave2-screen { display: none; flex-direction: column; align-items: center; }
+#game-screen.active, #cave2-screen.active { display: flex; }
 
 /* ── USER SCREEN ── */
 #user-screen { padding: 28px 20px; text-align: center; }
@@ -151,58 +151,63 @@ body {
 .nav-btn:hover { background: #1a5090; }
 
 /* ── GAME SCREEN ── */
-#top-bar {
+#top-bar, #cave2-top-bar {
   display: flex; width: 100%;
   align-items: center; padding: 8px 14px 4px; gap: 10px;
 }
-#score-label  { font-size: 14px; font-weight: bold; flex: 1; }
-#streak-label { font-size: 13px; font-weight: bold; color: #40ffcc; }
-#home-btn {
+#score-label, #cave2-score-label   { font-size: 14px; font-weight: bold; flex: 1; }
+#streak-label, #cave2-streak-label { font-size: 13px; font-weight: bold; color: #40ffcc; }
+#home-btn, #cave2-home-btn {
   background: #0e3a6a; color: #d0eeff;
   border: none; padding: 5px 12px; border-radius: 4px;
   cursor: pointer; font-family: inherit; font-size: 14px;
 }
-canvas#game-canvas { display: block; }
-#sum-label {
+canvas#game-canvas, canvas#cave2-canvas { display: block; }
+#sum-label, #cave2-sum-label {
   font-size: 19px; font-weight: bold; color: #ffffff;
   text-align: center; padding: 4px 0 0; min-height: 28px; letter-spacing: 1px;
 }
-#feedback-label {
+#feedback-label, #cave2-feedback-label {
   font-size: 14px; text-align: center;
   min-height: 22px; padding: 2px 0; font-weight: bold;
 }
-#btn-row { display: flex; gap: 12px; justify-content: center; padding: 6px 0 10px; }
+#btn-row, #cave2-btn-row { display: flex; gap: 12px; justify-content: center; padding: 6px 0 10px; }
 .game-btn {
   padding: 8px 22px; font-size: 14px; font-weight: bold;
   border: none; border-radius: 5px; cursor: pointer; font-family: inherit;
 }
-#skip-btn  { background: #0e3a6a; color: #d0eeff; }
-#skip-btn:hover  { background: #1a5090; }
+#skip-btn, #cave2-skip-btn              { background: #0e3a6a; color: #d0eeff; }
+#skip-btn:hover, #cave2-skip-btn:hover  { background: #1a5090; }
 
 /* Compact bottom chrome on short-height landscape (phones turned sideways). */
 @media (orientation: landscape) and (max-height: 480px) {
   /* Move chrome from above/below into 64px side rails. */
-  #left-rail, #right-rail {
+  #left-rail, #right-rail,
+  #cave2-left-rail, #cave2-right-rail {
     position: fixed; top: var(--top-bar-h, 40px); bottom: 0; width: 64px;
     display: flex; flex-direction: column;
     justify-content: center; align-items: center;
     gap: 6px; padding: 4px; z-index: 5;
   }
-  #left-rail  { left: 0; }
-  #right-rail { right: 0; }
-  #left-rail #sum-label {
+  #left-rail, #cave2-left-rail   { left: 0; }
+  #right-rail, #cave2-right-rail { right: 0; }
+  #left-rail #sum-label,
+  #cave2-left-rail #cave2-sum-label {
     font-size: 12px; min-height: 14px; padding: 0;
     letter-spacing: 0; width: 100%;
   }
-  #left-rail #feedback-label {
+  #left-rail #feedback-label,
+  #cave2-left-rail #cave2-feedback-label {
     font-size: 11px; min-height: 13px; padding: 0; width: 100%;
   }
-  #right-rail #btn-row { width: 100%; padding: 0; gap: 0; justify-content: center; }
-  #right-rail .game-btn {
+  #right-rail #btn-row,
+  #cave2-right-rail #cave2-btn-row { width: 100%; padding: 0; gap: 0; justify-content: center; }
+  #right-rail .game-btn,
+  #cave2-right-rail .game-btn {
     width: 100%; padding: 6px 4px; font-size: 11px; border-radius: 4px;
   }
 }
-#entry-overlay {
+#entry-overlay, #cave2-entry-overlay {
   position: fixed; background: transparent; border: none; outline: none;
   text-align: center; font-family: 'Trebuchet MS', sans-serif;
   font-weight: bold; color: #005f7a; caret-color: #005f7a;
@@ -240,10 +245,7 @@ canvas#game-canvas { display: block; }
 }
 .num-pad-btn:hover  { background: #1a5090; }
 .num-pad-btn:active { transform: scale(0.92); background: #2060b0; }
-/* Hide keypad on desktop (mouse / fine pointer). Touch-only UI. */
-@media (hover: hover) and (pointer: fine) {
-  .num-pad-panel { display: none !important; }
-}
+/* Keypad visible on all devices (desktop click, touch tap). */
 
 /* ── CAVE GAME SCREEN ── */
 #bar-model-screen { display:none; }
@@ -551,6 +553,11 @@ canvas#cave-canvas { display:block; }
       <h3>🔍 Debug</h3>
       <p>Full engine + settings readout (developer view)</p>
     </div>
+    <!-- Stage 2 (WIP): cave2 clones reef; will gradually morph into new Cave. -->
+    <div class="game-card" id="cave2-btn">
+      <h3>🦀 Cave2 (WIP)</h3>
+      <p>Experimental — reef-clone that will replace Cave</p>
+    </div>
   </div>
   <button class="nav-btn" id="back-to-settings-btn" style="display:block;margin:14px auto 0;">← Back to Settings</button>
 </div>
@@ -577,6 +584,32 @@ canvas#cave-canvas { display:block; }
   <div id="right-rail">
     <div id="btn-row">
       <button class="game-btn" id="skip-btn">Skip →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN 4b: CAVE2 (WIP — reef clone, will morph into new Cave) ── -->
+<div id="cave2-screen" class="screen">
+  <div id="cave2-top-bar">
+    <button id="cave2-home-btn">←</button>
+    <span id="cave2-score-label">⭐ 0 / 0</span>
+    <span id="cave2-streak-label"></span>
+  </div>
+  <div id="cave2-game-layout" class="game-pad-layout layout-side">
+    <div id="cave2-num-pad-left" class="num-pad-panel"></div>
+    <div class="canvas-wrap">
+      <canvas id="cave2-canvas" width="480" height="460"></canvas>
+      <input id="cave2-entry-overlay" type="text" inputmode="none" maxlength="2" autocomplete="off">
+    </div>
+    <div id="cave2-num-pad-right" class="num-pad-panel"></div>
+  </div>
+  <div id="cave2-left-rail">
+    <div id="cave2-sum-label"></div>
+    <div id="cave2-feedback-label"></div>
+  </div>
+  <div id="cave2-right-rail">
+    <div id="cave2-btn-row">
+      <button class="game-btn" id="cave2-skip-btn">Skip →</button>
     </div>
   </div>
 </div>
@@ -671,13 +704,23 @@ canvas#cave-canvas { display:block; }
 
 const CONFIG = (() => {
   const levels = {
+    // Levels available as configured ceiling (adult-facing).
     reef:     new Set(['to5','exact10','doubles10','upto10','exact20','doubles20','upto20']),
     cave:     new Set(['to5','exact10','doubles10','upto10','exact20','doubles20','upto20',
                        'exact100s','doubles100andexact10s','upto100']),
+    // Extended achieved-level domain (beyond configured ceiling; cave only for now).
+    // Bond-level mastery not tracked here; rolling-window advancement used instead.
+    extended: ['bonds-to-100','bonds-to-10s','bonds-within-100'],
     subStart: new Set(['exact10','exact20','doubles20']),   // engine boots in subtraction phase
     fallback: 'upto20',
     clipForReef(level) { return this.reef.has(level) ? level : this.fallback; },
     clipForCave(level) { return this.cave.has(level) ? level : this.fallback; },
+    // All achievable level names in progression order (configured + extended).
+    progressionOrder: [
+      'to5','exact10','doubles10','upto10','exact20','doubles20','upto20',
+      'exact100s','doubles100andexact10s','upto100',
+      'bonds-to-100','bonds-to-10s','bonds-within-100'
+    ],
   };
 
   // Canonical bonds [w, a, b] with a >= b >= 1.
@@ -729,6 +772,22 @@ const CONFIG = (() => {
     return [...base, ...extra];
   }
 
+  // Returns the first configured level (in progression order) whose bond set
+  // contains (w,a,b). Returns null if not found in any configured level.
+  function minLevelForBond(w, a, b) {
+    const configuredOrder = [
+      'to5','exact10','doubles10','upto10','exact20','doubles20','upto20',
+      'exact100s','doubles100andexact10s','upto100'
+    ];
+    const k = key(w, a, b);
+    for (const lvl of configuredOrder) {
+      for (const bond of forLevel(lvl)) {
+        if (key(bond[0], bond[1], bond[2]) === k) return lvl;
+      }
+    }
+    return null;
+  }
+
   function key(w, a, b) { const la = Math.max(a, b); return `${w}:${la}`; }
 
   const settings = {
@@ -761,7 +820,7 @@ const CONFIG = (() => {
 
   return {
     levels,
-    bonds:    { forLevel, masterReef, masterCave, key },
+    bonds:    { forLevel, masterReef, masterCave, key, minLevelForBond },
     settings,
   };
 })();
@@ -777,6 +836,19 @@ function getMasterList()           { return CONFIG.bonds.masterReef(); }
 function bondKey(w, a, b)          { return CONFIG.bonds.key(w, a, b); }
 function mapSettings(level, style, omode, odisp) {
   return CONFIG.settings.map(level, style, omode, odisp);
+}
+
+// Computes the effective level for a game start.
+// - progress style: max(settings.level, achievedLevel) per progressionOrder.
+// - practice/entry: settings.level only (achievedLevel never written).
+// - clipFn: CONFIG.levels.clipForReef or clipForCave — caps result for the game.
+function computeEffectiveLevel(settingsLevel, achievedLevel, style, clipFn) {
+  if (style !== 'progress') return clipFn(settingsLevel);
+  const order = CONFIG.levels.progressionOrder;
+  const si = order.indexOf(settingsLevel);
+  const ai = achievedLevel ? order.indexOf(achievedLevel) : -1;
+  const effective = order[Math.max(si, ai, 0)] || settingsLevel;
+  return clipFn(effective);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1168,6 +1240,25 @@ class BondEngine {
     };
   }
 
+  // Merge new bonds for newLevel into active set without wiping mastery state.
+  // Only adds bonds not already present; does not remove existing bonds.
+  // Called when effectiveLevel advances without a mode/style change.
+  setActiveLevel(newLevel) {
+    this.level = newLevel;
+    for (const [w,a,b] of getBondsForLevel(newLevel)) {
+      const k = bondKey(w,a,b);
+      if (!this.bonds.has(k)) this.bonds.set(k, this._newState(w,a,b));
+    }
+    // Rebuild queue: all masterReef bonds not already in active set.
+    if (this.style === 'progress') {
+      this.queue = [];
+      for (const [w,a,b] of getMasterList()) {
+        const k = bondKey(w,a,b);
+        if (!this.bonds.has(k)) this.queue.push([w,a,b]);
+      }
+    }
+  }
+
   static restore(s) {
     const e=Object.create(BondEngine.prototype);
     e.level=s.level; e.mode=s.mode; e.style=s.style;
@@ -1295,7 +1386,14 @@ function loadData()        { return Storage.read(); }
 function saveData(data)    { Storage.write(data); }
 function getUsers()        { return loadData().users || []; }
 function saveUsers(users)  { const d=loadData(); d.users=users; saveData(d); }
-function getUserData(id)   { return loadData()[`u_${id}`] || {settings:{...DEFAULT_SETTINGS},engine:null}; }
+function getUserData(id) {
+  const d = loadData()[`u_${id}`];
+  if (!d) return { settings:{...DEFAULT_SETTINGS}, engine:null, achievedLevel:null, rollingWindow:[] };
+  // Back-fill missing fields for existing users.
+  if (d.achievedLevel === undefined) d.achievedLevel = null;
+  if (d.rollingWindow === undefined) d.rollingWindow = [];
+  return d;
+}
 function saveUserData(id,ud){ const d=loadData(); d[`u_${id}`]=ud; saveData(d); }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1395,15 +1493,26 @@ const { W, H, CW, CA, CB, MON_X, MON_Y, COL, DICE_PATTERNS } = Draw.constants;
 // CANVAS SETUP
 // ═══════════════════════════════════════════════════════════════
 
-const canvas = document.getElementById('game-canvas');
-const ctx    = canvas.getContext('2d');
-const entry  = document.getElementById('entry-overlay');
+// NOTE: let (not const) — cave2 shares the reef draw pipeline but on its own
+// canvas/entry. Each game's start() calls bindActiveCanvas() to point these
+// module-level handles at its DOM before drawing.
+let canvas = document.getElementById('game-canvas');
+let ctx    = canvas.getContext('2d');
+let entry  = document.getElementById('entry-overlay');
+
+function bindActiveCanvas(canvasId, entryId) {
+  canvas = document.getElementById(canvasId);
+  ctx    = canvas.getContext('2d');
+  entry  = document.getElementById(entryId);
+}
 
 function resizeCanvas() {
   const gs = document.getElementById('game-screen');
   const bm = document.getElementById('bar-model-screen');
+  const c2 = document.getElementById('cave2-screen');
   if (gs && gs.classList.contains('active')) fitReef();
   if (bm && bm.classList.contains('active')) fitCave();
+  if (c2 && c2.classList.contains('active')) fitCave2();
   positionEntry();
 }
 window.addEventListener('resize', resizeCanvas);
@@ -1440,20 +1549,6 @@ function fitGameLayout(opts) {
 
   const n = Keypad.count;
   if (n === 0) return;
-
-  // Desktop (mouse / fine pointer): CSS hides pads; don't reserve pad space.
-  const touchUI = window.matchMedia('(hover: none), (pointer: coarse)').matches;
-  if (!touchUI) {
-    const scale = Math.min(sw/aW, sh/aH);
-    if (!(scale > 0)) return;
-    const cw = aW * scale, ch = aH * scale;
-    layout.classList.remove('layout-stack');
-    layout.classList.add('layout-side');
-    canvasEl.style.width  = cw + 'px';
-    canvasEl.style.height = ch + 'px';
-    canvasEl.style.maxWidth = 'none';
-    return;
-  }
 
   // Evaluate candidate configurations: mode (side|stack) × split (dual|single).
   // Score = canvas area, penalized when button short-dim is below MIN_TAP.
@@ -2130,6 +2225,53 @@ function saveEngineState() {
   saveUserData(currentUser.id,ud);
 }
 
+// Called after engine.recordAnswer() in progress style.
+// Bumps achievedLevel on level_up (configured domain) or rolling-window
+// threshold (extended domain). Persists to storage. Returns updated ud.
+function maybeAdvanceAchievedLevel(result, isCorrect) {
+  if (!currentUser || cfg.style !== 'progress') return;
+  const ud = getUserData(currentUser.id);
+  const order = CONFIG.levels.progressionOrder;
+
+  // ── Configured-domain advancement via level_up event ──
+  if (result.level_up && result.advancing_bond) {
+    const { w, a, b } = result.advancing_bond;
+    const bondMinLevel = CONFIG.bonds.minLevelForBond(w, a, b);
+    if (bondMinLevel) {
+      const curIdx = ud.achievedLevel ? order.indexOf(ud.achievedLevel) : -1;
+      const newIdx = order.indexOf(bondMinLevel);
+      if (newIdx > curIdx) {
+        ud.achievedLevel = bondMinLevel;
+      }
+    }
+  }
+
+  // ── Extended-domain advancement via rolling window (45/50) ──
+  const extendedDomain = CONFIG.levels.extended;
+  const curLevelIdx = ud.achievedLevel ? order.indexOf(ud.achievedLevel) : -1;
+  const curLevel = ud.achievedLevel || null;
+  const isInExtended = curLevel && extendedDomain.includes(curLevel);
+  const atTopConfigured = curLevel === 'upto100';
+  if (isInExtended || atTopConfigured) {
+    if (!ud.rollingWindow) ud.rollingWindow = [];
+    ud.rollingWindow.push(isCorrect ? 1 : 0);
+    if (ud.rollingWindow.length > 50) ud.rollingWindow.shift();
+    if (ud.rollingWindow.length === 50) {
+      const score50 = ud.rollingWindow.reduce((s,v)=>s+v, 0);
+      if (score50 >= 45) {
+        // Advance to next extended level if available.
+        const nextIdx = curLevelIdx + 1;
+        if (nextIdx < order.length) {
+          ud.achievedLevel = order[nextIdx];
+          ud.rollingWindow = [];
+        }
+      }
+    }
+  }
+
+  saveUserData(currentUser.id, ud);
+}
+
 function newQuestion() {
   stopTimer(); revealed=false; skipMode=false;
   entry.value=''; entry.disabled=false;
@@ -2152,6 +2294,7 @@ function checkAnswer() {
   const isCorrect=val===correct; total++;
   const result=engine.recordAnswer(currentQ,isCorrect);
   saveEngineState();
+  maybeAdvanceAchievedLevel(result, isCorrect);
   if(isCorrect){
     score++;streak++;
     octopusMood='happy'; skipMode=false; revealed=true; redraw();
@@ -2436,8 +2579,10 @@ document.getElementById('back-to-settings-btn').addEventListener('click', () => 
 // ═══════════════════════════════════════════════════════════════
 
 function startGame() {
+  bindActiveCanvas('game-canvas', 'entry-overlay');
   const s=activeSettings;
-  const level=clipLevelForReef(s.level);
+  const ud=currentUser ? getUserData(currentUser.id) : null;
+  const level=computeEffectiveLevel(s.level, ud?.achievedLevel, s.style, clipLevelForReef);
   const mapped=mapSettings(level,s.style,s.omode,s.odisp);
 
   cfg = {
@@ -2449,12 +2594,12 @@ function startGame() {
     style:   s.style,
   };
 
-  // Build or restore engine
+  // Build or restore engine; use setActiveLevel if only level changed.
   const engCfg={level,mode:mapped.mode,style:s.style};
-  if(currentUser){
-    const ud=getUserData(currentUser.id);
-    if(ud.engine && ud.engine.level===level && ud.engine.mode===mapped.mode && ud.engine.style===s.style){
+  if(currentUser && ud){
+    if(ud.engine && ud.engine.mode===mapped.mode && ud.engine.style===s.style){
       engine=BondEngine.restore(ud.engine);
+      if(ud.engine.level !== level) engine.setActiveLevel(level);
     } else {
       engine=new BondEngine(engCfg);
     }
@@ -2504,6 +2649,250 @@ entry.addEventListener('keydown',e=>{
   if(e.key==='.'||e.key==='Delete'){e.preventDefault();entry.value=entry.value.slice(0,-1);}
 });
 entry.addEventListener('input',()=>{if(entry.value.length>2)entry.value=entry.value.slice(0,2);});
+
+// ═══════════════════════════════════════════════════════════════
+// ## CAVE2 GAME — cave scene + circle-line display (Stage 3)
+// ═══════════════════════════════════════════════════════════════
+//
+// Cave2 uses its own underwaterCave scene (self-animating RAF loop on
+// cave2-canvas). Reef's ocean draw (redraw/bubbles/octopus) is NOT used.
+// Circle-line bond display is retained (Stage 4 will swap to bar-model).
+// Engine, Storage, CONFIG, Sound, Screens, Keypad, fitGameLayout shared.
+
+var cave2Scene = null;  // underwaterCave instance for cave2-canvas
+
+function cave2_updateScore() {
+  document.getElementById('cave2-score-label').textContent=`⭐ ${score} / ${total}`;
+}
+function cave2_showFeedback(msg,col) {
+  const el=document.getElementById('cave2-feedback-label'); el.textContent=msg; el.style.color=col;
+}
+function cave2_updateSumLabel() {
+  const el=document.getElementById('cave2-sum-label');
+  if     (missing==='whole') el.textContent=`${partA}  +  ${partB}  =  ?`;
+  else if(missing==='partA') el.textContent=`?  +  ${partB}  =  ${whole}    ·    ${whole}  −  ${partB}  =  ?`;
+  else                        el.textContent=`${partA}  +  ?  =  ${whole}    ·    ${whole}  −  ${partA}  =  ?`;
+}
+
+function cave2_buildNumPad() {
+  Keypad.mount('cave2-num-pad-left', 'cave2-num-pad-right');
+  const show20 = ['exact20','doubles20','upto20'].includes(cfg.level);
+  const nums = [];
+  for (let n=1; n<=10; n++) nums.push(n);
+  if (show20) for (let n=11; n<=20; n++) nums.push(n);
+  Keypad.setChoices(nums, (val) => {
+    if (entry.disabled) return;
+    entry.value = val;
+    cave2_checkAnswer();
+  });
+  fitCave2();
+}
+
+function cave2_newQuestion() {
+  cave2_stopTimer(); revealed=false; skipMode=false;
+  entry.value=''; entry.disabled=false;
+  currentQ=engine.nextQuestion();
+  if(!currentQ) return;
+  whole=currentQ.whole; partA=currentQ.partA; partB=currentQ.partB;
+  missing=currentQ.missing; correct=currentQ.correctAnswer;
+  cave2_updateSumLabel();
+  if(cave2Scene) { cave2Scene.setExpr('positive'); cave2Scene.doAction('idle'); }
+  cave2_buildNumPad(); cave2_updateScore(); cave2_startTimer();
+  setTimeout(()=>{entry.focus();positionEntry();},50);
+}
+
+function cave2_checkAnswer() {
+  const raw=entry.value.trim();
+  if(!raw){cave2_showFeedback('Type a number first!',COL.wrongCol);return;}
+  const val=parseInt(raw);
+  if(isNaN(val)){cave2_showFeedback('Numbers only!',COL.wrongCol);return;}
+  cave2_stopTimer();
+  const isCorrect=val===correct; total++;
+  const result=engine.recordAnswer(currentQ,isCorrect);
+  saveEngineState();
+  maybeAdvanceAchievedLevel(result, isCorrect);
+  if(isCorrect){
+    score++;streak++;
+    skipMode=false; revealed=true;
+    if(cave2Scene) { cave2Scene.setExpr('happy'); cave2Scene.doAction(streak>=5?'celebHi':'celebLo'); }
+    cave2_handleStreak(); cave2_updateScore();
+    entry.disabled=true; entry.style.display='none';
+    if(result.graduation) showGraduationBanner(result.graduation_bond.w,result.graduation_bond.a,result.graduation_bond.b);
+    if(result.level_up)   showLevelUpBanner();
+    if(revealTimeout) clearTimeout(revealTimeout);
+    revealTimeout=setTimeout(cave2_newQuestion,1500);
+  } else {
+    streak=0; document.getElementById('cave2-streak-label').textContent='';
+    if(cave2Scene) { cave2Scene.setExpr('sad'); cave2Scene.doAction('idle'); }
+    cave2_showFeedback('Not quite — try again! 🦀',COL.wrongCol); snd('wrong');
+    entry.value='';
+    if(sadResetId) clearTimeout(sadResetId);
+    sadResetId=setTimeout(()=>{ if(cave2Scene) cave2Scene.setExpr('positive'); },1500);
+    cave2_updateScore(); cave2_startTimer();
+  }
+}
+
+function cave2_handleStreak() {
+  const STREAK_MSGS={
+    3:  ['3 in a row! 🌊','#40ffcc'],
+    5:  ['5 in a row! Amazing! 🐠','#00d4ff'],
+    10: ['10 in a row! SUPERSTAR! ⭐','#ffff60'],
+    20: ['20 IN A ROW! LEGENDARY! 🏆','#ff80c0'],
+    50: ['50 IN A ROW! UNBELIEVABLE! 🌟','#ff40ff'],
+    75: ['75 IN A ROW! INCREDIBLE! 🔱','#40ffff'],
+    100:['100 IN A ROW! CHAMPION! 👑','#ffffff'],
+  };
+  const BRILLIANT=['✓ Brilliant! Keep swimming! 🌊','✓ Fantastic! You\'re on a roll! 🐠',
+    '✓ Excellent! Don\'t stop now! ⭐','✓ Amazing work! Keep going! 🐙',
+    '✓ Super! Ride that wave! 🌊','✓ Wonderful! You\'re flying! 🐡',
+    '✓ Outstanding! More! More! 🦀','✓ Splendid! Keep it up! 🐚'];
+  const streakSounds={3:'streak3',5:'streak5',10:'streak10',20:'streak20',50:'streak20',75:'streak20',100:'streak20'};
+  if(STREAK_MSGS[streak]){
+    const [msg,col]=STREAK_MSGS[streak];
+    cave2_showFeedback(msg,col);
+    document.getElementById('cave2-streak-label').textContent=`🌊 ${streak} in a row!`;
+    snd(streakSounds[streak]||'streak3');
+    const rays=streak>=50?24:streak>=10?20:14, cycles=streak>=50?5:streak>=10?4:3;
+    startBurst(W/2,H/2,rays); octopusMood='excited'; startOctopusBounce(cycles);
+  } else if(streak>=2){
+    cave2_showFeedback(BRILLIANT[Math.floor(Math.random()*BRILLIANT.length)],COL.correctCol);
+    document.getElementById('cave2-streak-label').textContent=`🌊 ${streak} in a row!`;
+    snd('correct');
+  } else {
+    document.getElementById('cave2-streak-label').textContent='';
+    cave2_showFeedback('✓ Correct! Well done! 🐠',COL.correctCol); snd('correct');
+  }
+}
+
+function cave2_skipQuestion() {
+  if(entry.disabled) return;
+  cave2_stopTimer(); total++; streak=0;
+  document.getElementById('cave2-streak-label').textContent='';
+  engine.recordAnswer(currentQ,false);
+  saveEngineState(); cave2_updateScore();
+  skipMode=true; revealed=true;
+  if(cave2Scene) { cave2Scene.setExpr('neutral'); cave2Scene.doAction('idle'); }
+  cave2_showFeedback(`Answer: ${correct}`,'#7090a8');
+  entry.disabled=true; entry.style.display='none';
+  if(revealTimeout) clearTimeout(revealTimeout);
+  revealTimeout=setTimeout(cave2_newQuestion,1500);
+}
+
+function cave2_startTimer() {
+  if(cfg.timer!=='on') return;
+  cave2_stopTimer(); timeLeft=10;
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    if(timeLeft<=0){
+      cave2_stopTimer(); total++;
+      engine.recordAnswer(currentQ,false); saveEngineState();
+      if(cave2Scene) { cave2Scene.setExpr('sad'); cave2Scene.doAction('idle'); }
+      revealed=false;
+      cave2_showFeedback(`Time's up! Answer: ${correct} 🦀`,COL.wrongCol); snd('timeout');
+      cave2_updateScore(); setTimeout(cave2_newQuestion,1400);
+    }
+  },1000);
+}
+function cave2_stopTimer() {
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+}
+
+function cave2_startGame() {
+  bindActiveCanvas('cave2-canvas', 'cave2-entry-overlay');
+  const s=activeSettings;
+  const ud=currentUser ? getUserData(currentUser.id) : null;
+  // cave2 uses cave clipping but allows extended domain via achievedLevel.
+  const level=computeEffectiveLevel(s.level, ud?.achievedLevel, s.style, clipLevelForCave);
+  const mapped=mapSettings(level,s.style,s.omode,s.odisp);
+
+  cfg = {
+    level,
+    display: mapped.display,
+    mode:    mapped.mode,
+    sound:   s.sound,
+    timer:   s.timer,
+    style:   s.style,
+  };
+
+  // Shared engine state (same ud.engine slot as reef); use setActiveLevel if only level changed.
+  const engCfg={level,mode:mapped.mode,style:s.style};
+  if(currentUser && ud){
+    if(ud.engine && ud.engine.mode===mapped.mode && ud.engine.style===s.style){
+      engine=BondEngine.restore(ud.engine);
+      if(ud.engine.level !== level) engine.setActiveLevel(level);
+    } else {
+      engine=new BondEngine(engCfg);
+    }
+  } else {
+    engine=new BondEngine(engCfg);
+  }
+
+  score=0;total=0;streak=0;revealed=false;skipMode=false;
+  if(revealTimeout){clearTimeout(revealTimeout);revealTimeout=null;}
+  if(sadResetId)  {clearTimeout(sadResetId);sadResetId=null;}
+
+  cave2_updateScore();
+  showScreen('cave2-screen');
+  resizeCanvas();
+
+  // Boot cave scene lazily (persists across game sessions).
+  if(!cave2Scene) cave2Scene = underwaterCave('cave2-canvas');
+  cave2Scene.setExpr('positive');
+  cave2Scene.doAction('idle');
+
+  cave2_newQuestion();
+}
+
+function cave2_stopGame() {
+  cave2_stopTimer();
+  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout = null; }
+  entry.style.display = 'none';
+}
+
+// cave2 fit (mirrors fitReef; same aspect since cave2 clones reef)
+function fitCave2() {
+  const topBar = document.getElementById('cave2-top-bar');
+  const sumL   = document.getElementById('cave2-sum-label');
+  const fbL    = document.getElementById('cave2-feedback-label');
+  const btnRow = document.getElementById('cave2-btn-row');
+  const topH   = topBar ? topBar.offsetHeight : 0;
+  const phoneLandscape = window.matchMedia('(orientation: landscape) and (max-height: 480px)').matches;
+  document.documentElement.style.setProperty('--top-bar-h', topH + 'px');
+  fitGameLayout({
+    layoutEl:         document.getElementById('cave2-game-layout'),
+    canvasEl:         document.getElementById('cave2-canvas'),
+    leftPad:          document.getElementById('cave2-num-pad-left'),
+    rightPad:         document.getElementById('cave2-num-pad-right'),
+    containerWidthEl: document.getElementById('cave2-screen'),
+    aspectW: W, aspectH: H,
+    reserveAbove: topH,
+    reserveBelow: phoneLandscape ? 0
+                  : (sumL?sumL.offsetHeight:0)
+                  + (fbL?fbL.offsetHeight:0)
+                  + (btnRow?btnRow.offsetHeight:0) + 24,
+    reserveSide:  phoneLandscape ? 128 : 0,
+  });
+}
+
+// cave2 event listeners (home, skip, entry keydown/input)
+document.getElementById('cave2-home-btn').addEventListener('click', () => {
+  Games.get('cave2').stop();
+  showGameSelectScreen();
+});
+document.getElementById('cave2-skip-btn').addEventListener('click', cave2_skipQuestion);
+
+(function wireCave2Entry() {
+  const e = document.getElementById('cave2-entry-overlay');
+  e.addEventListener('keydown', ev => {
+    if (ev.key==='Enter') { cave2_checkAnswer(); ev.preventDefault(); }
+    if (ev.key==='.' || ev.key==='Delete') {
+      ev.preventDefault(); e.value = e.value.slice(0,-1);
+    }
+  });
+  e.addEventListener('input', () => {
+    if (e.value.length > 2) e.value = e.value.slice(0,2);
+  });
+})();
 
 // ═══════════════════════════════════════════════════════════════
 // ## INIT
@@ -3616,6 +4005,16 @@ Games.register({
   screenId: 'debug-screen',
   start:    Debug.start,
   stop:     Debug.stop,
+});
+// Stage 2: cave2 (WIP) — reef clone that will morph into replacement cave.
+// Temporary; removed in Stage 5 after rename cave2→cave.
+Games.register({
+  id:       'cave2',
+  label:    'Cave2 (WIP)',
+  buttonId: 'cave2-btn',
+  screenId: 'cave2-screen',
+  start:    cave2_startGame,
+  stop:     cave2_stopGame,
 });
 
 // Wire game-select buttons through the registry. Kept at the end of the
