@@ -1,0 +1,4589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Ocean Number Bonds 🐙</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0a1a3a;
+  font-family: 'Trebuchet MS', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: #d0eeff;
+  user-select: none;
+}
+
+#app { width: 100%; max-width: 600px; }
+
+/* ── SCREEN MANAGEMENT ── */
+.screen { display: none; }
+.screen.active { display: block; }
+#game-screen, #cave-screen { display: none; flex-direction: column; align-items: center; }
+#game-screen.active, #cave-screen.active { display: flex; }
+
+/* ── USER SCREEN ── */
+#user-screen { padding: 28px 20px; text-align: center; }
+#user-screen h1 { color: #40ffcc; font-size: 24px; margin-bottom: 6px; }
+.subtitle { text-align: center; color: #60b0d0; font-size: 13px; margin-bottom: 18px; }
+.user-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.user-btn {
+  background: #0e3a6a; color: #d0eeff;
+  border: 2px solid #1a5090; padding: 11px 20px;
+  border-radius: 8px; cursor: pointer;
+  font-family: inherit; font-size: 15px; font-weight: bold;
+  text-align: left; display: flex; justify-content: space-between; align-items: center;
+  width: 100%;
+}
+.user-btn:hover { background: #1a5090; }
+.user-btn.guest { color: #80a0b8; font-style: italic; font-weight: normal; font-size: 14px; }
+.user-row { display: flex; gap: 6px; align-items: stretch; }
+.user-row .user-btn { flex: 1; }
+.del-btn {
+  background: #0e2848; color: #406080;
+  border: 1px solid #1a4060; padding: 0 12px;
+  border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 18px;
+}
+.del-btn:hover { color: #ff6060; background: #1a1028; }
+.new-user-row { display: flex; gap: 8px; margin-top: 4px; }
+.new-user-row input {
+  flex: 1; background: #0e2848; border: 1px solid #1a5090;
+  color: #d0eeff; padding: 9px 10px; border-radius: 6px;
+  font-family: inherit; font-size: 14px;
+}
+.new-user-row input::placeholder { color: #406080; }
+
+/* ── SETTINGS SCREEN ── */
+#settings-screen { padding: 16px 20px; background: #0a1a3a; }
+#settings-screen h1 { text-align: center; font-size: 20px; color: #40ffcc; margin-bottom: 2px; }
+.player-label { text-align: center; color: #60b0d0; font-size: 12px; margin-bottom: 12px; }
+.lock-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #071428; border: 1px solid #1a4060;
+  border-radius: 6px; padding: 7px 12px; margin-bottom: 12px;
+}
+.lock-icon { font-size: 15px; }
+.lock-label { font-size: 12px; color: #7090a8; flex: 1; }
+.lock-badge {
+  font-size: 11px; font-weight: bold;
+  padding: 3px 10px; border-radius: 4px; cursor: pointer; letter-spacing: 0.5px;
+}
+.lock-badge.locked   { background: #992200; color: #ffd0c0; }
+.lock-badge.unlocked { background: #005530; color: #80ffcc; }
+.config-cols { display: flex; gap: 20px; }
+.config-col { flex: 1; }
+.radio-group { margin-bottom: 10px; }
+.radio-group label.group-title {
+  display: block; font-size: 12px; font-weight: bold; color: #a0c8e0; margin-bottom: 3px;
+}
+.radio-group label.option {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: #d0eeff; padding: 2px 0 2px 10px; cursor: pointer;
+}
+.radio-group input[type=radio] { accent-color: #00b8d4; }
+.settings-locked .radio-group label.option { opacity: 0.38; pointer-events: none; }
+
+/* ── LOCK MODAL ── */
+#lock-modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.78); z-index: 200;
+  align-items: center; justify-content: center;
+}
+#lock-modal.open { display: flex; }
+.modal-box {
+  background: #0e2040; border: 2px solid #00b8d4;
+  border-radius: 12px; padding: 24px 28px;
+  text-align: center; max-width: 300px; width: 90%;
+}
+.modal-box h2 { color: #40ffcc; font-size: 16px; margin-bottom: 8px; }
+.modal-box p  { color: #a0c8e0; font-size: 13px; margin-bottom: 10px; }
+#lock-question { color: #ffff80; font-size: 22px; font-weight: bold; margin-bottom: 10px; }
+#lock-answer-inp {
+  background: #071428; border: 1.5px solid #1a5090;
+  color: #d0eeff; padding: 8px 4px; border-radius: 6px;
+  font-family: inherit; font-size: 20px; text-align: center; width: 80px;
+}
+#lock-feedback { min-height: 18px; font-size: 12px; margin: 6px 0; color: #ff8060; }
+.modal-btns { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+
+/* ── GAME SELECT SCREEN ── */
+#game-select-screen { padding: 22px 20px; text-align: center; }
+#game-select-screen h1 { color: #40ffcc; font-size: 20px; margin-bottom: 4px; }
+.settings-summary {
+  background: #071428; border: 1px solid #0e3060;
+  border-radius: 6px; padding: 8px 14px;
+  margin: 10px 0 14px; font-size: 11px; color: #5090b0;
+  text-align: left; line-height: 1.9;
+}
+.game-cards { display: flex; flex-direction: column; gap: 10px; }
+.game-card {
+  background: #0e2848; border: 2px solid #1a5090;
+  border-radius: 8px; padding: 13px 16px;
+  cursor: pointer; text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+.game-card:hover { background: #143060; border-color: #00b8d4; }
+.game-card h3 { color: #40ffcc; font-size: 15px; margin-bottom: 3px; }
+.game-card p  { color: #5090b0; font-size: 11px; }
+.game-card.stub { opacity: 0.4; cursor: default; }
+.game-card.stub:hover { background: #0e2848; border-color: #1a5090; }
+
+/* ── SHARED BUTTONS ── */
+.teal-btn {
+  background: #00b8d4; color: #002030;
+  border: none; padding: 9px 20px;
+  font-size: 14px; font-weight: bold;
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+}
+.teal-btn:hover { background: #00d4f0; }
+.nav-btn {
+  background: #0e3a6a; color: #d0eeff;
+  border: none; padding: 7px 16px;
+  font-size: 13px; border-radius: 5px;
+  cursor: pointer; font-family: inherit;
+}
+.nav-btn:hover { background: #1a5090; }
+
+/* ── GAME SCREEN ── */
+#top-bar, #cave-top-bar {
+  display: flex; width: 100%;
+  align-items: center; padding: 8px 14px 4px; gap: 10px;
+}
+#score-label, #cave-score-label   { font-size: 14px; font-weight: bold; flex: 1; }
+#streak-label, #cave-streak-label { font-size: 13px; font-weight: bold; color: #40ffcc; }
+#home-btn, #cave-home-btn {
+  background: #0e3a6a; color: #d0eeff;
+  border: none; padding: 5px 12px; border-radius: 4px;
+  cursor: pointer; font-family: inherit; font-size: 14px;
+}
+canvas#game-canvas, canvas#cave-canvas { display: block; }
+#sum-label, #cave-sum-label {
+  font-size: 19px; font-weight: bold; color: #ffffff;
+  text-align: center; padding: 4px 0 0; min-height: 28px; letter-spacing: 1px;
+}
+#feedback-label, #cave-feedback-label {
+  font-size: 14px; text-align: center;
+  min-height: 22px; padding: 2px 0; font-weight: bold;
+}
+#btn-row, #cave-btn-row { display: flex; gap: 12px; justify-content: center; padding: 6px 0 10px; }
+.game-btn {
+  padding: 8px 22px; font-size: 14px; font-weight: bold;
+  border: none; border-radius: 5px; cursor: pointer; font-family: inherit;
+}
+#skip-btn, #cave-skip-btn              { background: #0e3a6a; color: #d0eeff; }
+#skip-btn:hover, #cave-skip-btn:hover  { background: #1a5090; }
+
+/* Compact bottom chrome on short-height landscape (phones turned sideways). */
+@media (orientation: landscape) and (max-height: 480px) {
+  /* Move chrome from above/below into 64px side rails. */
+  #left-rail, #right-rail,
+  #cave-left-rail, #cave-right-rail {
+    position: fixed; top: var(--top-bar-h, 40px); bottom: 0; width: 128px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    gap: 6px; padding: 4px; z-index: 5;
+  }
+  #left-rail, #cave-left-rail   { left: 0; }
+  #right-rail, #cave-right-rail { right: 0; }
+  #left-rail #sum-label,
+  #cave-left-rail #cave-sum-label {
+    font-size: 12px; min-height: 14px; padding: 0;
+    letter-spacing: 0; width: 100%;
+    white-space: normal; text-align: center; line-height: 1.5;
+  }
+  #left-rail #feedback-label,
+  #cave-left-rail #cave-feedback-label {
+    font-size: 11px; min-height: 13px; padding: 0; width: 100%;
+  }
+  #right-rail #btn-row,
+  #cave-right-rail #cave-btn-row { width: 100%; padding: 0; gap: 0; justify-content: center; }
+  #right-rail .game-btn,
+  #cave-right-rail .game-btn {
+    width: 100%; padding: 6px 4px; font-size: 11px; border-radius: 4px;
+  }
+}
+#entry-overlay {
+  position: fixed; background: transparent; border: none; outline: none;
+  text-align: center; font-family: 'Trebuchet MS', sans-serif;
+  font-weight: bold; color: #005f7a; caret-color: #005f7a;
+  pointer-events: auto; z-index: 10; display: none;
+}
+.game-pad-layout {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; gap: 6px;
+}
+.game-pad-layout.layout-side  { flex-direction: row; }
+.game-pad-layout.layout-stack { flex-direction: column; }
+.canvas-wrap { position: relative; flex: 0 0 auto; min-width: 0; }
+.num-pad-panel {
+  display: grid; gap: 4px; flex-shrink: 0;
+  box-sizing: border-box;
+}
+.game-pad-layout.layout-side  .num-pad-panel {
+  grid-template-columns: 1fr;
+  grid-auto-rows: 1fr;
+  padding: 0 2px;
+}
+.game-pad-layout.layout-stack .num-pad-panel {
+  grid-template-rows: 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 2px 0;
+}
+.num-pad-btn {
+  border-radius: 7px; border: none;
+  background: #0e3a6a; color: #d0eeff;
+  font-size: var(--btn-font-size, 18px); font-weight: bold; font-family: inherit;
+  cursor: pointer; transition: background 0.1s, transform 0.08s;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0; min-height: 0; line-height: 1;
+}
+.num-pad-btn:hover  { background: #1a5090; }
+.num-pad-btn:active { transform: scale(0.92); background: #2060b0; }
+/* Keypad visible on all devices (desktop click, touch tap). */
+
+/* ── CAVE GAME SCREEN ── */
+canvas#cave-canvas { display:block; }
+
+.bm-bar-track {
+  position:relative; height:44px; border-radius:10px;
+  background:rgba(10,26,58,0.55);
+  overflow:visible; display:flex; align-items:stretch;
+}
+.bm-bar-total-fill {
+  width:100%; position:relative; border-radius:10px;
+  background:#9b6ee8;
+  display:flex; align-items:center; justify-content:center;
+  color:white; font-weight:900; font-size:1.35rem; font-family:'Baloo 2',cursive;
+  transition:background .3s;
+}
+.bm-bar-parts { display:flex; height:44px; border-radius:10px; }
+.bm-bar-part {
+  display:flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:1.2rem; font-family:'Baloo 2',cursive;
+  color:white; transition:width .5s cubic-bezier(.4,1.4,.6,1);
+  position:relative; min-width:0; flex-shrink:0;
+}
+.bm-bar-part.part-a { background:#ffb347; border-radius:10px 0 0 10px; }
+.bm-bar-part.part-b { background:#5ab4ff; border-left:3px solid rgba(255,255,255,0.5); border-radius:0 10px 10px 0; }
+.bm-bar-part.unknown, .bm-bar-total-fill.unknown {
+  background:rgba(10,26,58,0.55);
+  border:2.5px dashed rgba(255,255,255,0.6);
+  display:flex; align-items:center; justify-content:center;
+}
+.bm-bar-total-fill.unknown { border-radius:10px; }
+.bm-bar-part.part-a.unknown { border-radius:10px 0 0 10px; }
+.bm-bar-part.part-b.unknown { border-radius:0 10px 10px 0; }
+
+.bm-support-dot-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+.bm-support-dot { position:absolute; top:50%; width:11px; height:11px; transform:translate(-50%,-50%); border-radius:50%; background:rgba(255,255,255,0.25); border:2px solid currentColor; box-sizing:border-box; }
+.bm-support-label { position:absolute; left:50%; transform:translateX(-50%); z-index:2; font-weight:900; font-size:1rem; pointer-events:none; white-space:nowrap; text-shadow:0 1px 3px rgba(0,0,0,0.7); }
+.bm-support-label.whole { top:-32px; font-size:1.25rem; color:#e0d0ff; }
+.bm-support-label.part  { top:calc(100% + 3px); color:#ffe0b0; }
+
+
+/* ── CAVE BAR OVERLAY ── */
+/* Centred over the canvas, no card background */
+#cave-bar-wrap {
+  position:absolute; left:0; right:0;
+  top:50%; transform:translateY(-50%);
+  padding:0 18px; z-index:10;
+  font-family:'Nunito',sans-serif;
+  pointer-events:none;  /* let canvas clicks fall through; inputs re-enable below */
+}
+#cave-bar-wrap > * { pointer-events:auto; }
+#cave-bm-bar-total-wrap { margin-bottom:6px; }
+#cave-bm-bar-parts-wrap { margin-bottom:10px; }
+/* Answer-input styled as the missing bar segment */
+.cave-missing-input {
+  display:flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:1.2rem; font-family:'Baloo 2',cursive;
+  color:#ffffff; min-width:0; flex-shrink:0;
+  border:none; outline:none;
+  background:rgba(10,26,58,0.55);
+  text-align:center; caret-color:#ffffff;
+  -moz-appearance:textfield;
+  box-sizing:border-box;
+}
+.cave-missing-input::-webkit-inner-spin-button,
+.cave-missing-input::-webkit-outer-spin-button { -webkit-appearance:none; }
+.cave-missing-input:focus { outline:none; }
+.cave-missing-input.part-a { border-radius:10px 0 0 10px; border:2.5px dashed #ffb347; }
+.cave-missing-input.part-b { border-radius:0 10px 10px 0; border:2.5px dashed #5ab4ff; }
+.cave-missing-input.whole  { border-radius:10px; width:100%; height:44px; border:2.5px dashed #9b6ee8; }
+.cave-missing-input.part-a.correct { background:#ffb347; color:#fff; border-style:dashed; }
+.cave-missing-input.part-b.correct { background:#5ab4ff; color:#fff; border-style:dashed; }
+.cave-missing-input.whole.correct  { background:#9b6ee8; color:#fff; border-style:dashed; }
+#cave-bm-answer-prompt {
+  font-weight:800; font-size:.95rem;
+  color:#d0eeff; text-shadow:0 1px 4px rgba(0,0,0,0.8);
+  font-family:'Nunito',sans-serif; text-align:center; margin-bottom:2px;
+}
+#cave-bm-answer-prompt .missing-box {
+  border:2px solid #40ffcc; border-radius:8px; padding:2px 7px; margin:0 2px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-weight:900; color:#40ffcc;
+}
+#cave-bm-feedback {
+  min-height:24px; font-size:.95rem; font-weight:800; text-align:center;
+  border-radius:8px; padding:2px 12px; margin-top:4px;
+  opacity:0; transition:opacity .3s; pointer-events:none;
+  font-family:'Nunito',sans-serif; text-shadow:0 1px 4px rgba(0,0,0,0.8);
+}
+#cave-bm-feedback.show { opacity:1; }
+#cave-bm-feedback.correct { color:#40ffcc; }
+#cave-bm-feedback.wrong   { color:#ff9070; }
+
+/* ── BOND MAP SCREEN ── */
+#bond-map-screen { padding:16px 14px; background:#0a1a3a; min-height:100vh; }
+#bond-map-inner { max-width:600px; margin:0 auto; }
+#bond-map-legend {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  font-size:11px; color:#80a8c0; margin-bottom:12px; padding:6px 10px;
+  background:#071428; border-radius:6px;
+}
+.bml-dot {
+  display:inline-block; width:11px; height:11px; border-radius:50%; flex-shrink:0;
+}
+/* Legend dots — 8 tiers (Pass 3f), cold-to-warm ramp. */
+.bml-notstarted   { background:#1a3a5a; border:1.5px solid #2a5080; }
+.bml-available    { background:#5a4a3a; }
+.bml-earned       { background:#a05030; }
+.bml-addition     { background:#d07010; }
+.bml-subtraction  { background:#d9a420; }
+.bml-joinedup     { background:#2fbfa8; }
+.bml-reinforcement{ background:#1f9f60; }
+.bml-mastered     { background:#30d060; }
+#bond-map-grid { display:flex; flex-direction:column; gap:4px; }
+.bm-whole-row {
+  display:flex; align-items:center; gap:4px; min-height:22px;
+}
+.bm-whole-label {
+  width:28px; text-align:right; font-size:11px; font-weight:bold;
+  color:#5090b0; flex-shrink:0; padding-right:4px;
+}
+.bm-bond-chips { display:flex; gap:3px; flex-wrap:wrap; flex:1; }
+.bm-chip {
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:4px; font-size:10px; font-weight:bold;
+  padding:2px 5px; cursor:default; white-space:nowrap;
+  font-family:'Trebuchet MS',sans-serif;
+}
+/* Bond-map chip colours — 8-tier achievement (Pass 3f). Cold-to-warm
+   monotonic ramp so increasing tier ~ increasing goodness visually. */
+.bm-chip.tier-notstarted    { background:#0e2848; color:#4a7090; border:1px solid #1a4060; }
+.bm-chip.tier-available     { background:#2a2010; color:#b0a080; border:1px solid #3a3020; }
+.bm-chip.tier-earned        { background:#5a2810; color:#ffb080; }
+.bm-chip.tier-addition      { background:#a04808; color:#ffd090; }
+.bm-chip.tier-subtraction   { background:#8a6410; color:#ffe080; }
+.bm-chip.tier-joinedup      { background:#106858; color:#80e8d0; }
+.bm-chip.tier-reinforcement { background:#106040; color:#80e8b0; }
+.bm-chip.tier-mastered      { background:#208040; color:#80ffa0; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── SCREEN 1: USER / GUEST ── -->
+<div id="user-screen" class="screen active">
+  <h1>🐙 Ocean Number Bonds 🐙</h1>
+  <p class="subtitle">Who's playing?</p>
+  <div class="user-list" id="user-list"></div>
+  <div class="new-user-row">
+    <input type="text" id="new-name-input" placeholder="New player name…" maxlength="20" autocomplete="off">
+    <button class="teal-btn" id="add-user-btn">+ Add</button>
+  </div>
+</div>
+
+<!-- ── SCREEN 2: SETTINGS ── -->
+<div id="settings-screen" class="screen">
+  <h1>⚙ Settings</h1>
+  <p class="player-label" id="settings-player-label">Guest</p>
+
+  <div class="lock-row">
+    <span class="lock-icon" id="lock-icon">🔒</span>
+    <span class="lock-label" id="lock-label">Settings locked — tap to change</span>
+    <span class="lock-badge locked" id="lock-badge">LOCKED</span>
+  </div>
+
+  <div id="settings-body" class="settings-locked">
+    <div class="config-cols">
+      <div class="config-col">
+        <div class="radio-group">
+          <label class="group-title">🐚 Starting level</label>
+          <label class="option"><input type="radio" name="cfg_level" value="to5"> Bonds to 5</label>
+          <label class="option"><input type="radio" name="cfg_level" value="exact10"> Bonds to 10 (exact)</label>
+          <label class="option"><input type="radio" name="cfg_level" value="doubles10"> Doubles up to 10</label>
+          <label class="option"><input type="radio" name="cfg_level" value="upto10"> Bonds up to 10</label>
+          <label class="option"><input type="radio" name="cfg_level" value="exact20"> Bonds to 20 (exact)</label>
+          <label class="option"><input type="radio" name="cfg_level" value="doubles20"> Doubles up to 20</label>
+          <label class="option"><input type="radio" name="cfg_level" value="upto20"> Bonds up to 20</label>
+        </div>
+        <div class="radio-group">
+          <label class="group-title">🔊 Sound effects</label>
+          <label class="option"><input type="radio" name="cfg_sound" value="on"> On</label>
+          <label class="option"><input type="radio" name="cfg_sound" value="off"> Off</label>
+        </div>
+        <div class="radio-group">
+          <label class="group-title">⏱ Timer</label>
+          <label class="option"><input type="radio" name="cfg_timer" value="off"> Off</label>
+          <label class="option"><input type="radio" name="cfg_timer" value="on"> On (10 sec)</label>
+        </div>
+      </div>
+      <div class="config-col">
+        <div class="radio-group">
+          <label class="group-title">➕ Override: Question type</label>
+          <label class="option"><input type="radio" name="cfg_omode" value="none"> No override</label>
+          <label class="option"><input type="radio" name="cfg_omode" value="add"> Addition only</label>
+          <label class="option"><input type="radio" name="cfg_omode" value="sub"> Subtraction only</label>
+          <label class="option"><input type="radio" name="cfg_omode" value="both"> Addition &amp; Subtraction</label>
+        </div>
+        <div class="radio-group">
+          <label class="group-title">🔢 Override: Display</label>
+          <label class="option"><input type="radio" name="cfg_odisp" value="none"> No override</label>
+          <label class="option"><input type="radio" name="cfg_odisp" value="numbers"> Numbers only</label>
+          <label class="option"><input type="radio" name="cfg_odisp" value="both"> Counters &amp; Numbers</label>
+          <label class="option"><input type="radio" name="cfg_odisp" value="counters"> Counters only</label>
+        </div>
+        <div class="radio-group">
+          <label class="group-title">🎯 Style</label>
+          <label class="option"><input type="radio" name="cfg_style" value="progress"> Progress</label>
+          <label class="option"><input type="radio" name="cfg_style" value="practice"> Practice</label>
+          <label class="option"><input type="radio" name="cfg_style" value="entry"> Entry</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;">
+    <button class="nav-btn" id="settings-back-btn">← Back</button>
+    <button class="nav-btn" id="bond-map-btn">🏆 Achievements</button>
+    <button class="teal-btn" id="to-games-btn" style="padding:10px 32px;font-size:15px;">▶ Go to Games</button>
+  </div>
+</div>
+
+<!-- ── BOND MAP SCREEN ── -->
+<div id="bond-map-screen" class="screen">
+  <div id="bond-map-inner">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <button class="nav-btn" id="bond-map-back-btn">← Back</button>
+      <h2 style="color:#40ffcc;font-size:18px;flex:1;text-align:center;">🏆 Achievements</h2>
+      <span style="width:60px;"></span>
+    </div>
+    <div id="bond-map-legend">
+      <span class="bml-dot bml-notstarted"></span>Not started
+      <span class="bml-dot bml-available"></span>Available
+      <span class="bml-dot bml-earned"></span>Earned
+      <span class="bml-dot bml-addition"></span>Addition
+      <span class="bml-dot bml-subtraction"></span>Subtraction
+      <span class="bml-dot bml-joinedup"></span>Joined-up
+      <span class="bml-dot bml-reinforcement"></span>Reinforcement
+      <span class="bml-dot bml-mastered"></span>Mastered
+    </div>
+    <div id="bond-map-grid"></div>
+  </div>
+</div>
+
+<!-- ── DEBUG SCREEN (Stage 3.5 — temporary human debug view) ── -->
+<div id="debug-screen" class="screen">
+  <div style="padding:12px 14px;max-width:600px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <button class="nav-btn" id="debug-back-btn">← Back</button>
+      <h2 style="color:#40ffcc;font-size:17px;flex:1;text-align:center;">🔍 Debug readout</h2>
+      <button class="nav-btn" id="debug-refresh-btn" title="Refresh">↻</button>
+    </div>
+    <pre id="debug-content" style="
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #d0eeff;
+      background: #071428;
+      border: 1px solid #1a4060;
+      border-radius: 6px;
+      padding: 10px 12px;
+      white-space: pre;
+      overflow-x: auto;
+      max-height: 75vh;
+      overflow-y: auto;
+      margin: 0;
+    "></pre>
+  </div>
+</div>
+
+<!-- ── LOCK MODAL ── -->
+<div id="lock-modal">
+  <div class="modal-box">
+    <h2>🔐 Unlock Settings</h2>
+    <p>Answer to unlock:</p>
+    <div id="lock-question"></div>
+    <input type="text" id="lock-answer-inp" inputmode="numeric" maxlength="3" autocomplete="off">
+    <div id="lock-feedback"></div>
+    <div class="modal-btns">
+      <button class="teal-btn" id="lock-submit-btn">Check</button>
+      <button class="nav-btn"  id="lock-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN 3: GAME SELECT ── -->
+<div id="game-select-screen" class="screen">
+  <h1>🌊 Choose a Game</h1>
+  <p class="subtitle" id="game-select-player"></p>
+  <div class="settings-summary" id="settings-summary"></div>
+  <div class="game-cards">
+    <div class="game-card" id="reef-btn">
+      <h3>🐠 The Reef</h3>
+      <p>Match number bonds with the octopus in the coral reef</p>
+    </div>
+    <div class="game-card" id="cave-btn">
+      <h3>🦀 Cave</h3>
+      <p>Find the missing number in bar diagrams — with a friendly cave crab!</p>
+    </div>
+    <div class="game-card" id="debug-btn">
+      <h3>🔍 Debug</h3>
+      <p>Full engine + settings readout (developer view)</p>
+    </div>
+  </div>
+  <button class="nav-btn" id="back-to-settings-btn" style="display:block;margin:14px auto 0;">← Back to Settings</button>
+</div>
+
+<!-- ── SCREEN 4: GAME ── -->
+<div id="game-screen" class="screen">
+  <div id="top-bar">
+    <button id="home-btn">←</button>
+    <span id="score-label">⭐ 0 / 0</span>
+    <span id="streak-label"></span>
+  </div>
+  <div id="game-layout" class="game-pad-layout layout-side">
+    <div id="num-pad-left" class="num-pad-panel"></div>
+    <div class="canvas-wrap">
+      <canvas id="game-canvas" width="480" height="460"></canvas>
+      <input id="entry-overlay" type="text" inputmode="none" maxlength="2" autocomplete="off">
+    </div>
+    <div id="num-pad-right" class="num-pad-panel"></div>
+  </div>
+  <div id="left-rail">
+    <div id="sum-label"></div>
+    <div id="feedback-label"></div>
+  </div>
+  <div id="right-rail">
+    <div id="btn-row">
+      <button class="game-btn" id="skip-btn">Skip →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN 4b: CAVE ── -->
+<div id="cave-screen" class="screen">
+  <div id="cave-top-bar">
+    <button id="cave-home-btn">←</button>
+    <span id="cave-score-label">⭐ 0 / 0</span>
+    <span id="cave-streak-label"></span>
+  </div>
+  <div id="cave-game-layout" class="game-pad-layout layout-side">
+    <div id="cave-num-pad-left" class="num-pad-panel"></div>
+    <div class="canvas-wrap">
+      <canvas id="cave-canvas" width="480" height="460"></canvas>
+      <!-- Bar-model overlay — centred vertically over canvas -->
+      <div id="cave-bar-wrap">
+        <div id="cave-bm-bar-total-wrap">
+          <div class="bm-bar-track">
+            <div class="bm-bar-total-fill" id="cave-bm-bar-total"></div>
+          </div>
+        </div>
+        <div id="cave-bm-bar-parts-wrap">
+          <div class="bm-bar-parts">
+            <div class="bm-bar-part part-a" id="cave-bm-part-a" style="width:50%"></div>
+            <div class="bm-bar-part part-b" id="cave-bm-part-b" style="width:50%"></div>
+          </div>
+        </div>
+        <div id="cave-bm-answer-prompt"></div>
+        <div id="cave-bm-feedback"></div>
+      </div>
+    </div>
+    <div id="cave-num-pad-right" class="num-pad-panel"></div>
+  </div>
+  <div id="cave-left-rail">
+    <div id="cave-sum-label"></div>
+    <div id="cave-feedback-label"></div>
+  </div>
+  <div id="cave-right-rail">
+    <div id="cave-btn-row">
+      <button class="game-btn" id="cave-skip-btn">Skip →</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+
+<script>
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OCEAN NUMBER BONDS — v5 (refactor in progress)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// SECTION INDEX (grep these labels to jump):
+//   ## CONFIG               — unified CONFIG object (levels/bonds/settings) ✓
+//   ## GAMES                — Games registry (reef, cave, debug)         ✓
+//   ## BOND ENGINE          — class BondEngine (question gen)
+//   ## STORAGE              — IndexedDB + localStorage fallback         ✓
+//   ## PERSISTENCE          — load/save users + per-user data           ✓
+//   ## SOUND                — Sound module (Web Audio tones)             ✓
+//   ## DRAW                 — Draw.constants + drawing primitives        ✓ (constants)
+//   ## ENGINE.PROGRESS      — player progress display (was "Bond Map")  ✓
+//   ## DEBUG GAME           — 3rd game: human-readable state inspector  ✓
+//   ## REEF GAME            — startGame() + stopReefGame + game loop     ✓ (registered)
+//   ## CAVE GAME            — cave scene + bar-model display              ✓ (registered)
+//   ## SCREENS              — Screens.show() + screen-init helpers       ✓
+//   ## INIT                 — boot sequence (async Storage.init → render)✓
+//
+// REFACTOR STATUS:
+//   Stage 1 ✓ IndexedDB-backed durable storage with localStorage fallback.
+//   Stage 2 ✓ CONFIG unified. BondMap moved to EngineProgress. Back-compat
+//             aliases keep Reef/Cave game code working unchanged.
+//   Stage 3 ✓ Games registry; reef + cave registered as peer modules with
+//             start()/stop(). Button handlers routed through registry.
+//   Stage 3.5 ✓ Debug "game" registered as 3rd peer: full engine + settings
+//              readout. Temporary — supersede when a real 3rd game ships.
+//   Stage 4 ✓ Sound, Screens wrapped as modules. Draw.constants grouped.
+//             Drawing function bodies still in place (larger extraction
+//             deferred — low urgency, high touch count).
+//
+// Remaining technical debt (deferred):
+//   • Reef/Cave function bodies + state globals still live at module scope;
+//     could migrate into Games.reef.state / Games.cave.state incrementally.
+//   • Drawing functions (drawBackground, drawOctopus, …) still module-level.
+//   • v4 engine-reset-on-settings-change bug still present (user: fix later).
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// ## CONFIG — centralized engine/game configuration
+// ═══════════════════════════════════════════════════════════════
+//
+// Single source of truth for level definitions, bond generation, and
+// settings-to-engine mapping. Scoped to what the BondEngine and its
+// callers need. Visual/audio config still lives in ## DRAW and ## SOUND
+// sections (Stage 4 will consolidate those too).
+//
+//   CONFIG.levels     — which levels each game accepts + fallbacks
+//   CONFIG.bonds      — bond-list generation + the bondKey utility
+//   CONFIG.settings   — defaults and (level+style+overrides) → {display,mode}
+
+const CONFIG = (() => {
+  const levels = {
+    // Levels available as configured starting-point (adult-facing).
+    reef:     new Set(['to5','exact10','doubles10','upto10','exact20','doubles20','upto20']),
+    cave:     new Set(['to5','exact10','doubles10','upto10','exact20','doubles20','upto20',
+                       'exact100s','doubles100andexact10s','upto100']),
+    // Extended achieved-level domain (beyond top configured starting-point; cave only for now).
+    // Bond-level mastery not tracked here; rolling-window advancement used instead.
+    extended: ['bonds-to-100','bonds-to-10s','bonds-within-100'],
+    subStart: new Set(['exact10','exact20','doubles20']),   // engine boots in subtraction phase
+    fallback: 'upto20',
+    clipForReef(level) { return this.reef.has(level) ? level : this.fallback; },
+    clipForCave(level) { return this.cave.has(level) ? level : this.fallback; },
+    // All achievable level names in progression order (configured + extended).
+    progressionOrder: [
+      'to5','exact10','doubles10','upto10','exact20','doubles20','upto20',
+      'exact100s','doubles100andexact10s','upto100',
+      'bonds-to-100','bonds-to-10s','bonds-within-100'
+    ],
+  };
+
+  // Canonical bonds [w, a, b] with a >= b >= 1.
+  // Doubles first (ascending w), then rest (ascending w).
+  function forLevel(level) {
+    const doubles = [], rest = [];
+    function add(w, pa) {
+      const pb = w - pa; if (pb < 1) return;
+      const a = Math.max(pa, pb), b = Math.min(pa, pb);
+      (a === b ? doubles : rest).push([w, a, b]);
+    }
+    switch (level) {
+      case 'to5':       for (let w=2;w<=5;  w++)  for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+      case 'exact10':   for (let p=1;p<=5;  p++)  add(10,p); break;
+      case 'doubles10': for (let w=2;w<=10; w+=2) add(w, w/2); break;
+      case 'upto10':    for (let w=2;w<=10; w++)  for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+      case 'exact20':   for (let p=1;p<=10; p++)  add(20,p); break;
+      case 'doubles20': for (let w=2;w<=20; w+=2) add(w, w/2); break;
+      case 'exact100s': for (let w=10;w<=100;w+=10) for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+      case 'doubles100andexact10s':
+        for (let w=2; w<=100; w+=2)  add(w, w/2);
+        for (let w=10;w<=100; w+=10) for (let p=1;p<=Math.floor(w/2);p++) add(w,p);
+        break;
+      case 'upto100':   for (let w=2;w<=100;w++)  for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+      default:          for (let w=2;w<=20; w++)  for (let p=1;p<=Math.floor(w/2);p++) add(w,p); break;
+    }
+    doubles.sort((x,y) => x[0]-y[0]);
+    rest.sort   ((x,y) => x[0]-y[0]);
+    return [...doubles, ...rest];
+  }
+
+  // Reef engine uses upto20 as its master progression list.
+  function masterReef() { return forLevel('upto20'); }
+
+  // Master list in canonical release order (Pass 3e). Spec:
+  //   1. All "to5" bonds (whole <= 5)     (asc whole, asc b)
+  //   2. All doubles up to and incl. 10/5 (asc whole)
+  //   3. Other bonds summing exactly to 10 (asc b)
+  //   4. Other bonds up to 10: explicit list first, then remainder (asc whole, asc b)
+  //   5. Doubles to 20 incl. 20/10         (asc whole)
+  //   6. Other bonds summing exactly to 20 (asc b)
+  //   7. Other bonds up to 20: explicit list first, then remainder (asc whole, asc b)
+  //   (bonds outside the spec fall through after bucket 7, asc whole, asc b.)
+  // Tie-break (inside any "all others" or fall-through): asc whole, asc b.
+  function masterReefByProgression() {
+    // Explicit-order lists. Keys are "w-a-b" (a>=b).
+    const bucket4explicit = ['6-5-1','7-6-1','8-7-1','9-8-1','7-4-3','9-5-4','6-4-2','7-5-2','8-6-2','9-7-2'];
+    const bucket7explicit = [
+      '11-10-1','12-10-2','13-10-3','14-10-4','15-10-5','16-10-6','17-10-7','18-10-8','19-10-9',
+      '11-6-5','13-7-6','15-8-7','17-9-8',
+      '12-11-1','13-12-1','14-13-1','15-14-1','16-15-1','17-16-1','18-17-1','19-18-1','20-19-1',
+      '11-9-2','13-11-2','14-12-2','15-13-2','16-14-2','17-15-2','18-16-2','19-17-2',
+    ];
+    const b4idx = new Map(bucket4explicit.map((k,i)=>[k,i]));
+    const b7idx = new Map(bucket7explicit.map((k,i)=>[k,i]));
+
+    // Assign each bond to a (bucket, intra-index) pair.
+    function classify(w,a,b) {
+      const key = `${w}-${a}-${b}`;
+      if (w <= 5)                        return { bucket:1, inner:0, key };
+      // Doubles up to 10/5: a===b and w<=10
+      if (a === b && w <= 10)            return { bucket:2, inner:0, key };
+      // Other bonds totalling exactly 10
+      if (w === 10 && a !== b)           return { bucket:3, inner:0, key };
+      // Other bonds up to 10 (w 6..9, non-double, non-sum-10 handled above)
+      if (w <= 10 && w >= 6 && a !== b)  return { bucket:4, inner: b4idx.has(key) ? b4idx.get(key) : b4idx.size, key };
+      // Doubles to 20 incl. 20/10: a===b and w>10, w<=20
+      if (a === b && w > 10 && w <= 20)  return { bucket:5, inner:0, key };
+      // Other bonds totalling exactly 20
+      if (w === 20 && a !== b)           return { bucket:6, inner:0, key };
+      // Other bonds up to 20
+      if (w <= 20 && w > 10 && a !== b)  return { bucket:7, inner: b7idx.has(key) ? b7idx.get(key) : b7idx.size, key };
+      // Beyond 20 — fall-through
+      return { bucket:8, inner:0, key };
+    }
+
+    const list = masterReef().slice();
+    list.sort((x, y) => {
+      const cx = classify(x[0], x[1], x[2]);
+      const cy = classify(y[0], y[1], y[2]);
+      if (cx.bucket !== cy.bucket) return cx.bucket - cy.bucket;
+      if (cx.inner  !== cy.inner)  return cx.inner  - cy.inner;
+      if (x[0] !== y[0]) return x[0] - y[0];
+      return x[2] - y[2];    // ascending b (smaller part)
+    });
+    return list;
+  }
+
+  // Cave's extended master list = upto20 bonds + challenge bonds 21..100.
+  // Note: v4 never actually wires Cave's engine to this extended list (the
+  // engine's _init uses getMasterList() = reef only). Left as-is; if Cave
+  // should progress through higher bonds, that's a Stage 3 decision.
+  function masterCave() {
+    const base  = masterReef();
+    const extra = [];
+    for (let w = 21; w <= 100; w++) {
+      for (let p = 1; p <= Math.floor(w/2); p++) {
+        const pb = w - p;
+        extra.push([w, Math.max(p, pb), Math.min(p, pb)]);
+      }
+    }
+    extra.sort((x,y) => x[0] - y[0]);
+    return [...base, ...extra];
+  }
+
+  // Precomputed minLevel table for w ≤ 20 bonds (built lazily on first
+  // call). For w > 20, computed by rule (cheap, deterministic).
+  let _minLevelTable = null;
+  function _buildMinLevelTable() {
+    const configuredOrder = [
+      'to5','exact10','doubles10','upto10','exact20','doubles20','upto20',
+    ];
+    const t = new Map();
+    for (const lvl of configuredOrder) {
+      for (const [w,a,b] of forLevel(lvl)) {
+        const k = key(w,a,b);
+        if (!t.has(k)) t.set(k, lvl);  // first occurrence wins
+      }
+    }
+    _minLevelTable = t;
+  }
+
+  // Returns the first configured level (in progression order) whose
+  // bond set contains (w,a,b). Returns null if not found.
+  // w ≤ 20: lookup in precomputed table.
+  // w > 20: computed by rule — w=100 → exact100s; multiple-of-10 or
+  //         double and w<100 → doubles100andexact10s; else upto100.
+  function minLevelForBond(w, a, b) {
+    if (w <= 20) {
+      if (!_minLevelTable) _buildMinLevelTable();
+      return _minLevelTable.get(key(w,a,b)) || null;
+    }
+    if (w === 100) return 'exact100s';
+    if (w % 10 === 0 || a === b) return 'doubles100andexact10s';
+    return 'upto100';
+  }
+
+  function key(w, a, b) { const la = Math.max(a, b); return `${w}:${la}`; }
+
+  const settings = {
+    defaults: {
+      level:'exact10', sound:'off', timer:'off',
+      omode:'none', odisp:'none', style:'progress'
+    },
+    // level + style + overrides → { display, mode }
+    map(level, style, omode, odisp) {
+      let display, mode;
+      if (['exact100s','doubles100andexact10s','upto100'].includes(level)) {
+        display='numbers'; mode='both';
+      } else if (['exact20','doubles20','upto20'].includes(level)) {
+        display='numbers'; mode='both';
+      } else if (['doubles10','upto10'].includes(level)) {
+        mode='both'; display = style==='entry' ? 'both' : 'numbers';
+      } else if (level==='exact10') {
+        mode='both'; display = style==='entry' ? 'both' : 'numbers';
+      } else { // to5
+        mode='both';
+        if      (style==='entry')    display='counters';
+        else if (style==='practice') display='both';
+        else                         display='numbers';
+      }
+      if (omode !== 'none') mode    = omode;
+      if (odisp !== 'none') display = odisp;
+      return { display, mode };
+    },
+  };
+
+  return {
+    levels,
+    bonds:    { forLevel, masterReef, masterReefByProgression, masterCave, key, minLevelForBond },
+    settings,
+  };
+})();
+
+// ── Backward-compat aliases (Stage 2). Callers elsewhere in this file
+//    still use these names; Stage 3+ will migrate call sites and then
+//    these aliases can be removed.
+const REEF_LEVELS = CONFIG.levels.reef;
+const SUB_START   = CONFIG.levels.subStart;
+function clipLevelForReef(level)  { return CONFIG.levels.clipForReef(level); }
+function clipLevelForCave(level)  {
+  if (CONFIG.levels.extended.includes(level)) return level;
+  return CONFIG.levels.clipForCave(level);
+}
+function getBondsForLevel(level)  { return CONFIG.bonds.forLevel(level); }
+function getMasterList()           { return CONFIG.bonds.masterReefByProgression(); }
+function bondKey(w, a, b)          { return CONFIG.bonds.key(w, a, b); }
+function mapSettings(level, style, omode, odisp) {
+  return CONFIG.settings.map(level, style, omode, odisp);
+}
+
+// Computes the effective level for a game start.
+// - progress style: max(settings.level, achievedLevel) per progressionOrder.
+// - practice/entry: settings.level only (achievedLevel never written).
+// - clipFn: CONFIG.levels.clipForReef or clipForCave — caps result for the game.
+function computeEffectiveLevel(settingsLevel, achievedLevel, style, clipFn) {
+  if (style !== 'progress') return clipFn(settingsLevel);
+  const order = CONFIG.levels.progressionOrder;
+  const si = order.indexOf(settingsLevel);
+  const ai = achievedLevel ? order.indexOf(achievedLevel) : -1;
+  const effective = order[Math.max(si, ai, 0)] || settingsLevel;
+  return clipFn(effective);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ## GAMES — registry of playable games (Stage 3)
+// ═══════════════════════════════════════════════════════════════
+//
+// Each game is a peer module that consumes the shared BondEngine.
+// The registry decouples screen-select wiring from game internals:
+// screens only need a game `id`; they call `Games.get(id).start()` /
+// `.stop()` without knowing anything about the implementation.
+//
+// Game descriptor:
+//   id         — unique key ('reef' | 'cave')
+//   label      — display name (future: use on game-select UI)
+//   buttonId   — DOM id of the game-select button that launches this game
+//   screenId   — DOM id of the in-game screen
+//   start()    — enter the game (builds/restores engine, wires input)
+//   stop()     — exit the game (clear timers, animations; caller then shows select)
+//
+// Game bodies (startGame, cave_startGame, etc.) are defined in
+// their current sections below; Games.register() is called once those
+// functions exist (see bottom of REEF GAME / CAVE GAME sections).
+
+const Games = (() => {
+  const _games = {};
+  function register(game) {
+    if (!game || !game.id) throw new Error('Games.register: missing id');
+    _games[game.id] = game;
+    return game;
+  }
+  function get(id)  { return _games[id] || null; }
+  function list()   { return Object.values(_games); }
+  function ids()    { return Object.keys(_games); }
+  return {
+    register, get, list, ids,
+    get reef() { return _games.reef; },
+    get cave() { return _games.cave; },
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// ## BOND ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────
+// Bond-engine tunables. Pulled out into a named constants block so
+// future changes (per-user adaptation, difficulty tuning) can touch
+// one place. Keep all magic numbers that influence selection /
+// progression here rather than sprinkled inside the class.
+// ─────────────────────────────────────────────────────────────
+const BOND_CONFIG = {
+  // Active-set caps. Currently same for both; separated so we can
+  // tune progress vs other modes independently without code surgery.
+  MAX_ACTIVE_PROGRESS: 15,
+  MAX_ACTIVE_OTHER:    15,
+  ACTIVE_FLOOR:        5,
+
+  // Fast-track promotion threshold (Pass 3d): first N consecutive
+  // correct answers on a fresh bond jump it to probation2.
+  // Also the "earned" trigger — ANY N consecutive correct sets earned.
+  FAST_TRACK_CORRECT: 2,
+
+  // Weighted-draw ratios. Per-bond acceptance probability in a single
+  // draw attempt = (weight / WEIGHT_RANGE). Ratios between classes are
+  // learning : probation2 : retention : free = 27 : 9 : 3 : 1.
+  // A learning bond is 3× more likely than a probation2 bond,
+  // 9× more likely than a retention bond, 27× more likely than a free bond.
+  WEIGHT_RANGE: 27,
+  W_LEARNING:   27,
+  W_PROBATION2:  9,
+  W_RETENTION:   3,
+  W_FREE:        1,
+};
+
+class BondEngine {
+  constructor(config) {
+    this.activeLevel    = config.level  || 'exact10';
+    this.settingsLevel  = config.settingsLevel || this.activeLevel;
+    this.mode           = config.mode   || 'both';
+    this.style          = config.style  || 'progress';
+    this.achievedLevel  = config.achievedLevel || null;
+    this.rollingWindow  = config.rollingWindow || [];
+    this.bonds          = new Map();
+    this.queue          = [];
+    this.bothWindow = []; this.addnWindow = []; this.subnWindow = [];
+    this.forcedSubBond = null; this.lastQ = null;
+    this.tick = 0;
+    this._init();
+  }
+
+  _init() {
+    for (const [w,a,b] of getBondsForLevel(this.activeLevel))
+      this.bonds.set(bondKey(w,a,b), this._newState(w,a,b));
+    if (this.style === 'progress') {
+      for (const [w,a,b] of getMasterList()) {
+        const k = bondKey(w,a,b);
+        if (!this.bonds.has(k)) this.queue.push([w,a,b]);
+      }
+    }
+    this.recomputeActiveSet();
+  }
+
+  // Pass 3: intelligent bPhase start. If both tracks are already
+  // fully competent (reached Retention), skip checkBoth and start at
+  // probation1. Pass 3d: Probation2 is not yet full competence, so
+  // the threshold is Retention rather than "past Learning".
+  // Falls back to SUB_START / checkBoth logic for bonds with no or
+  // partial prior add/sub progress.
+  _bothStart(aPh, sPh) {
+    const aComp = aPh === 'additionRetention';
+    const sComp = sPh === 'subtractionRetention';
+    if (aComp && sComp) return 'probation1';
+    if (SUB_START.has(this.activeLevel)) return 'subtraction';
+    return 'checkBoth';
+  }
+
+  _newState(w, a, b) {
+    // Pass 3i: SUB_START applies ONLY when:
+    //   - mode is 'both' (in add/sub-only modes, bPhase is irrelevant);
+    //   - the bond's own minLevel is 'exact10' or 'exact20' (these are
+    //     the levels where addition is already familiar — sums to 10/20
+    //     are taught early — and subtraction is the new skill);
+    //   - settingsLevel === bond's minLevel (the adult deliberately chose
+    //     this level as the starting point. Organic advancement into
+    //     exact10/exact20 via achievedLevel must NOT trigger SUB_START —
+    //     the child got there by their own progress and earns the phase
+    //     via the normal ladder).
+    // Effect: bPhase starts at 'subtraction' (the subtraction-first rung
+    // of the normal both-mode ladder, NOT remediation). a/sPhase remain
+    // at Learning — no retention assumption.
+    // Note: the legacy SUB_START set / activeLevel check is no longer
+    // used here. The bond's minLevel is the authoritative signal.
+    const minLvl = CONFIG.bonds.minLevelForBond(w, a, b);
+    const sub = this.mode === 'both'
+             && (minLvl === 'exact10' || minLvl === 'exact20')
+             && this.settingsLevel === minLvl;
+    return {
+      w, a, b,
+      // ── Both mode ──
+      bPhase: sub ? 'subtraction' : 'checkBoth',
+      bCheckOrder: null,       // ['add','sub'] or ['sub','add'], set on first question
+      bCheckResults: {},       // { add: true/false, sub: true/false }
+      bAddDir: false,        // false = larger(a) first as partA
+      bAddConsec: 0,
+      bSubFirstDir: null,
+      bSubDir: 'large',      // 'large'=hide a, 'small'=hide b
+      bSubCorrLarge: 0,
+      bSubCorrSmall: 0,
+      bProbN: 0, bProbScore: 0,
+      // ── Addition only ──
+      aPhase: 'additionLearning',
+      aStage: 'smaller_only', // 'smaller_only' | 'alternating'
+      aSmlCount: 0,
+      aDir: false,
+      aConsec: 0, aConsecDirs: [],
+      aRecent5: [],
+      // ── Subtraction only ──
+      sPhase: 'subtractionLearning',
+      sStage: 'smaller_only',
+      sSmlCount: 0,
+      sDir: 'small',
+      sConsec: 0, sConsecDirs: [],
+      sRecent5: [],
+      // ── Active-bucket tracking (Pass 2) ──
+      minLevel: minLvl,
+      isActive: false,
+      inRetention: false,
+      // Pass 3l: S-bond pause. True iff this bondState is logically queue-
+      // resident (not eligible for active/retention selection, displays as
+      // notstarted). Triggered when settingsLevel drops below the bond's
+      // minLevel and the bond has not been earned.
+      queued: false,
+      lastAskedTick: 0,
+      // ── Pass 3d: lineage + fast-track ──
+      // One-way flag: set on ANY 2-consecutive-correct in any mode.
+      // Marks the bond as "earned" by the child (vs bonds merely released
+      // by settings). Distinct from phase progression — a bond can be
+      // earned but still in Learning if progress was reset.
+      earnedAddn: false,
+      earnedSubn: false,
+    };
+  }
+
+  // Pass 3l: release a bond from the queue. If a bondState already exists
+  // (S-paused bond returning to eligibility), reuse it — preserving prior
+  // phase, consec counters, etc. Otherwise create fresh via _newState.
+  // Caller is responsible for setting earned flags per its release policy
+  // (queue-release in _updateWindows sets them; floor rule and reward
+  // release leave them as-is).
+  _releaseFromQueue(w, a, b) {
+    const k = bondKey(w, a, b);
+    let bs = this.bonds.get(k);
+    if (bs) {
+      bs.queued = false;
+      return bs;
+    }
+    bs = this._newState(w, a, b);
+    this.bonds.set(k, bs);
+    return bs;
+  }
+
+  _curPhase(bs) {
+    if (this.mode==='both') return bs.bPhase;
+    if (this.mode==='add')  return bs.aPhase;
+    return bs.sPhase;
+  }
+
+  // ── Active-bucket helpers (Pass 2) ──
+
+  // Mode-specific "post" classification (bond is in retention, not active).
+  // In progress style: post = has reached the probation2/retention phase
+  // for the current mode. In practice/entry style: no retention concept.
+  _isPost(bs) {
+    if (this.mode === 'both') {
+      return bs.bPhase === 'probation2' || bs.bPhase === 'probation3' || bs.bPhase === 'free';
+    }
+    if (this.mode === 'add') {
+      return bs.aPhase === 'additionProbation2' || bs.aPhase === 'additionRetention';
+    }
+    return bs.sPhase === 'subtractionProbation2' || bs.sPhase === 'subtractionRetention';
+  }
+
+  // Position of bond's minLevel against settingsLevel.
+  //   Practice/entry: absolute filter — only 'at' bonds eligible.
+  //   Progress: priority signal for active-bucket fill — at first, then
+  //     below (gap-fill), then above (reach-ahead). settingsLevel remains
+  //     a floor (not a ceiling); above-level bonds are still legitimate.
+  // Returns 'at' | 'below' | 'above'. Uses progressionOrder indices.
+  _levelPosition(bs) {
+    const order = CONFIG.levels.progressionOrder;
+    const si = order.indexOf(this.settingsLevel || this.activeLevel);
+    const bi = order.indexOf(bs.minLevel || this.activeLevel);
+    if (bi === si) return 'at';
+    return bi < si ? 'below' : 'above';
+  }
+
+  // Recompute active / retention flags across all bonds.
+  //
+  //   Progress style:
+  //     - Released nyp2 bonds → active, up to cap 15, canonical (simplest-first) order.
+  //     - Post bonds (probation2/retention/etc) → retention bucket.
+  //     - Floor rule: while active < 5 and queue non-empty, release next
+  //       queued bond (canonical simplest-first) and re-evaluate.
+  //     - settingsLevel is a floor (starting point), NOT a ceiling. All
+  //       released bonds are legitimate active material.
+  //
+  //   Practice/entry style:
+  //     - Absolute filter on `at` settingsLevel. No retention bucket.
+  //     - Up to cap 15 randomly selected.
+  recomputeActiveSet() {
+    // Clear flags
+    for (const bs of this.bonds.values()) {
+      bs.isActive = false; bs.inRetention = false;
+    }
+    const CAP = BOND_CONFIG.MAX_ACTIVE_PROGRESS || 15;
+    const FLOOR = BOND_CONFIG.ACTIVE_FLOOR || 5;
+
+    if (this.style !== 'progress') {
+      // Practice/entry: absolute `at` filter, up to CAP randomly.
+      const atBonds = [];
+      for (const bs of this.bonds.values()) {
+        if (this._levelPosition(bs) === 'at') atBonds.push(bs);
+      }
+      this._shuffle(atBonds);
+      for (let i = 0; i < Math.min(CAP, atBonds.length); i++) {
+        atBonds[i].isActive = true;
+      }
+      return;
+    }
+
+    // Progress style. settingsLevel is a floor, not a ceiling — all
+    // released nyp2 bonds are active-eligible; no at/below/above split.
+    const classify = () => {
+      const nyp2=[], postBonds=[];
+      for (const bs of this.bonds.values()) {
+        // Pass 3l: queued (S-paused) bonds are excluded from both buckets
+        // — they're logically queue-resident, ineligible for active or
+        // retention selection, and display as notstarted.
+        if (bs.queued) continue;
+        if (this._isPost(bs)) postBonds.push(bs);
+        else                  nyp2.push(bs);
+      }
+      return { nyp2, postBonds };
+    };
+
+    // Canonical index for a bond (position in getMasterList()).
+    const master = getMasterList();
+    const indexOfBond = (bs) => {
+      const k = bondKey(bs.w, bs.a, bs.b);
+      for (let i = 0; i < master.length; i++) {
+        if (bondKey(master[i][0], master[i][1], master[i][2]) === k) return i;
+      }
+      return 1e9;
+    };
+
+    // Pass 3k: priority-fill in three tiers — at-level first, then below
+    // (gap-fill), then above (reach-ahead). Within each tier, canonical
+    // simplest-first order. settingsLevel is still a floor, not a ceiling
+    // — above-level bonds are eligible, just lower priority than gaps.
+    // Tier classification does NOT affect draw probability; weights in
+    // _selectBondBucketed remain purely phase-based.
+    const fillActive = (buckets) => {
+      for (const bs of this.bonds.values()) bs.isActive = false;
+      const at = [], below = [], above = [];
+      for (const bs of buckets.nyp2) {
+        const pos = this._levelPosition(bs);
+        if      (pos === 'at')    at.push(bs);
+        else if (pos === 'below') below.push(bs);
+        else                       above.push(bs);
+      }
+      const byCanon = (x,y) => indexOfBond(x) - indexOfBond(y);
+      at.sort(byCanon); below.sort(byCanon); above.sort(byCanon);
+      const ordered = at.concat(below, above);
+      let n = 0;
+      for (const bs of ordered) {
+        if (n >= CAP) break;
+        bs.isActive = true; n++;
+      }
+      return n;
+    };
+
+    let buckets = classify();
+    let activeN = fillActive(buckets);
+
+    // Floor rule: while active < FLOOR and queue has bonds, release next
+    // queued bond (canonical simplest-first order) and re-evaluate.
+    let safety = 50;
+    while (activeN < FLOOR && this.queue.length && safety-- > 0) {
+      const [nw,na,nb] = this.queue.shift();
+      // Floor-rule release: leaves earned flags as-is (S status for fresh
+      // bonds; existing flags preserved for returning S-paused bonds).
+      this._releaseFromQueue(nw,na,nb);
+      buckets = classify();
+      activeN = fillActive(buckets);
+    }
+
+    // Retention bucket = post bonds.
+    for (const bs of buckets.postBonds) bs.inRetention = true;
+  }
+
+  _shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  _selectBond() {
+    const t1=[],t2=[],t3=[];
+    for (const bs of this.bonds.values()) {
+      const ph = this._curPhase(bs);
+      if (this.mode==='both') {
+        if (['checkBoth','addition','subtraction','probation1'].includes(ph)) t1.push(bs);
+        else if (ph==='probation2') t2.push(bs);
+        else t3.push(bs);
+      } else {
+        if (['additionLearning','subtractionLearning'].includes(ph)) t1.push(bs);
+        else if (['additionProbation2','subtractionProbation2'].includes(ph)) t2.push(bs);
+        else t3.push(bs);
+      }
+    }
+    let primary, retention;
+    if      (t1.length) { primary=t1; retention=[...t2,...t3]; }
+    else if (t2.length) { primary=t2; retention=t3; }
+    else                { primary=t3; retention=[]; }
+
+    let pool = (retention.length && Math.random()<0.1) ? retention : primary;
+    if (!pool.length) pool = [...this.bonds.values()];
+    if (pool.length>1 && this.lastQ) {
+      const f=pool.filter(bs=>bondKey(bs.w,bs.a,bs.b)!==this.lastQ.bondKey);
+      if (f.length) pool=f;
+    }
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  // Weighted-draw selection (Pass 3c). Replaces the 90/10 active/retention
+  // split with a single pool and per-bond acceptance probability based on
+  // phase. Ratio learning : probation2 : retention : free = 27 : 9 : 3 : 1.
+  //
+  // Algorithm: uniform-random pick a bond from the eligible pool (active
+  // ∪ retention), then uniform-random r in [1..WEIGHT_RANGE]. Accept iff
+  // r ≤ weight(bond). Reject → redraw. Rejection sampling naturally yields
+  // the target per-bond rate: a learning bond is 3× more likely than a
+  // probation2 bond (regardless of how many bonds are in each class).
+  _selectBondBucketed() {
+    // Build eligible pool. In progress style this is active ∪ retention;
+    // in practice/entry style recomputeActiveSet only sets isActive, so
+    // retention is empty and the pool is just the active set.
+    const pool = [];
+    for (const bs of this.bonds.values()) {
+      if (bs.isActive || bs.inRetention) pool.push(bs);
+    }
+    if (!pool.length) {
+      // Shouldn't normally happen — fall back to any released bond.
+      const all = [...this.bonds.values()];
+      if (!all.length) return null;
+      return all[Math.floor(Math.random() * all.length)];
+    }
+
+    // Avoid the last-asked bond if possible by building a second pool
+    // that excludes it. We'll prefer this pool if it's non-empty.
+    let effPool = pool;
+    if (pool.length > 1 && this.lastQ) {
+      const f = pool.filter(bs => bondKey(bs.w,bs.a,bs.b) !== this.lastQ.bondKey);
+      if (f.length) effPool = f;
+    }
+
+    // Rejection sampling. Safety limit protects against a pool of all
+    // free bonds where acceptance rate is 1/27 → on average 27 draws but
+    // long tail. 200 is generous.
+    const SAFETY = 200;
+    for (let i = 0; i < SAFETY; i++) {
+      const bs  = effPool[Math.floor(Math.random() * effPool.length)];
+      const r   = Math.floor(Math.random() * BOND_CONFIG.WEIGHT_RANGE) + 1;
+      const cap = this._drawWeight(bs);
+      if (r <= cap) return bs;
+    }
+    // Failed to find acceptance — fall back to uniform draw so we always
+    // return a question. Extremely unlikely under normal distributions.
+    return effPool[Math.floor(Math.random() * effPool.length)];
+  }
+
+  // Per-bond acceptance weight in [1..WEIGHT_RANGE]. Mode-specific phase
+  // maps to a weight class: learning (27), probation2 (9), retention (3),
+  // free (1). See BOND_CONFIG for ratios.
+  _drawWeight(bs) {
+    const cls = this._phaseWeightClass(bs);
+    if (cls === 'learning')   return BOND_CONFIG.W_LEARNING;
+    if (cls === 'probation2') return BOND_CONFIG.W_PROBATION2;
+    if (cls === 'retention')  return BOND_CONFIG.W_RETENTION;
+    if (cls === 'free')       return BOND_CONFIG.W_FREE;
+    return BOND_CONFIG.W_LEARNING;  // safe default for unknown phases
+  }
+
+  // Mode-specific phase → weight class. Pass 3d will add `probation2`
+  // as a returnable class when additionProbation2/subtractionProbation2
+  // states exist. For now, only the both-track produces 'probation2'.
+  _phaseWeightClass(bs) {
+    if (this.mode === 'both') {
+      const p = bs.bPhase;
+      if (p === 'free')       return 'free';
+      if (p === 'probation3') return 'retention';
+      if (p === 'probation2') return 'probation2';
+      // checkBoth / addition / subtraction / probation1 → learning
+      return 'learning';
+    }
+    if (this.mode === 'add') {
+      if (bs.aPhase === 'additionRetention') return 'retention';
+      if (bs.aPhase === 'additionProbation2') return 'probation2';
+      return 'learning';
+    }
+    if (bs.sPhase === 'subtractionRetention') return 'retention';
+    if (bs.sPhase === 'subtractionProbation2') return 'probation2';
+    return 'learning';
+  }
+
+  _makeQ(bs) {
+    const ph = this._curPhase(bs);
+    if (this.mode==='both') {
+      if (ph==='checkBoth')    return this._checkBothQ(bs);
+      if (ph==='addition')    return this._addQ(bs);
+      if (ph==='subtraction') return this._subQ(bs);
+      return this._mixQ(bs);
+    }
+    return this.mode==='add' ? this._addOnlyQ(bs) : this._subOnlyQ(bs);
+  }
+
+  _addQ(bs) {
+    const d=bs.bAddDir; bs.bAddDir=!d;
+    const pA=d?bs.b:bs.a, pB=d?bs.a:bs.b;
+    // _addDir: marker for cross-mode credit in _recAdd. Mirrors the
+    // _addOnlyQ convention (dir = smaller-first when true, since aDir
+    // flips after smaller_only stage).
+    return {whole:bs.w,partA:pA,partB:pB,missing:'whole',correctAnswer:bs.w,
+            bondKey:bondKey(bs.w,bs.a,bs.b),_addDir:d};
+  }
+
+  _subQ(bs) {
+    if (!bs.bSubFirstDir) {
+      bs.bSubFirstDir = Math.random()<0.5?'large':'small';
+      bs.bSubDir=bs.bSubFirstDir; bs.bSubCorrLarge=0; bs.bSubCorrSmall=0;
+    }
+    const hide=bs.bSubDir;
+    bs.bSubDir = (hide==='large')?'small':'large';
+    return this._hidePart(bs,hide);
+  }
+
+  _checkBothQ(bs) {
+    // Initialise random order on first call
+    if (!bs.bCheckOrder) {
+      bs.bCheckOrder = Math.random()<0.5 ? ['add','sub'] : ['sub','add'];
+      bs.bCheckResults = {};
+    }
+    // Serve the first question type not yet answered
+    const next = bs.bCheckOrder.find(t => !(t in bs.bCheckResults));
+    if (next==='add') {
+      const q = this._addQ(bs);
+      q._checkType = 'add';
+      return q;
+    }
+    const hide = Math.random()<0.5 ? 'large' : 'small';
+    const q = this._hidePart(bs, hide);
+    q._checkType = 'sub';
+    return q;
+  }
+
+  _hidePart(bs,hide) {
+    const missing = hide==='large'?'partA':'partB';
+    const correct = hide==='large'?bs.a:bs.b;
+    // _subHide: marker for cross-mode credit in _recSub. Same vocabulary
+    // as _subOnlyQ ('large' = hide a, 'small' = hide b).
+    return {whole:bs.w,partA:bs.a,partB:bs.b,missing,correctAnswer:correct,
+            bondKey:bondKey(bs.w,bs.a,bs.b),_hide:hide,_subHide:hide};
+  }
+
+  _mixQ(bs) {
+    const flip=Math.random()<0.5;
+    const pA=flip?bs.b:bs.a, pB=flip?bs.a:bs.b;
+    const r=Math.random();
+    let missing,correct;
+    if      (r<1/3){missing='whole'; correct=bs.w;}
+    else if (r<2/3){missing='partA'; correct=pA;}
+    else           {missing='partB'; correct=pB;}
+    const q={whole:bs.w,partA:pA,partB:pB,missing,correctAnswer:correct,bondKey:bondKey(bs.w,bs.a,bs.b)};
+    // Cross-mode credit markers. For add qns (missing==='whole'), _addDir
+    // reflects the display order (flip true = smaller-first, i.e. b first).
+    // For sub qns, _subHide reflects which part is hidden in large/small
+    // terms ('large' = hide a, 'small' = hide b).
+    if (missing==='whole') q._addDir = flip;
+    else if (missing==='partA') q._subHide = 'large';
+    else                        q._subHide = 'small';
+    return q;
+  }
+
+  _addOnlyQ(bs) {
+    let dir;
+    if (bs.aStage==='smaller_only') { dir=false; }
+    else { dir=bs.aDir; bs.aDir=!dir; }
+    const pA=dir?bs.b:bs.a, pB=dir?bs.a:bs.b;
+    return {whole:bs.w,partA:pA,partB:pB,missing:'whole',correctAnswer:bs.w,
+            bondKey:bondKey(bs.w,bs.a,bs.b),_addDir:dir};
+  }
+
+  _subOnlyQ(bs) {
+    let hide;
+    if (bs.sStage==='smaller_only') { hide='small'; }
+    else { hide=bs.sDir; bs.sDir=(hide==='small')?'large':'small'; }
+    const q=this._hidePart(bs,hide); q._subHide=hide; return q;
+  }
+
+  nextQuestion() {
+    this.tick++;
+    if (this.forcedSubBond) {
+      const bs=this.forcedSubBond; this.forcedSubBond=null;
+      bs.lastAskedTick = this.tick;
+      const q=this._subQ(bs); this.lastQ=q; return q;
+    }
+    const bs=this._selectBondBucketed(); if(!bs) return null;
+    let q=this._makeQ(bs);
+    if (this.lastQ && this.bonds.size>1 && this._same(q,this.lastQ)) {
+      const bs2=this._selectBondBucketed(); q=this._makeQ(bs2||bs);
+      if (bs2) bs2.lastAskedTick = this.tick;
+    } else {
+      bs.lastAskedTick = this.tick;
+    }
+    this.lastQ=q; return q;
+  }
+
+  _same(q1,q2) {
+    return q1.bondKey===q2.bondKey && q1.missing===q2.missing &&
+           q1.partA===q2.partA && q1.partB===q2.partB;
+  }
+
+  recordAnswer(q, ok) {
+    if (!q) return {correct:!!ok, events:[]};
+    const k=q.bondKey||bondKey(q.whole,q.partA,q.partB);
+    const bs=this.bonds.get(k);
+    if (!bs) return {correct:ok, events:[]};
+    const result={correct:ok};
+    if (this.mode==='both') {
+      // Pass 3: both mode drives bPhase AND contributes cross-mode credit
+      // to aPhase (missing==='whole' is an addition qn) or sPhase
+      // (missing==='partA'/'partB' is a subtraction qn).
+      this._recBoth(bs,q,ok,result);
+      if (q.missing==='whole') this._recAdd(bs,q,ok,result);
+      else                     this._recSub(bs,q,ok,result);
+    }
+    else if (this.mode==='add')  this._recAdd(bs,q,ok,result);
+    else                          this._recSub(bs,q,ok,result);
+    this._updateWindows(bs,ok,result);
+    this._maybeRewardRelease(result);
+    this._maybeAdvanceAchievedLevel(result, ok);
+    // Translate flat flags to typed events. Flat flags retained for
+    // back-compat; callers should migrate to `result.events`.
+    result.events = this._eventsFromResult(result);
+    // Active-set recompute triggers: bond released, or phase change
+    // crossed a bucket boundary (nyp2↔post). `phase_failed` on a
+    // probation2+ bond drops it back to probation1 — also a boundary.
+    if (this._eventsTouchBuckets(result.events)) {
+      this.recomputeActiveSet();
+    }
+    return result;
+  }
+
+  // True iff the events list contains anything that could change
+  // active-set membership.
+  _eventsTouchBuckets(events) {
+    for (const ev of events) {
+      if (ev.type === 'bond_released' || ev.type === 'bond_graduated') return true;
+      if (ev.type === 'phase_advanced' || ev.type === 'phase_failed') {
+        // Any phase change potentially crosses the nyp2/post boundary.
+        // Conservatively recompute on all phase events.
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Owns achievedLevel bookkeeping (previously in UI code).
+  // Fires on: (a) bond_released → set achievedLevel to bond's minLevel
+  // if higher than current; (b) rolling-window 45/50 while in extended
+  // domain or at top configured level → advance one step.
+  _maybeAdvanceAchievedLevel(result, isCorrect) {
+    if (this.style !== 'progress') return;
+    const order = CONFIG.levels.progressionOrder;
+
+    // (a) Configured-domain advancement via level_up event.
+    if (result.level_up && result.advancing_bond) {
+      const {w,a,b} = result.advancing_bond;
+      const bondMinLevel = CONFIG.bonds.minLevelForBond(w,a,b);
+      if (bondMinLevel) {
+        const curIdx = this.achievedLevel ? order.indexOf(this.achievedLevel) : -1;
+        const newIdx = order.indexOf(bondMinLevel);
+        if (newIdx > curIdx) {
+          const prev = this.achievedLevel;
+          this.achievedLevel = bondMinLevel;
+          result.level_advanced_from = prev;
+          result.level_advanced_to   = bondMinLevel;
+        }
+      }
+    }
+
+    // (b) Extended-domain / at-top-configured advancement via 45/50 window.
+    const extended = CONFIG.levels.extended;
+    const cur = this.achievedLevel || null;
+    const inExtended = cur && extended.includes(cur);
+    const atTopConfigured = cur === 'upto100';
+    if (inExtended || atTopConfigured) {
+      this.rollingWindow.push(isCorrect ? 1 : 0);
+      if (this.rollingWindow.length > 50) this.rollingWindow.shift();
+      if (this.rollingWindow.length === 50) {
+        const sc = this.rollingWindow.reduce((s,v)=>s+v, 0);
+        if (sc >= 45) {
+          const curIdx = order.indexOf(cur);
+          const nextIdx = curIdx + 1;
+          if (nextIdx < order.length) {
+            const prev = this.achievedLevel;
+            this.achievedLevel = order[nextIdx];
+            this.rollingWindow = [];
+            result.level_advanced_from = prev;
+            result.level_advanced_to   = this.achievedLevel;
+          }
+        }
+      }
+    }
+  }
+
+  _eventsFromResult(r) {
+    const ev = [];
+    const bond = r.advancing_bond || r.graduation_bond || null;
+    if (r.bphase_advanced) {
+      ev.push({type:'phase_advanced', track:'both', toPhase:r.new_both_phase, bond});
+    }
+    if (r.aphase_advanced) {
+      ev.push({type:'phase_advanced', track:'add',  toPhase:r.new_addn_phase, bond});
+    }
+    if (r.sphase_advanced) {
+      ev.push({type:'phase_advanced', track:'sub',  toPhase:r.new_subn_phase, bond});
+    }
+    if (r.bphase_failed) ev.push({type:'phase_failed', track:'both', bond});
+    if (r.aphase_failed) ev.push({type:'phase_failed', track:'add',  bond});
+    if (r.sphase_failed) ev.push({type:'phase_failed', track:'sub',  bond});
+    if (r.graduation)    ev.push({type:'bond_graduated', bond:r.graduation_bond});
+    if (r.level_up)      ev.push({type:'bond_released',  bond:r.released_bond || r.advancing_bond});
+    if (r.level_advanced_to) {
+      ev.push({type:'level_advanced', fromLevel:r.level_advanced_from, toLevel:r.level_advanced_to});
+    }
+    return ev;
+  }
+
+  _recBoth(bs,q,ok,result) {
+    // Pass 3: lazy intelligent-start. If bond is at checkBoth and both
+    // tracks are already competent (e.g. kid made progress in add/sub
+    // mode before switching to both), skip checkBoth straight to
+    // probation1. Mutates bPhase BEFORE the switch below so probation1
+    // logic runs on this question.
+    if (bs.bPhase==='checkBoth') {
+      const upgraded = this._bothStart(bs.aPhase, bs.sPhase);
+      if (upgraded==='probation1') {
+        bs.bPhase='probation1'; bs.bProbN=0; bs.bProbScore=0;
+        bs.bCheckOrder=null; bs.bCheckResults={};
+        result.bphase_advanced=true; result.new_both_phase='probation1';
+        result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+      }
+    }
+    const ph=bs.bPhase;
+    if (ph==='checkBoth') {
+      const type = q._checkType || 'add';
+      bs.bCheckResults[type] = ok;
+      // Resolve once both questions answered
+      if ('add' in bs.bCheckResults && 'sub' in bs.bCheckResults) {
+        const addOk = bs.bCheckResults.add;
+        const subOk = bs.bCheckResults.sub;
+        if (addOk && subOk) {
+          bs.bPhase='probation1'; bs.bProbN=0; bs.bProbScore=0;
+          result.bphase_advanced=true; result.new_both_phase='probation1';
+          result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+        } else if (addOk) {
+          bs.bPhase='subtraction'; bs.bSubFirstDir=null;
+          bs.bSubCorrLarge=0; bs.bSubCorrSmall=0;
+        } else {
+          bs.bPhase='addition'; bs.bAddConsec=0;
+        }
+        bs.bCheckOrder=null; bs.bCheckResults={};
+      }
+
+    } else if (ph==='addition') {
+      if (ok) {
+        if (++bs.bAddConsec>=5) {
+          bs.bPhase='subtraction'; bs.bSubFirstDir=null; bs.bAddConsec=0;
+          result.bphase_advanced=true; result.new_both_phase='subtraction';
+          result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+          this.forcedSubBond=bs;
+        }
+      } else { bs.bAddConsec=0; }
+
+    } else if (ph==='subtraction') {
+      if (ok) {
+        if (q.missing==='partA') bs.bSubCorrLarge++; else bs.bSubCorrSmall++;
+        if (bs.bSubCorrLarge>=2 && bs.bSubCorrSmall>=2) {
+          bs.bPhase='probation1'; bs.bProbN=0; bs.bProbScore=0;
+          result.bphase_advanced=true; result.new_both_phase='probation1';
+          result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+        }
+      }
+
+    } else if (['probation1','probation2','probation3'].includes(ph)) {
+      bs.bProbN++; if(ok) bs.bProbScore++;
+      if (bs.bProbN>=5) {
+        const sc=bs.bProbScore; let np=null;
+        if (ph==='probation1') {
+          if      (sc>=5) np='probation2';
+          else if (sc<3)  { np='addition'; bs.bAddConsec=0; bs.bAddDir=false; result.bphase_failed=true; }
+          else              np='probation1';
+        } else if (ph==='probation2') {
+          if      (sc>=5) np='probation3';
+          else if (sc<4)  { np='probation1'; result.bphase_failed=true; }
+          else              np='probation2';
+        } else { // probation3
+          if (sc>=5) { np='free'; result.graduation=true; result.graduation_bond={w:bs.w,a:bs.a,b:bs.b}; }
+          else       { np='probation2'; result.bphase_failed=true; }
+        }
+        if (np && np!==ph) {
+          bs.bPhase=np;
+          if (!result.bphase_failed) {
+            result.bphase_advanced=true; result.new_both_phase=np;
+            result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+          }
+        }
+        bs.bProbN=0; bs.bProbScore=0;
+      }
+    }
+  }
+
+  _recAdd(bs,q,ok,result) {
+    if (bs.aPhase==='additionLearning') {
+      const smlSecond=!(q._addDir||false);
+      if (ok) {
+        if (bs.aStage==='smaller_only') { if(++bs.aSmlCount>=3){bs.aStage='alternating';bs.aDir=true;} }
+        bs.aConsec++; bs.aConsecDirs.push(smlSecond);
+        // Pass 3d: earned flag fires at FAST_TRACK_CORRECT (=2) consecutive.
+        // One-way — once earned, stays earned across demotions.
+        if (bs.aConsec >= BOND_CONFIG.FAST_TRACK_CORRECT && !bs.earnedAddn) {
+          bs.earnedAddn = true;
+        }
+        // Pass 3d: fast-track Learning → Probation2 at 2 consecutive correct.
+        // Previously this slot held the 5-consec+dir-alt → Retention rule;
+        // that rule now lives in Probation2.
+        if (bs.aConsec >= BOND_CONFIG.FAST_TRACK_CORRECT) {
+          bs.aPhase='additionProbation2';
+          // Keep aConsec/aConsecDirs — they feed into the Probation2
+          // promotion rule (5 consecutive + dir-alt).
+          bs.aRecent5 = [];  // fresh demotion window
+          result.aphase_advanced=true; result.new_addn_phase='additionProbation2';
+          result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+        }
+      } else { bs.aConsec=0; bs.aConsecDirs=[]; }
+    } else if (bs.aPhase==='additionProbation2') {
+      const smlSecond=!(q._addDir||false);
+      // Demotion window — recent-5 with <4 correct drops back to Learning.
+      bs.aRecent5.push(ok?1:0); if(bs.aRecent5.length>5) bs.aRecent5.shift();
+      if (ok) {
+        if (bs.aStage==='smaller_only') { if(++bs.aSmlCount>=3){bs.aStage='alternating';bs.aDir=true;} }
+        bs.aConsec++; bs.aConsecDirs.push(smlSecond);
+        // Promotion rule (original Learning → Retention): 5 consecutive
+        // correct with both directions represented at least twice.
+        if (bs.aConsec>=5) {
+          const ds=bs.aConsecDirs.slice(-5);
+          if (ds.filter(d=>d).length>=2 && ds.filter(d=>!d).length>=2) {
+            bs.aPhase='additionRetention'; bs.aConsec=0; bs.aConsecDirs=[];
+            bs.aRecent5=[];
+            result.aphase_advanced=true; result.new_addn_phase='additionRetention';
+            result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+            return;
+          }
+        }
+      } else { bs.aConsec=0; bs.aConsecDirs=[]; }
+      // Demotion check — only once window full.
+      if (bs.aRecent5.length===5 && bs.aRecent5.reduce((s,v)=>s+v,0)<4) {
+        bs.aPhase='additionLearning'; bs.aConsec=0; bs.aConsecDirs=[];
+        bs.aStage='smaller_only'; bs.aSmlCount=0; bs.aRecent5=[];
+        result.aphase_failed=true;
+      }
+    } else {
+      // additionRetention — existing demotion rule unchanged.
+      bs.aRecent5.push(ok?1:0); if(bs.aRecent5.length>5) bs.aRecent5.shift();
+      if (bs.aRecent5.length===5 && bs.aRecent5.reduce((s,v)=>s+v,0)<4) {
+        bs.aPhase='additionLearning'; bs.aConsec=0; bs.aConsecDirs=[];
+        bs.aStage='smaller_only'; bs.aSmlCount=0; result.aphase_failed=true;
+      }
+    }
+  }
+
+  _recSub(bs,q,ok,result) {
+    if (bs.sPhase==='subtractionLearning') {
+      const smlHide=(q._subHide==='small');
+      if (ok) {
+        if (bs.sStage==='smaller_only') { if(++bs.sSmlCount>=3){bs.sStage='alternating';bs.sDir='large';} }
+        bs.sConsec++; bs.sConsecDirs.push(smlHide);
+        // Pass 3d: earned flag + fast-track to Probation2 at 2 consecutive.
+        if (bs.sConsec >= BOND_CONFIG.FAST_TRACK_CORRECT && !bs.earnedSubn) {
+          bs.earnedSubn = true;
+        }
+        if (bs.sConsec >= BOND_CONFIG.FAST_TRACK_CORRECT) {
+          bs.sPhase='subtractionProbation2';
+          bs.sRecent5 = [];
+          result.sphase_advanced=true; result.new_subn_phase='subtractionProbation2';
+          result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+        }
+      } else { bs.sConsec=0; bs.sConsecDirs=[]; }
+    } else if (bs.sPhase==='subtractionProbation2') {
+      const smlHide=(q._subHide==='small');
+      bs.sRecent5.push(ok?1:0); if(bs.sRecent5.length>5) bs.sRecent5.shift();
+      if (ok) {
+        if (bs.sStage==='smaller_only') { if(++bs.sSmlCount>=3){bs.sStage='alternating';bs.sDir='large';} }
+        bs.sConsec++; bs.sConsecDirs.push(smlHide);
+        if (bs.sConsec>=5) {
+          const ds=bs.sConsecDirs.slice(-5);
+          if (ds.filter(d=>d).length>=2 && ds.filter(d=>!d).length>=2) {
+            bs.sPhase='subtractionRetention'; bs.sConsec=0; bs.sConsecDirs=[];
+            bs.sRecent5=[];
+            result.sphase_advanced=true; result.new_subn_phase='subtractionRetention';
+            result.advancing_bond={w:bs.w,a:bs.a,b:bs.b};
+            return;
+          }
+        }
+      } else { bs.sConsec=0; bs.sConsecDirs=[]; }
+      if (bs.sRecent5.length===5 && bs.sRecent5.reduce((s,v)=>s+v,0)<4) {
+        bs.sPhase='subtractionLearning'; bs.sConsec=0; bs.sConsecDirs=[];
+        bs.sStage='smaller_only'; bs.sSmlCount=0; bs.sRecent5=[];
+        result.sphase_failed=true;
+      }
+    } else {
+      // subtractionRetention — existing demotion rule unchanged.
+      bs.sRecent5.push(ok?1:0); if(bs.sRecent5.length>5) bs.sRecent5.shift();
+      if (bs.sRecent5.length===5 && bs.sRecent5.reduce((s,v)=>s+v,0)<4) {
+        bs.sPhase='subtractionLearning'; bs.sConsec=0; bs.sConsecDirs=[];
+        bs.sStage='smaller_only'; bs.sSmlCount=0; result.sphase_failed=true;
+      }
+    }
+  }
+
+  // Pass 3j: probation2-promotion reward release.
+  // When a bond is promoted INTO probation2 (any mode), release one queue
+  // bond as a reward — provided the active bucket has room (< CAP).
+  // Rationale: probation2 implies real progress + reduced challenge on the
+  // bond, so admit fresh material to keep engagement up. Floor (5) and
+  // ceiling (15) on the active bucket are enforced by recomputeActiveSet
+  // downstream; we just early-exit if already at CAP. No flag-tracking of
+  // already-rewarded bonds: at CAP we silently skip; demotions then re-
+  // promotions through probation2 are infrequent enough not to matter.
+  _maybeRewardRelease(result) {
+    if (this.style !== 'progress') return;
+    if (!this.queue.length) return;
+    // Detect promotion INTO probation2 across the three tracks.
+    const intoBothP2 = result.bphase_advanced && result.new_both_phase === 'probation2';
+    const intoAddP2  = result.aphase_advanced && result.new_addn_phase === 'additionProbation2';
+    const intoSubP2  = result.sphase_advanced && result.new_subn_phase === 'subtractionProbation2';
+    if (!intoBothP2 && !intoAddP2 && !intoSubP2) return;
+    // Active count: count nyp2 bonds (the post-promotion bond is now post,
+    // so it's already excluded). If < CAP, release one.
+    const CAP = BOND_CONFIG.MAX_ACTIVE_PROGRESS || 15;
+    let nyp2Count = 0;
+    for (const b of this.bonds.values()) {
+      if (!this._isPost(b)) nyp2Count++;
+    }
+    if (nyp2Count >= CAP) return;
+    const [nw,na,nb] = this.queue.shift();
+    // Reward release was earned by real progress on another bond, not by
+    // this child's competence on the released bond — leave earned flags
+    // as-is (false for fresh bonds, preserved for returning S-paused).
+    this._releaseFromQueue(nw,na,nb);
+    result.level_up = true;
+    // Track released-bond identity separately from advancing_bond, which
+    // is already pointing at the just-promoted bond. _eventsFromResult
+    // prefers released_bond for the bond_released event.
+    result.released_bond = {w:nw, a:na, b:nb};
+  }
+
+  _updateWindows(bs,ok,result) {
+    if (this.style!=='progress') return;
+    // Pass 3e fix: accumulate on ALL progress-style questions, not just
+    // pre-retention phases. Retention practice still counts as engagement
+    // toward unlocking new material ("sheer number of correct answers").
+    // Previously this was gated by phase, which starved the window once
+    // all active bonds reached retention.
+
+    const win = this.mode==='both'?this.bothWindow : this.mode==='add'?this.addnWindow:this.subnWindow;
+    win.push(ok?1:0);
+    if (win.length>20) win.shift();
+    const streak10 = win.length>=10 && win.slice(-10).every(v=>v===1);
+    const window18 = win.length===20 && win.reduce((s,v)=>s+v,0)>=18;
+    if ((streak10 || window18) && this.queue.length) {
+      win.length=0;
+      const [nw,na,nb]=this.queue.shift();
+      // Queue-release was earned by real child progress (streak-10 or
+      // 18/20). Set earned flag(s) on the newly-released bond per mode:
+      //   add  → earnedAddn
+      //   sub  → earnedSubn
+      //   both → both flags (bidirectional competence demonstrated)
+      // Returning S-paused bonds gain the same flags by the same rule.
+      const nbs = this._releaseFromQueue(nw,na,nb);
+      if (this.mode==='add')      { nbs.earnedAddn=true; }
+      else if (this.mode==='sub') { nbs.earnedSubn=true; }
+      else                         { nbs.earnedAddn=true; nbs.earnedSubn=true; }
+      result.level_up=true;
+      result.released_bond = {w:nw, a:na, b:nb};
+    }
+  }
+
+  // Mode/style mutators — preserve bond state across changes.
+  // The phase-selection logic (`_curPhase`) already reads mode at
+  // question time; add/sub/both each have their own phase fields on
+  // the bondState, so switching modes doesn't lose the prior track.
+  setMode(mode) {
+    if (mode === this.mode) return;
+    this.mode = mode;
+    // Clear forced sub-bond (mode-specific), reset lastQ dedupe.
+    this.forcedSubBond = null; this.lastQ = null;
+    this.recomputeActiveSet();
+  }
+
+  // Updates the adult-configured starting-point. Used by practice/entry
+  // style as the absolute `at` filter, and recorded for save/restore.
+  // Does not affect which bonds are released in progress style.
+  setSettingsLevel(settingsLevel) {
+    if (settingsLevel === this.settingsLevel) return;
+    const order = CONFIG.levels.progressionOrder;
+    const oldIdx = order.indexOf(this.settingsLevel);
+    const newIdx = order.indexOf(settingsLevel);
+    const dropped = oldIdx >= 0 && newIdx >= 0 && newIdx < oldIdx;
+    this.settingsLevel = settingsLevel;
+    // Pass 3l: on settings DROP, S-bonds (no earned flag) above the new
+    // settingsLevel get paused — moved back onto the queue at canonical
+    // position. Their bondState is preserved (queued=true gates eligibility
+    // and display, not destruction). Re-emergence: settingsLevel rises, or
+    // the bond reaches the queue head via floor/streak/reward release.
+    if (dropped && this.style === 'progress') {
+      this._pauseAboveLevelSBonds();
+    }
+    // Defensive: clear forcedSubBond if it became queued.
+    if (this.forcedSubBond && this.forcedSubBond.queued) this.forcedSubBond = null;
+    this.recomputeActiveSet();
+  }
+
+  // Pass 3l: pause S-bonds above the current settingsLevel, rebuild queue.
+  // Pause condition: progress style, in engine.bonds, no earned flag,
+  // minLevel above settingsLevel. Rebuild queue from canonical order
+  // including never-released bonds + currently-paused bonds.
+  _pauseAboveLevelSBonds() {
+    for (const bs of this.bonds.values()) {
+      const earned = bs.earnedAddn || bs.earnedSubn;
+      if (!earned && this._levelPosition(bs) === 'above') {
+        bs.queued = true;
+      }
+    }
+    // Rebuild queue: never-released + currently-queued, canonical order.
+    const newQueue = [];
+    for (const [w,a,b] of getMasterList()) {
+      const k = bondKey(w,a,b);
+      const bs = this.bonds.get(k);
+      if (!bs || bs.queued) newQueue.push([w,a,b]);
+    }
+    this.queue = newQueue;
+  }
+
+  // Style toggles queue-feeding + window tracking. Bond state preserved.
+  setStyle(style) {
+    if (style === this.style) return;
+    const wasProgress = this.style === 'progress';
+    this.style = style;
+    // Entering progress style: rebuild queue from master list for bonds
+    // not already in active set. Leaving progress style: drop queue +
+    // windows (they'll be rebuilt if progress is re-entered).
+    if (style === 'progress') {
+      this.queue = [];
+      for (const [w,a,b] of getMasterList()) {
+        const k = bondKey(w,a,b);
+        if (!this.bonds.has(k)) this.queue.push([w,a,b]);
+      }
+    } else if (wasProgress) {
+      this.queue = [];
+      this.bothWindow = []; this.addnWindow = []; this.subnWindow = [];
+    }
+    this.recomputeActiveSet();
+  }
+
+  // By default, queue is NOT persisted — it's a pure function of
+  // activeLevel + style + master list, recomputed on restore. Pass
+  // {includeQueue:true} to keep it (e.g. for debug snapshots).
+  getState({includeQueue = false} = {}) {
+    const s = {
+      activeLevel:this.activeLevel, settingsLevel:this.settingsLevel,
+      mode:this.mode, style:this.style,
+      achievedLevel:this.achievedLevel, rollingWindow:this.rollingWindow,
+      bonds:Object.fromEntries(this.bonds),
+      bothWindow:this.bothWindow, addnWindow:this.addnWindow, subnWindow:this.subnWindow,
+      tick:this.tick,
+    };
+    if (includeQueue) s.queue = this.queue;
+    return s;
+  }
+
+  // Merge new bonds for newLevel into active set without wiping mastery state.
+  // Only adds bonds not already present; does not remove existing bonds.
+  // Called when effectiveLevel advances without a mode/style change.
+  setActiveLevel(newLevel) {
+    this.activeLevel = newLevel;
+    for (const [w,a,b] of getBondsForLevel(newLevel)) {
+      const k = bondKey(w,a,b);
+      if (!this.bonds.has(k)) this.bonds.set(k, this._newState(w,a,b));
+    }
+    // Rebuild queue: all masterReef bonds not already in active set.
+    if (this.style === 'progress') {
+      this.queue = [];
+      for (const [w,a,b] of getMasterList()) {
+        const k = bondKey(w,a,b);
+        if (!this.bonds.has(k)) this.queue.push([w,a,b]);
+      }
+    }
+    this.recomputeActiveSet();
+  }
+
+  static restore(s) {
+    const e=Object.create(BondEngine.prototype);
+    // Back-compat: older saves used `level`; newer saves use `activeLevel`.
+    e.activeLevel = s.activeLevel || s.level;
+    e.mode=s.mode; e.style=s.style;
+    e.achievedLevel = s.achievedLevel || null;
+    e.rollingWindow = s.rollingWindow || [];
+    e.bonds=new Map(Object.entries(s.bonds));
+    e.bothWindow=s.bothWindow||[];
+    e.addnWindow=s.addnWindow||[]; e.subnWindow=s.subnWindow||[];
+    e.forcedSubBond=null; e.lastQ=null;
+    e.settingsLevel = s.settingsLevel || e.activeLevel;
+    e.tick = s.tick || 0;
+    // Back-compat: older saves lack minLevel/isActive/inRetention/lastAskedTick
+    // on bondStates. Back-fill them from the restored bond states.
+    for (const bs of e.bonds.values()) {
+      if (bs.minLevel === undefined) {
+        bs.minLevel = CONFIG.bonds.minLevelForBond(bs.w, bs.a, bs.b);
+      }
+      if (bs.isActive      === undefined) bs.isActive = false;
+      if (bs.inRetention   === undefined) bs.inRetention = false;
+      if (bs.lastAskedTick === undefined) bs.lastAskedTick = 0;
+      // Pass 3d: earned lineage flags (one-way, set on 2 consecutive correct).
+      if (bs.earnedAddn    === undefined) bs.earnedAddn = false;
+      if (bs.earnedSubn    === undefined) bs.earnedSubn = false;
+    }
+    // Queue may be absent (new save format) or present (back-compat).
+    // If absent and style is progress, rebuild from master list as the
+    // set of bonds not already in active set.
+    if (s.queue) {
+      e.queue = s.queue;
+    } else if (e.style === 'progress') {
+      e.queue = [];
+      for (const [w,a,b] of getMasterList()) {
+        const k = bondKey(w,a,b);
+        if (!e.bonds.has(k)) e.queue.push([w,a,b]);
+      }
+    } else {
+      e.queue = [];
+    }
+    // Back-compat: older saves lack active/retention bucket flags.
+    // Recompute unconditionally so the bucketed selector has fresh state.
+    e.recomputeActiveSet();
+    return e;
+  }
+}
+
+// Engine lifecycle helper — replaces the restore/rebuild/merge logic
+// duplicated in every game's start function. Given current user data
+// (may be null for guest) and a desired engine config, returns a
+// BondEngine: restored from saved state then mutated in place
+// (setActiveLevel / setMode / setStyle) to match the desired config.
+// Engine is never rebuilt if a saved one exists — mastery state is
+// preserved across mode/style/level changes.
+function ensureEngine(ud, desiredCfg) {
+  const saved = ud && ud.engine;
+  // Seed achievedLevel/rollingWindow from user data (engine is runtime owner;
+  // ud is the storage record). New engine: constructor reads them from cfg.
+  // Restored engine: saved state is authoritative, user-data values are a
+  // back-compat fallback for saves that predate engine ownership.
+  if (!saved) {
+    return new BondEngine({
+      ...desiredCfg,
+      achievedLevel: ud ? ud.achievedLevel : null,
+      rollingWindow: ud ? (ud.rollingWindow || []).slice() : [],
+    });
+  }
+  const e = BondEngine.restore(saved);
+  if (ud) {
+    if (e.achievedLevel == null && ud.achievedLevel) e.achievedLevel = ud.achievedLevel;
+    if ((!e.rollingWindow || !e.rollingWindow.length) && ud.rollingWindow && ud.rollingWindow.length) {
+      e.rollingWindow = ud.rollingWindow.slice();
+    }
+  }
+  // Apply in this order: style first (rebuilds queue), then level
+  // (merges new bonds), then mode (cheap flag flip).
+  if (e.style !== desiredCfg.style) e.setStyle(desiredCfg.style);
+  const savedLevel = saved.activeLevel || saved.level;
+  if (savedLevel !== desiredCfg.level) e.setActiveLevel(desiredCfg.level);
+  if (e.mode !== desiredCfg.mode) e.setMode(desiredCfg.mode);
+  if (desiredCfg.settingsLevel && e.settingsLevel !== desiredCfg.settingsLevel) {
+    e.setSettingsLevel(desiredCfg.settingsLevel);
+  }
+  return e;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ## STORAGE — IndexedDB with localStorage fallback
+// ═══════════════════════════════════════════════════════════════
+//
+// Why: localStorage is evicted aggressively on iOS Safari (and is the only
+// store available in PWAs without IDB). IndexedDB gives durable, larger
+// storage that survives app close on PC and on iOS once "Add to Home Screen"
+// is used. We keep a synchronous in-memory cache (hydrated at boot) so the
+// rest of the app can keep using sync reads.
+//
+// API (all the rest of the code uses loadData/saveData below — these wrap):
+//   await Storage.init();   // call ONCE at app boot, before any read
+//   Storage.read()          // → object  (sync, from cache)
+//   Storage.write(obj)      // sync to cache+localStorage, async to IDB
+//   Storage.status()        // → { idbAvailable, hasCache }
+//
+// Failure mode: if IDB is unavailable (private mode on old Safari, etc.),
+// silently falls back to localStorage only. Game still works; on iOS the
+// data may be evicted between sessions until PWA install.
+
+const Storage = (() => {
+  const DB_NAME = 'OceanNumberBonds';
+  const STORE   = 'kv';
+  const KEY     = 'data';
+  const LS_KEY  = 'numberbonds_v1';
+
+  let cache = {};
+  let db = null;
+  let idbAvailable = false;
+
+  function openDb() {
+    return new Promise(resolve => {
+      if (!('indexedDB' in window)) { resolve(null); return; }
+      let req;
+      try { req = indexedDB.open(DB_NAME, 1); }
+      catch(e) { resolve(null); return; }
+      req.onupgradeneeded = () => { req.result.createObjectStore(STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => resolve(null);
+      req.onblocked = () => resolve(null);
+    });
+  }
+  function idbGet(database) {
+    return new Promise(resolve => {
+      try {
+        const tx  = database.transaction(STORE, 'readonly');
+        const req = tx.objectStore(STORE).get(KEY);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror   = () => resolve(undefined);
+      } catch(e) { resolve(undefined); }
+    });
+  }
+  function idbPut(database, value) {
+    return new Promise(resolve => {
+      try {
+        const tx = database.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put(value, KEY);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror    = () => resolve(false);
+      } catch(e) { resolve(false); }
+    });
+  }
+  function readLs() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; }
+    catch(e) { return {}; }
+  }
+  function writeLs(data) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); }
+    catch(e) { /* quota or disabled — IDB is the durable store anyway */ }
+  }
+
+  async function init() {
+    db = await openDb();
+    idbAvailable = !!db;
+    if (idbAvailable) {
+      const fromIdb = await idbGet(db);
+      if (fromIdb && typeof fromIdb === 'object') {
+        cache = fromIdb;
+        writeLs(cache);                                  // mirror for safety
+      } else {
+        cache = readLs();
+        if (Object.keys(cache).length) await idbPut(db, cache);
+      }
+    } else {
+      cache = readLs();
+    }
+    return idbAvailable;
+  }
+
+  function read() { return cache; }
+
+  function write(data) {
+    cache = data;
+    writeLs(cache);                                      // immediate sync mirror
+    if (idbAvailable && db) idbPut(db, cache);          // fire-and-forget durable
+  }
+
+  function status() {
+    return { idbAvailable, hasCache: Object.keys(cache).length > 0 };
+  }
+
+  return { init, read, write, status };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// ## PERSISTENCE  (Stage 1 — now backed by Storage module above)
+// ═══════════════════════════════════════════════════════════════
+
+// DEFAULT_SETTINGS is defined in CONFIG.settings.defaults (Stage 2).
+// Alias retained for backward-compat with existing getUserData() callers.
+const DEFAULT_SETTINGS = CONFIG.settings.defaults;
+
+function loadData()        { return Storage.read(); }
+function saveData(data)    { Storage.write(data); }
+function getUsers()        { return loadData().users || []; }
+function saveUsers(users)  { const d=loadData(); d.users=users; saveData(d); }
+function getUserData(id) {
+  const d = loadData()[`u_${id}`];
+  if (!d) return { settings:{...DEFAULT_SETTINGS}, engine:null, achievedLevel:null, rollingWindow:[] };
+  // Back-fill missing fields for existing users.
+  if (d.achievedLevel === undefined) d.achievedLevel = null;
+  if (d.rollingWindow === undefined) d.rollingWindow = [];
+  return d;
+}
+function saveUserData(id,ud){ const d=loadData(); d[`u_${id}`]=ud; saveData(d); }
+
+// ═══════════════════════════════════════════════════════════════
+// ## SOUND — Web Audio tone sequences (Stage 4)
+// ═══════════════════════════════════════════════════════════════
+//
+// Sound.play(name) — play a named sound if it exists.
+// Sound.playTones(notes, volume) — low-level sequencer: notes = [[hz, ms], ...].
+//                                  hz=0 emits a silent gap of `ms` ms.
+// Sound.SOUNDS — the named sound catalogue (useful for tests/debug).
+
+const Sound = (() => {
+  let ctx = null;
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx;
+  }
+  function playTones(notes, volume = 0.4) {
+    try {
+      const c = getCtx(); let t = c.currentTime;
+      notes.forEach(([freq, ms]) => {
+        if (freq === 0) { t += ms / 1000; return; }
+        const osc  = c.createOscillator();
+        const gain = c.createGain();
+        osc.connect(gain); gain.connect(c.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(volume, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + ms / 1000);
+        osc.start(t); osc.stop(t + ms / 1000);
+        t += ms / 1000;
+      });
+    } catch (e) { /* audio disabled or unsupported */ }
+  }
+  const SOUNDS = {
+    correct:  () => playTones([[300,80],[400,80],[600,140]], 0.4),
+    wrong:    () => playTones([[300,80],[240,160]], 0.3),
+    streak3:  () => playTones([[523,80],[659,80],[784,80],[1047,180]]),
+    streak5:  () => playTones([[523,70],[659,70],[784,70],[1047,70],[1319,200]]),
+    streak10: () => playTones([[392,60],[523,60],[659,60],[784,60],[1047,60],[1319,220]]),
+    streak20: () => playTones([[262,50],[330,50],[392,50],[523,50],[659,50],[784,50],[1047,50],[1319,250]]),
+    levelup:  () => playTones([[784,80],[880,80],[988,80],[1047,80],[1175,200]]),
+    timeout:  () => playTones([[330,100],[0,40],[280,180]], 0.3),
+  };
+  function play(name) { if (SOUNDS[name]) SOUNDS[name](); }
+  return { play, playTones, SOUNDS };
+})();
+
+// ── Backward-compat aliases (Stage 4). Existing call sites (snd() in REEF
+//    GAME, etc.) use SOUNDS[name]() and playTones(); both still work.
+const SOUNDS = Sound.SOUNDS;
+function playTones(notes, volume) { return Sound.playTones(notes, volume); }
+
+// ═══════════════════════════════════════════════════════════════
+// ## DRAW — canvas + drawing constants (Stage 4)
+// ═══════════════════════════════════════════════════════════════
+//
+// All layout/colour/pattern constants used by the Reef drawing functions.
+// Grouped under Draw.constants for a single source of truth; flattened to
+// module scope below so existing drawing function bodies (which reference
+// W, H, COL, etc. directly) keep working unchanged.
+//
+// Drawing *functions* (drawBackground, drawOctopus, drawBonds, …) remain
+// defined in their original places further down this section; lifting them
+// into Draw.* would be a bigger, higher-risk change and isn't needed yet.
+
+const Draw = (() => {
+  const constants = {
+    W: 480,
+    H: 460,
+    CW:    { cx:240, cy:145, r:85 },
+    CA:    { cx:118, cy:340, r:68 },
+    CB:    { cx:362, cy:340, r:68 },
+    MON_X: 480 - 68,   // monitor corner X (mirrors MON_X = W-68)
+    MON_Y: 72,
+    COL: {
+      bg:'#0a1a3a',       circleFill:'#e8f4f8',   circleStroke:'#1a5a7a',
+      missingFill:'#e0f8ff', missingStroke:'#00b8d4', missingText:'#005f7a',
+      correctFill:'#b0ffe8', correctStroke:'#008860', correctText:'#003830',
+      wrongCol:'#ff7040',    correctCol:'#40ffcc',
+      timerSand:'#40d8ff',   timerUrgent:'#ff5030',
+    },
+    DICE_PATTERNS: {
+      1: [[ 0,    0  ]],
+      2: [[-0.45,-0.45],[ 0.45, 0.45]],
+      3: [[-0.62,-0.62],[ 0,    0  ],[ 0.62, 0.62]],
+      4: [[-0.62,-0.62],[ 0.62,-0.62],[-0.62, 0.62],[ 0.62, 0.62]],
+      5: [[-0.62,-0.62],[ 0.62,-0.62],[ 0,    0  ],[-0.62, 0.62],[ 0.62, 0.62]],
+    },
+  };
+  return { constants };
+})();
+
+// Flatten Draw.constants to module scope for the existing drawing code.
+const { W, H, CW, CA, CB, MON_X, MON_Y, COL, DICE_PATTERNS } = Draw.constants;
+
+// ═══════════════════════════════════════════════════════════════
+// CANVAS SETUP
+// ═══════════════════════════════════════════════════════════════
+
+// NOTE: let (not const) — canvas/ctx/entry rebound per game via bindActiveCanvas.
+// canvas/entry. Each game's start() calls bindActiveCanvas() to point these
+// module-level handles at its DOM before drawing.
+let canvas = document.getElementById('game-canvas');
+let ctx    = canvas.getContext('2d');
+let entry  = document.getElementById('entry-overlay');
+
+function bindActiveCanvas(canvasId, entryId) {
+  canvas = document.getElementById(canvasId);
+  ctx    = canvas.getContext('2d');
+  entry  = document.getElementById(entryId);
+}
+
+function resizeCanvas() {
+  const gs = document.getElementById('game-screen');
+  const cv = document.getElementById('cave-screen');
+  if (gs && gs.classList.contains('active')) fitReef();
+  if (cv && cv.classList.contains('active')) fitCave();
+  positionEntry();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ═══════════════════════════════════════════════════════════════
+// ## GAME FIT — orientation-aware layout + canvas sizing (shared)
+// ═══════════════════════════════════════════════════════════════
+//
+// Given an aspect ratio and a layout containing two pad panels around a
+// canvas, chooses between side-pads and stack-pads based on which yields
+// a larger canvas, then sizes the canvas (preserving aspect) and pads.
+// Drawing coordinates stay in each game's internal canvas space; CSS scales
+// the display. Also sets --btn-font-size proportional to button dimensions.
+//
+function fitGameLayout(opts) {
+  const layout   = opts.layoutEl;
+  const canvasEl = opts.canvasEl;
+  const leftPad  = opts.leftPad;
+  const rightPad = opts.rightPad;
+  const screen   = opts.containerWidthEl;
+  if (!layout || layout.offsetParent === null) return;
+  if (!canvasEl || !leftPad || !rightPad || !screen) return;
+
+  const padThick = 48;
+  const gap      = 6;
+  const reserveAbove = opts.reserveAbove || 0;
+  const reserveBelow = opts.reserveBelow || 0;
+  const reserveSide  = opts.reserveSide  || 0;
+  const aW = opts.aspectW, aH = opts.aspectH;
+
+  const sw = screen.clientWidth - reserveSide;
+  const sh = window.innerHeight - reserveAbove - reserveBelow;
+  if (sw < 50 || sh < 50) return;
+
+  const n = Keypad.count;
+  if (n === 0) return;
+
+  // Evaluate candidate configurations: mode (side|stack) × split (dual|single).
+  // Score = canvas area, penalized when button short-dim is below MIN_TAP.
+  const MIN_TAP = 34;   // px — below this, buttons feel cramped
+  const PEN     = 500;  // penalty coefficient for cramped buttons
+
+  function evalConfig(mode, split) {
+    // 'single' is only valid when n ≤ 10.
+    if (!split && n > 10) return null;
+    const padCount = split ? 2 : 1;
+    const perPad   = split ? Math.ceil(n/2) : n;
+    let scale;
+    if (mode === 'side') {
+      const aw = Math.max(50, sw - padCount*padThick - padCount*gap);
+      const ah = Math.max(50, sh);
+      scale = Math.min(aw/aW, ah/aH);
+    } else {
+      const aw = Math.max(50, sw);
+      const ah = Math.max(50, sh - padCount*padThick - padCount*gap);
+      scale = Math.min(aw/aW, ah/aH);
+    }
+    if (!(scale > 0)) return null;
+    const cw = aW * scale, ch = aH * scale;
+    const btnLong  = mode === 'side' ? ch/perPad : cw/perPad;
+    const btnShort = Math.min(padThick, btnLong);
+    const deficit  = Math.max(0, MIN_TAP - btnShort);
+    const score    = (cw * ch) - (deficit * deficit * PEN);
+    return { mode, split, cw, ch, btnShort, score };
+  }
+
+  // Iteration order biases ties toward single (preferred when buttons ≥ MIN_TAP).
+  let best = null;
+  for (const split of [false, true]) {
+    for (const mode of ['side', 'stack']) {
+      const r = evalConfig(mode, split);
+      if (r && (!best || r.score > best.score)) best = r;
+    }
+  }
+  if (!best) return;
+
+  // Apply split decision (may re-render keypad DOM).
+  Keypad.setSplit(best.split);
+
+  const useSide = best.mode === 'side';
+  layout.classList.toggle('layout-side',  useSide);
+  layout.classList.toggle('layout-stack', !useSide);
+
+  canvasEl.style.width  = best.cw + 'px';
+  canvasEl.style.height = best.ch + 'px';
+  canvasEl.style.maxWidth = 'none';
+
+  if (useSide) {
+    leftPad.style.width  = padThick + 'px'; leftPad.style.height  = best.ch + 'px';
+    rightPad.style.width = padThick + 'px'; rightPad.style.height = best.ch + 'px';
+  } else {
+    leftPad.style.width  = best.cw + 'px'; leftPad.style.height  = padThick + 'px';
+    rightPad.style.width = best.cw + 'px'; rightPad.style.height = padThick + 'px';
+  }
+
+  const fontPx = Math.max(12, Math.round(best.btnShort * 0.5));
+  layout.style.setProperty('--btn-font-size', fontPx + 'px');
+}
+
+function fitReef() {
+  const topBar = document.getElementById('top-bar');
+  const sumL   = document.getElementById('sum-label');
+  const fbL    = document.getElementById('feedback-label');
+  const btnRow = document.getElementById('btn-row');
+  const topH   = topBar ? topBar.offsetHeight : 0;
+  // Phone-landscape: chrome moves into 64px side rails (CSS rule mirrors this query).
+  const phoneLandscape = window.matchMedia('(orientation: landscape) and (max-height: 480px)').matches;
+  document.documentElement.style.setProperty('--top-bar-h', topH + 'px');
+  fitGameLayout({
+    layoutEl:         document.getElementById('game-layout'),
+    canvasEl:         document.getElementById('game-canvas'),
+    leftPad:          document.getElementById('num-pad-left'),
+    rightPad:         document.getElementById('num-pad-right'),
+    containerWidthEl: document.getElementById('game-screen'),
+    aspectW: W, aspectH: H,
+    reserveAbove: topH,
+    reserveBelow: phoneLandscape ? 0
+                  : (sumL?sumL.offsetHeight:0)
+                  + (fbL?fbL.offsetHeight:0)
+                  + (btnRow?btnRow.offsetHeight:0) + 24,
+    reserveSide:  phoneLandscape ? 256 : 0,
+  });
+}
+
+
+
+let bgSeaweed=[], bgStaticBubbles=[], bgFish=[], bgCoral=[];
+
+function generateBackground() {
+  const swCols=['#006644','#008855','#00aa66'];
+  bgSeaweed=[20,55,W-55,W-20,W/3-10,W/3+20,2*W/3-10,2*W/3+20].map(sx=>({
+    sx, col:swCols[Math.floor(Math.random()*3)],
+    segs:Array.from({length:5},(_,seg)=>({sway:Math.sin(seg*1.2+sx*0.1)*6,seg}))
+  }));
+  bgStaticBubbles=Array.from({length:14},()=>({x:10+Math.random()*(W-20),y:10+Math.random()*(H-50),r:3+Math.random()*5}));
+  bgFish=[[60,80,1],[W-80,120,-1],[200,50,1]];
+  bgCoral=[[W/2-60,H-18,'#cc4444'],[W/2-40,H-22,'#dd6622'],[W/2+40,H-18,'#cc4488'],[W/2+60,H-20,'#cc4444']];
+}
+
+function drawBackground() {
+  ['#0e2a5a','#0a1e48','#081638'].forEach((col,i)=>{ctx.fillStyle=col;ctx.fillRect(0,i*H/3,W,H/3);});
+  ctx.fillStyle='#1a3a6a';
+  [60,160,280,380,440].forEach(rx=>{
+    ctx.beginPath();ctx.moveTo(rx-18,0);ctx.lineTo(rx+18,0);ctx.lineTo(rx+6,H/2);ctx.lineTo(rx-6,H/2);ctx.closePath();ctx.fill();
+  });
+  bgSeaweed.forEach(({sx,col,segs})=>{
+    ctx.fillStyle=col;
+    segs.forEach(({sway,seg})=>{ctx.beginPath();ctx.ellipse(sx+sway,H-20-seg*16,5,8,0,0,Math.PI*2);ctx.fill();});
+  });
+  bgCoral.forEach(([cx2,cy2,col])=>{
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.ellipse(cx2,cy2-7,8,14,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx2-7,cy2-4,5,8,-0.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx2+7,cy2-4,5,8,0.3,0,Math.PI*2);ctx.fill();
+  });
+  drawAnemone();
+  bgFish.forEach(([fx,fy,fs])=>{
+    ctx.fillStyle='#1a4a7a';
+    ctx.beginPath();ctx.ellipse(fx+8*fs,fy,8,4,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(fx-2*fs,fy-5);ctx.lineTo(fx-8*fs,fy-9);ctx.lineTo(fx-8*fs,fy+9);ctx.lineTo(fx-2*fs,fy+5);ctx.closePath();ctx.fill();
+  });
+  ctx.strokeStyle='#2a6a9a';ctx.lineWidth=1;
+  bgStaticBubbles.forEach(({x,y,r})=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();});
+}
+
+function drawAnemone() {
+  const ax=28,ay=H-20;
+  ctx.fillStyle='#cc3366';ctx.beginPath();ctx.ellipse(ax,ay-9,7,9,0,0,Math.PI*2);ctx.fill();
+  const fc=['#ff66aa','#ff44cc','#ee2299','#ff88bb','#dd1177','#ff55aa','#ee3388','#ff77bb'];
+  for(let fi=0;fi<9;fi++){
+    const fang=(-80+fi*20-90)*Math.PI/180, flen=28+(fi%3)*6;
+    const fx1=ax+4*Math.cos(fang),fy1=ay-12+4*Math.sin(fang);
+    const fmx=ax+flen*0.5*Math.cos(fang)+6*Math.cos(fang+Math.PI/2);
+    const fmy=ay-12+flen*0.5*Math.sin(fang)+6*Math.sin(fang+Math.PI/2);
+    const ftx=ax+flen*Math.cos(fang),fty=ay-12+flen*Math.sin(fang);
+    ctx.strokeStyle=fc[fi%fc.length];ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(fx1,fy1);ctx.quadraticCurveTo(fmx,fmy,ftx,fty);ctx.stroke();
+    ctx.fillStyle=fc[fi%fc.length];ctx.beginPath();ctx.arc(ftx,fty,4,0,Math.PI*2);ctx.fill();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — OCTOPUS
+// ═══════════════════════════════════════════════════════════════
+
+function drawOctopus() {
+  const x=MON_X, y=MON_Y+Math.round(octopusBounce);
+  const mood=octopusMood, rot=octopusRot;
+  const bodyRx=26,bodyRy=38, cx=x,cy=y, armCy=cy+bodyRy*0.6;
+  const BODY='#cc5588',DARK='#993366',SUCKER='#ffaad4',EWHITE='#f0f8ff',EDARK='#1a0a2a',CHEEK='#ff88bb';
+  const rotExtra=(mood==='excited'?-10:mood==='sad'?15:0)+rot;
+  [30,50,70,90].forEach(deg=>{
+    [-1,1].forEach(side=>{
+      const ang=Math.PI/2+(deg*side+rotExtra*side)*Math.PI/180;
+      const len=70,push=18;
+      const sx=cx+push*Math.cos(ang),sy=armCy+push*Math.sin(ang);
+      const perp=ang+Math.PI/2*side;
+      const p1x=sx+(len-push)*0.45*Math.cos(ang)+13*Math.cos(perp);
+      const p1y=sy+(len-push)*0.45*Math.sin(ang)+13*Math.sin(perp);
+      const p2x=cx+len*Math.cos(ang)-7*Math.cos(perp);
+      const p2y=armCy+len*Math.sin(ang)-7*Math.sin(perp);
+      ctx.strokeStyle=BODY;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(sx,sy);ctx.quadraticCurveTo(p1x,p1y,p2x,p2y);
+      ctx.lineWidth=7;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(p1x,p1y);ctx.quadraticCurveTo(p1x,p1y,p2x,p2y);
+      ctx.lineWidth=3;ctx.stroke();
+      [0.35,0.72].forEach(t=>{
+        const qx=sx*(1-t)**2+2*p1x*t*(1-t)+p2x*t**2;
+        const qy=sy*(1-t)**2+2*p1y*t*(1-t)+p2y*t**2;
+        ctx.beginPath();ctx.arc(qx,qy,t<0.5?4:3,0,Math.PI*2);
+        ctx.fillStyle=SUCKER;ctx.fill();ctx.strokeStyle=DARK;ctx.lineWidth=1;ctx.stroke();
+      });
+    });
+  });
+  ctx.beginPath();ctx.ellipse(cx,cy,bodyRx,bodyRy,0,0,Math.PI*2);ctx.fillStyle=BODY;ctx.fill();ctx.strokeStyle=DARK;ctx.lineWidth=2;ctx.stroke();
+  const eyeY=cy-14,mouthY=cy+6;
+  if (mood==='sad') {
+    [cx-9,cx+9].forEach(ex=>{
+      ctx.beginPath();ctx.arc(ex,eyeY,6,0.3,Math.PI-0.3);ctx.strokeStyle=EDARK;ctx.lineWidth=2;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(ex-1,eyeY+4);ctx.lineTo(ex+3,eyeY+7);ctx.lineTo(ex+2,eyeY+13);
+      ctx.lineTo(ex,eyeY+17);ctx.lineTo(ex-2,eyeY+13);ctx.lineTo(ex-3,eyeY+7);ctx.closePath();
+      ctx.fillStyle='#80c8ff';ctx.fill();
+    });
+    ctx.beginPath();ctx.arc(cx,mouthY+6,9,Math.PI+0.35,-0.35);ctx.strokeStyle=EDARK;ctx.lineWidth=2;ctx.stroke();
+  } else {
+    [cx-9,cx+9].forEach(ex=>{
+      ctx.beginPath();ctx.ellipse(ex,eyeY,6,6,0,0,Math.PI*2);ctx.fillStyle=EWHITE;ctx.fill();ctx.strokeStyle=EDARK;ctx.lineWidth=1;ctx.stroke();
+      ctx.beginPath();ctx.arc(ex,eyeY+2,3.5,0,Math.PI*2);ctx.fillStyle=EDARK;ctx.fill();
+      ctx.beginPath();ctx.arc(ex-1.5,eyeY+0.5,1.2,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();
+      if(mood==='excited'){ctx.fillStyle='#ffe040';ctx.font='bold 9px sans-serif';ctx.fillText('★',ex-5,eyeY+8);}
+    });
+    if (mood==='happy'||mood==='excited') {
+      ctx.beginPath();ctx.arc(cx,mouthY+4,10,0.25,Math.PI-0.25);ctx.strokeStyle=EDARK;ctx.lineWidth=2.5;ctx.stroke();
+      [cx-17,cx+17].forEach(chx=>{ctx.beginPath();ctx.ellipse(chx,mouthY,5,4,0,0,Math.PI*2);ctx.fillStyle=CHEEK;ctx.globalAlpha=0.6;ctx.fill();ctx.globalAlpha=1;});
+      if (mood==='excited') {
+        ctx.fillStyle='#ffe040';ctx.strokeStyle='#cc9900';ctx.lineWidth=1.5;
+        const crownY=cy-bodyRy-4;
+        ctx.beginPath();
+        [[cx-14,crownY+8],[cx-10,crownY],[cx-5,crownY+8],[cx,crownY-4],[cx+5,crownY+8],[cx+10,crownY],[cx+14,crownY+8]].forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+        ctx.closePath();ctx.fill();ctx.stroke();
+      }
+    } else {
+      ctx.beginPath();ctx.moveTo(cx-7,mouthY+2);ctx.lineTo(cx+7,mouthY+2);ctx.strokeStyle=EDARK;ctx.lineWidth=2;ctx.stroke();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — SAND TIMER
+// ═══════════════════════════════════════════════════════════════
+
+function drawSandTimer() {
+  if (cfg.timer!=='on') return;
+  const tx=28,ty=18,tw=30,th=54;
+  const frac=Math.max(0,timeLeft/10), urgent=timeLeft<=3;
+  const sandCol=urgent?COL.timerUrgent:COL.timerSand, frameCol='#1a6090', glassCol='#0a2848';
+  const midY=ty+th/2;
+  ctx.fillStyle=glassCol;
+  ctx.beginPath();ctx.moveTo(tx-tw,ty);ctx.lineTo(tx+tw,ty);ctx.lineTo(tx,midY);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(tx-tw,ty+th);ctx.lineTo(tx+tw,ty+th);ctx.lineTo(tx,midY);ctx.closePath();ctx.fill();
+  const topH=Math.floor(th/2*frac);
+  if(topH>1){const sandTop=ty+(th/2-topH),wAtTop=tw*(midY-sandTop)/(th/2);ctx.fillStyle=sandCol;ctx.beginPath();ctx.moveTo(tx-wAtTop,sandTop);ctx.lineTo(tx+wAtTop,sandTop);ctx.lineTo(tx,midY);ctx.closePath();ctx.fill();}
+  const botH=Math.floor(th/2*(1-frac));
+  if(botH>1){const baseY=ty+th,topY=baseY-botH,wAtBotTop=tw*(topY-midY)/(th/2);ctx.fillStyle=sandCol;ctx.beginPath();ctx.moveTo(tx-wAtBotTop,topY);ctx.lineTo(tx+wAtBotTop,topY);ctx.lineTo(tx+tw,baseY);ctx.lineTo(tx-tw,baseY);ctx.closePath();ctx.fill();}
+  ctx.strokeStyle=frameCol;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(tx-tw,ty);ctx.lineTo(tx+tw,ty);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx-tw,ty+th);ctx.lineTo(tx+tw,ty+th);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx-tw,ty);ctx.lineTo(tx,midY);ctx.lineTo(tx+tw,ty);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx-tw,ty+th);ctx.lineTo(tx,midY);ctx.lineTo(tx+tw,ty+th);ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — BONDS / CIRCLES / DOTS
+// ═══════════════════════════════════════════════════════════════
+
+function decompose(n) {
+  const g=[]; let r=n;
+  while(r>0){const v=Math.min(5,r);g.push(v);r-=v;}
+  return g;
+}
+
+function getDotColours(circleIdx) {
+  if (circleIdx===1) return Array(partA).fill('#e07010');
+  if (circleIdx===2) return Array(partB).fill('#2060c0');
+  return Array(partA).fill('#e07010').concat(Array(partB).fill('#2060c0'));
+}
+
+function drawDots(cx,cy,r,n,withNumbers,colours,fullCircle) {
+  if(n===0) return;
+  const groups=decompose(n), ng=groups.length;
+  const margin=r*0.10;
+  const dotTop=fullCircle?cy-r+margin:cy+r*0.07, dotBot=cy+r-margin;
+  const zoneH=dotBot-dotTop, zoneW=2*r-2*margin;
+  const midX=cx, midY=dotTop+zoneH/2;
+  const cols=ng<=2?ng:2, rows=Math.ceil(ng/cols);
+  const subW=zoneW/cols, subH=zoneH/rows;
+  const refZoneH=r*0.83, refZoneW=zoneW;
+  const refSubW=refZoneW/cols, refSubH=refZoneH/rows;
+  const half=Math.min(refSubW,refSubH)*(n>10?0.42:0.34)*(fullCircle?1.2:1.0);
+  const dotR=Math.max(2.5,Math.min(9,half*(n>10?0.40:0.34)))*0.9;
+  let centres=[];
+  if(n>10&&cols===2){
+    const colSpacing=half*2.4, rowSpacing=fullCircle?half*2.0:subH, totalRowH=rowSpacing*(rows-1);
+    for(let gi=0;gi<ng;gi++){const col=gi%cols,row=Math.floor(gi/cols);centres.push([midX+(col===0?-colSpacing/2:colSpacing/2),midY-totalRowH/2+row*rowSpacing]);}
+  } else if(n>=6&&cols===2){
+    const colSpacing=half*2.0;
+    for(let gi=0;gi<ng;gi++){const col=gi%cols,row=Math.floor(gi/cols);centres.push([midX+(col===0?-colSpacing/2:colSpacing/2),dotTop+subH*row+subH/2]);}
+  } else {
+    for(let gi=0;gi<ng;gi++){const col=gi%cols,row=Math.floor(gi/cols);centres.push([(cx-r+margin)+subW*col+subW/2,dotTop+subH*row+subH/2]);}
+  }
+  if(ng===1) centres=[[midX,midY]];
+  const spread=n>10?0.95:0.78; let dotIdx=0;
+  groups.forEach((gval,gi)=>{
+    const [scx,scy]=centres[gi], pat=DICE_PATTERNS[gval]||DICE_PATTERNS[5];
+    pat.forEach(([dx,dy])=>{
+      const px=scx+dx*half*spread, py=scy+dy*half*spread;
+      ctx.beginPath();ctx.arc(px,py,dotR,0,Math.PI*2);
+      ctx.fillStyle=colours[dotIdx]||'#888';ctx.fill(); dotIdx++;
+    });
+  });
+}
+
+// Early maths: to5 or doubles10 with counters display
+function isEarlyMaths() {
+  return (cfg.level==='to5'||cfg.level==='doubles10') && cfg.display==='counters';
+}
+
+function useSplitDiceForWhole() {
+  const withDots=cfg.display==='counters'||cfg.display==='both';
+  if(!withDots) return false;
+  if(isEarlyMaths()) return true;
+  return cfg.level==='to5'||cfg.level==='doubles10';
+}
+
+function drawWholeSplitDice(c,withNum) {
+  const countersOnly=cfg.display==='counters', r=c.r, margin=r*0.10;
+  const dotTop=countersOnly?c.cy-r+margin:c.cy+r*0.07, dotBot=c.cy+r-margin;
+  const zoneH=dotBot-dotTop, zoneW=2*r-2*margin, gap=r*0.08;
+  const halfW=(zoneW-gap)/2;
+  const lcx=c.cx-gap/2-halfW/2, rcx=c.cx+gap/2+halfW/2;
+  const refZoneH=r*0.83, half=Math.min(halfW,refZoneH)*0.34*(countersOnly?1.2:1.0);
+  const dotR=Math.max(2.5,Math.min(9,half*0.34))*0.9, spread=0.78;
+  [[partA,lcx,'#e07010'],[partB,rcx,'#2060c0']].forEach(([val,scx,col])=>{
+    if(val===0) return;
+    const groups=[]; let rem=val; while(rem>0){const v=Math.min(5,rem);groups.push(v);rem-=v;}
+    const rowH=zoneH/groups.length;
+    groups.forEach((gval,gi)=>{
+      const scy=dotTop+rowH*gi+rowH/2;
+      (DICE_PATTERNS[gval]||DICE_PATTERNS[5]).forEach(([dx,dy])=>{
+        ctx.beginPath();ctx.arc(scx+dx*half*spread,scy+dy*half*spread,dotR,0,Math.PI*2);
+        ctx.fillStyle=col;ctx.fill();
+      });
+    });
+  });
+  ctx.strokeStyle='rgba(100,140,160,0.35)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(c.cx,dotTop+r*0.05);ctx.lineTo(c.cx,dotBot-r*0.05);ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawBonds() {
+  const circles=[
+    {c:CW,val:whole, isMiss:missing==='whole', fsize:46,idx:0},
+    {c:CA,val:partA, isMiss:missing==='partA', fsize:38,idx:1},
+    {c:CB,val:partB, isMiss:missing==='partB', fsize:38,idx:2},
+  ];
+  ctx.strokeStyle='#ffffff';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(CW.cx,CW.cy);ctx.lineTo(CA.cx,CA.cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(CW.cx,CW.cy);ctx.lineTo(CB.cx,CB.cy);ctx.stroke();
+
+  circles.forEach(({c,val,isMiss,fsize,idx})=>{
+    ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+    ctx.fillStyle=isMiss?COL.missingFill:COL.circleFill;ctx.fill();
+    ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+    if(isMiss){ctx.setLineDash([8,5]);ctx.strokeStyle=COL.missingStroke;ctx.lineWidth=3;}
+    else      {ctx.setLineDash([]);ctx.strokeStyle=COL.circleStroke;ctx.lineWidth=3;}
+    ctx.stroke();ctx.setLineDash([]);
+
+    if(isEarlyMaths()&&isMiss){
+      ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);ctx.fillStyle=COL.circleFill;ctx.fill();
+      ctx.setLineDash([]);ctx.strokeStyle=COL.circleStroke;ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);ctx.stroke();
+      const disp=cfg.display, withDots=disp==='counters'||disp==='both', countersOnly=disp==='counters';
+      if(withDots){
+        if(idx===0) drawWholeSplitDice(c,false);
+        else drawDots(c.cx,c.cy,c.r,val,false,getDotColours(idx),countersOnly);
+      }
+      return;
+    }
+
+    if(!isMiss){
+      const disp=cfg.display, withDots=disp==='counters'||disp==='both', countersOnly=disp==='counters';
+      const withNum=isEarlyMaths()?true:disp==='numbers'||disp==='both';
+      if(withNum){
+        const numY=withDots?c.cy-c.r*0.45:c.cy;
+        ctx.fillStyle='#2a1a00';ctx.font=`bold ${fsize}px Trebuchet MS`;
+        ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(val,c.cx,numY);
+      }
+      if(withDots){
+        if(idx===0&&useSplitDiceForWhole()) drawWholeSplitDice(c,withNum);
+        else drawDots(c.cx,c.cy,c.r,val,withNum,getDotColours(idx),countersOnly);
+      }
+    }
+  });
+}
+
+function drawRevealCircle(miss,correctVal) {
+  let c,fsize;
+  if(miss==='whole'){c=CW;fsize=46;} else if(miss==='partA'){c=CA;fsize=38;} else{c=CB;fsize=38;}
+
+  ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
+  ctx.fillStyle   = skipMode ? COL.circleFill   : COL.correctFill;   ctx.fill();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = skipMode ? COL.circleStroke : COL.correctStroke; ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);ctx.stroke();
+
+  const disp=cfg.display, withDots=disp==='counters'||disp==='both', countersOnly=disp==='counters';
+  const withNum=isEarlyMaths()?true:disp==='numbers'||disp==='both';
+  if(withNum){
+    const numY=withDots?c.cy-c.r*0.45:c.cy;
+    ctx.fillStyle=skipMode?COL.missingText:COL.correctText;
+    ctx.font=`bold ${fsize}px Trebuchet MS`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(correctVal,c.cx,numY);
+  }
+  if(withDots){
+    const idx=miss==='whole'?0:miss==='partA'?1:2;
+    if(idx===0&&useSplitDiceForWhole()) drawWholeSplitDice(c,withNum);
+    else drawDots(c.cx,c.cy,c.r,correctVal,withNum,getDotColours(idx),countersOnly);
+  }
+  if(!skipMode){
+    for(let i=0;i<6;i++){
+      const ang=Math.random()*Math.PI*2, dist=c.r+8+Math.random()*20;
+      ctx.fillStyle=['#ffe040','#ff8020','#c8f060'][Math.floor(Math.random()*3)];
+      ctx.font=`${5+Math.floor(Math.random()*6)}px sans-serif`;
+      ctx.fillText('★',c.cx+dist*Math.cos(ang),c.cy+dist*Math.sin(ang));
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — BUBBLES
+// ═══════════════════════════════════════════════════════════════
+
+function spawnBubble(startY) {
+  bubbles.push({x:15+Math.random()*(W-30),y:startY!==undefined?startY:H-10,r:4+Math.random()*6,speed:0.6+Math.random()*1.2});
+}
+function updateBubbles() {
+  if(Math.random()<0.18) spawnBubble();
+  bubbles=bubbles.filter(b=>{b.x+=(Math.random()-0.5)*0.8;b.y-=b.speed;return b.y+b.r>0;});
+}
+function drawBubbles() {
+  ctx.strokeStyle='#4ab8e0';ctx.lineWidth=1;
+  bubbles.forEach(b=>{
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#a0e0ff';ctx.beginPath();ctx.ellipse(b.x-b.r/3,b.y-b.r*0.5,b.r/3,b.r/4,0,0,Math.PI*2);ctx.fill();
+  });
+}
+function startBubbles() {
+  if(bubbleAnimId) clearInterval(bubbleAnimId);
+  bubbleAnimId=setInterval(()=>{updateBubbles();redraw();},80);
+}
+function stopBubbles() {
+  if(bubbleAnimId){clearInterval(bubbleAnimId);bubbleAnimId=null;}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWING — STARBURST
+// ═══════════════════════════════════════════════════════════════
+
+let burstStep=0,burstTotal=8,burstRays=16,burstCx=240,burstCy=230;
+const BURST_COLS=['#40ffcc','#00d4ff','#ff80c0','#ffff60','#80ffff','#ff6090'];
+
+function drawBurst() {
+  if(burstStep>burstTotal) return;
+  const frac=burstStep/burstTotal, length=120*frac;
+  for(let i=0;i<burstRays;i++){
+    const ang=2*Math.PI*i/burstRays, col=BURST_COLS[Math.floor(Math.random()*BURST_COLS.length)];
+    ctx.strokeStyle=col;ctx.lineCap='round';ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(burstCx+length*0.15*Math.cos(ang),burstCy+length*0.15*Math.sin(ang));ctx.lineTo(burstCx+length*0.45*Math.cos(ang),burstCy+length*0.45*Math.sin(ang));ctx.stroke();
+    ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(burstCx+length*0.45*Math.cos(ang),burstCy+length*0.45*Math.sin(ang));ctx.lineTo(burstCx+length*Math.cos(ang),burstCy+length*Math.sin(ang));ctx.stroke();
+    const sz=Math.max(6,Math.floor(14*frac));ctx.fillStyle=col;ctx.font=`${sz}px sans-serif`;ctx.fillText('★',burstCx+length*Math.cos(ang)-4,burstCy+length*Math.sin(ang)+4);
+  }
+  burstStep++;
+  burstAnimId=setTimeout(redraw,burstStep<burstTotal/2?40:60);
+}
+function startBurst(cx,cy,rays) {
+  if(burstAnimId) clearTimeout(burstAnimId);
+  burstStep=0;burstRays=rays;burstCx=cx;burstCy=cy;burstTotal=8;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BANNERS
+// ═══════════════════════════════════════════════════════════════
+
+function showLevelUpBanner() {
+  banners.push({text1:'🐚  New bond unlocked!  🐚',text2:'Swim deeper!',
+    col1:'#40ffcc',col2:'#80d8ff',border:'#40ffcc',until:Date.now()+1800});
+}
+function showGraduationBanner(w,a,b) {
+  banners.push({text1:`🎓  You learnt  ${a} + ${b} = ${w}  🎓`,text2:'This bond is now in free play!',
+    col1:'#ffd700',col2:'#80d8ff',border:'#ffd700',until:Date.now()+2500});
+  snd('levelup');
+}
+function drawBanners() {
+  const now=Date.now(); banners=banners.filter(b=>b.until>now);
+  banners.forEach(b=>{
+    const cx=240,cy=H/2;
+    ctx.fillStyle='#0a1e40';ctx.beginPath();roundRect(ctx,cx-165,cy-32,330,64,6);ctx.fill();
+    ctx.strokeStyle=b.border;ctx.lineWidth=3;ctx.beginPath();roundRect(ctx,cx-165,cy-32,330,64,6);ctx.stroke();
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='bold 14px Trebuchet MS';ctx.fillStyle=b.col1;ctx.fillText(b.text1,cx,cy-10);
+    ctx.font='11px Trebuchet MS';ctx.fillStyle=b.col2;ctx.fillText(b.text2,cx,cy+12);
+  });
+}
+function roundRect(c2,x,y,w,h,r) {
+  c2.moveTo(x+r,y);c2.lineTo(x+w-r,y);c2.arcTo(x+w,y,x+w,y+r,r);
+  c2.lineTo(x+w,y+h-r);c2.arcTo(x+w,y+h,x+w-r,y+h,r);
+  c2.lineTo(x+r,y+h);c2.arcTo(x,y+h,x,y+h-r,r);
+  c2.lineTo(x,y+r);c2.arcTo(x,y,x+r,y,r);c2.closePath();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN DRAW
+// ═══════════════════════════════════════════════════════════════
+
+function redraw() {
+  ctx.clearRect(0,0,W,H);
+  drawBackground(); drawBubbles(); drawOctopus(); drawSandTimer();
+  drawBonds();
+  if(revealed) drawRevealCircle(missing,correct);
+  if(burstStep<=burstTotal) drawBurst();
+  drawBanners();
+  positionEntry();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENTRY WIDGET POSITIONING
+// ═══════════════════════════════════════════════════════════════
+
+function positionEntry() {
+  if(entry.disabled){entry.style.display='none';return;}
+  const rectW = canvas.getBoundingClientRect().width;
+  const scale = (rectW && W) ? (rectW / W) : 1;
+  let c,fsize,entryW,entryH;
+  if     (missing==='whole') {c=CW;fsize=38;}
+  else if(missing==='partA') {c=CA;fsize=32;}
+  else if(missing==='partB') {c=CB;fsize=32;}
+  else {entry.style.display='none';return;}
+  const disp=cfg.display, withDots=disp==='counters'||disp==='both';
+  entryW=c.r*1.1*2*scale; entryH=(withDots?c.r*0.60:c.r*0.80)*2*scale;
+  const entryY=withDots?c.cy-c.r*0.38:c.cy;
+  const rect=canvas.getBoundingClientRect();
+  entry.style.display='block';
+  entry.style.left=(rect.left+(c.cx-c.r*1.1)*scale)+'px';
+  entry.style.top =(rect.top +(entryY-entryH/2/scale)*scale)+'px';
+  entry.style.width=entryW+'px'; entry.style.height=entryH+'px';
+  entry.style.fontSize=(fsize*scale)+'px'; entry.style.lineHeight=entryH+'px';
+  entry.style.position='fixed';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OCTOPUS ANIMATION
+// ═══════════════════════════════════════════════════════════════
+
+function startOctopusBounce(cycles) {
+  if(octopusAnimId) clearInterval(octopusAnimId);
+  const framesPerCycle=24, totalFrames=cycles*framesPerCycle; let frame=0;
+  octopusAnimId=setInterval(()=>{
+    const phase=frame/framesPerCycle*Math.PI*2;
+    octopusBounce=-Math.abs(Math.sin(phase))*18; octopusRot=Math.sin(phase)*10;
+    redraw(); frame++;
+    if(frame>=totalFrames){clearInterval(octopusAnimId);octopusAnimId=null;octopusBounce=0;octopusRot=0;octopusMood='happy';redraw();}
+  },50);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ## KEYPAD — shared number pad (Stage A)
+// ═══════════════════════════════════════════════════════════════
+//
+// Usage:
+//   Keypad.mount(leftEl, rightEl)
+//   Keypad.setChoices([1,2,3,...], pickFn)   // pickFn(number) called on tap
+//
+// Policy:
+//  - ≤10 choices -> single pad (right/below). Left pad hidden.
+//  - >10 choices -> split in two halves across left and right pads.
+// Buttons stretch to fill their parent; parent is sized by the per-game fit fn.
+//
+const Keypad = (function(){
+  let leftEl=null, rightEl=null;
+  let choices=[], pickCb=null;
+  let dual=false;
+
+  function mount(left, right) {
+    leftEl  = typeof left  === 'string' ? document.getElementById(left)  : left;
+    rightEl = typeof right === 'string' ? document.getElementById(right) : right;
+  }
+  function setChoices(nums, onPick) {
+    choices = nums.slice();
+    pickCb  = onPick || null;
+    // Default: auto-split when >10 choices. Fit fn may override via setSplit.
+    dual    = choices.length > 10;
+    render();
+  }
+  function setSplit(wantDual) {
+    wantDual = !!wantDual;
+    if (wantDual === dual) return;
+    // Must always split if >10 choices.
+    if (choices.length > 10) { dual = true; return; }
+    dual = wantDual;
+    render();
+  }
+  function addBtn(parent, val) {
+    const b = document.createElement('button');
+    b.className = 'num-pad-btn';
+    b.textContent = val;
+    b.onclick = () => { if (pickCb) pickCb(val); };
+    parent.appendChild(b);
+  }
+  function render() {
+    if(!leftEl || !rightEl) return;
+    leftEl.innerHTML = ''; rightEl.innerHTML = '';
+    if (dual) {
+      const half = Math.ceil(choices.length/2);
+      choices.forEach((v, i) => addBtn(i < half ? leftEl : rightEl, v));
+      leftEl.style.display = ''; rightEl.style.display = '';
+    } else {
+      leftEl.style.display = 'none';
+      rightEl.style.display = '';
+      choices.forEach(v => addBtn(rightEl, v));
+    }
+  }
+  return { mount, setChoices, setSplit,
+    get dual(){return dual;},
+    get count(){return choices.length;} };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// ## REEF GAME — GAME STATE  (Stage 3 → Games.reef.state)
+// ═══════════════════════════════════════════════════════════════
+
+let cfg    = {};
+let engine = null;
+let currentQ = null;
+let score=0, total=0, streak=0;
+let whole, partA, partB, missing, correct;
+let skipMode      = false;
+let octopusMood   = 'thinking';
+let octopusBounce = 0, octopusRot = 0;
+let octopusAnimId = null, revealTimeout = null;
+let timerInterval = null, timeLeft = 10;
+let revealed = false;
+let bubbleAnimId = null, bubbles = [];
+let burstAnimId = null, banners = [];
+let sadResetId = null;
+
+// ─── session ───
+let currentUser   = null;  // { id, name } or null for guest
+let activeSettings = null; // raw settings from settings screen
+let lockQ = null;          // { a, b, answer }
+
+// ═══════════════════════════════════════════════════════════════
+// ## REEF GAME — GAME FLOW  (Stage 3 → Games.reef)
+// ═══════════════════════════════════════════════════════════════
+
+function snd(name) { if(cfg.sound==='on'&&SOUNDS[name]) SOUNDS[name](); }
+
+function updateScore() {
+  document.getElementById('score-label').textContent=`⭐ ${score} / ${total}`;
+}
+function showFeedback(msg,col) {
+  const el=document.getElementById('feedback-label'); el.textContent=msg; el.style.color=col;
+}
+function updateSumLabel() {
+  const el=document.getElementById('sum-label');
+  if (missing==='whole') {
+    el.innerHTML=`${partA} + ${partB} = ?`;
+  } else if (missing==='partA') {
+    el.innerHTML=`? + ${partB} = ${whole}<br><br>${whole} − ${partB} = ?`;
+  } else {
+    el.innerHTML=`${partA} + ? = ${whole}<br><br>${whole} − ${partA} = ?`;
+  }
+}
+
+function buildNumPad() {
+  Keypad.mount('num-pad-left', 'num-pad-right');
+  // Button range is driven purely by the selected level.
+  const show20 = ['exact20','doubles20','upto20'].includes(cfg.level);
+  const nums = [];
+  for (let n=1; n<=10; n++) nums.push(n);
+  if (show20) for (let n=11; n<=20; n++) nums.push(n);
+  Keypad.setChoices(nums, (val) => {
+    if (entry.disabled) return;
+    entry.value = val;
+    checkAnswer();
+  });
+  fitReef();
+}
+
+// Flush engine state to storage immediately.
+function saveEngineState() {
+  if(!currentUser) return;
+  const ud=getUserData(currentUser.id);
+  ud.engine=engine.getState();
+  saveUserData(currentUser.id,ud);
+  saveCounter = 0;
+}
+
+// Per-question save cadence: flush every SAVE_EVERY answers + on exit.
+// Always flush on graduation/level_up/level_advance so rare events are
+// not lost if the app closes before the counter trips.
+let saveCounter = 0;
+const SAVE_EVERY = 8;
+function bumpSave(result) {
+  const significant = result && (result.graduation || result.level_up ||
+                                 result.level_advanced_to);
+  if (significant) { saveEngineState(); return; }
+  saveCounter++;
+  if (saveCounter >= SAVE_EVERY) saveEngineState();
+}
+
+// Called after engine.recordAnswer() in progress style.
+// Engine owns the advancement logic + rolling window; this function
+// just mirrors engine state back onto the user record for persistence.
+function maybeAdvanceAchievedLevel(result, isCorrect) {
+  if (!currentUser || cfg.style !== 'progress') return;
+  const ud = getUserData(currentUser.id);
+  ud.achievedLevel  = engine.achievedLevel;
+  ud.rollingWindow  = engine.rollingWindow.slice();
+  saveUserData(currentUser.id, ud);
+}
+
+function newQuestion() {
+  stopTimer(); revealed=false; skipMode=false;
+  entry.value=''; entry.disabled=false;
+  currentQ=engine.nextQuestion();
+  if(!currentQ) return;
+  whole=currentQ.whole; partA=currentQ.partA; partB=currentQ.partB;
+  missing=currentQ.missing; correct=currentQ.correctAnswer;
+  updateSumLabel();
+  if(!octopusAnimId) octopusMood='thinking';
+  buildNumPad(); redraw(); updateScore(); startTimer();
+  setTimeout(()=>{entry.focus();positionEntry();},50);
+}
+
+function checkAnswer() {
+  const raw=entry.value.trim();
+  if(!raw){showFeedback('Type a number first!',COL.wrongCol);return;}
+  const val=parseInt(raw);
+  if(isNaN(val)){showFeedback('Numbers only!',COL.wrongCol);return;}
+  stopTimer();
+  const isCorrect=val===correct; total++;
+  const result=engine.recordAnswer(currentQ,isCorrect);
+  bumpSave(result);
+  maybeAdvanceAchievedLevel(result, isCorrect);
+  if(isCorrect){
+    score++;streak++;
+    octopusMood='happy'; skipMode=false; revealed=true; redraw();
+    handleStreak(); updateScore();
+    entry.disabled=true; entry.style.display='none';
+    if(result.graduation) showGraduationBanner(result.graduation_bond.w,result.graduation_bond.a,result.graduation_bond.b);
+    if(result.level_up)   showLevelUpBanner();
+    if(revealTimeout) clearTimeout(revealTimeout);
+    revealTimeout=setTimeout(newQuestion,1500);
+  } else {
+    streak=0; document.getElementById('streak-label').textContent='';
+    octopusMood='sad'; redraw();
+    showFeedback('Not quite — try again! 🐙',COL.wrongCol); snd('wrong');
+    entry.value='';
+    if(sadResetId) clearTimeout(sadResetId);
+    sadResetId=setTimeout(()=>{if(octopusMood==='sad'){octopusMood='thinking';redraw();}},1500);
+    updateScore(); startTimer();
+  }
+}
+
+function handleStreak() {
+  const STREAK_MSGS={
+    3:  ['3 in a row! 🌊','#40ffcc'],
+    5:  ['5 in a row! Amazing! 🐠','#00d4ff'],
+    10: ['10 in a row! SUPERSTAR! ⭐','#ffff60'],
+    20: ['20 IN A ROW! LEGENDARY! 🏆','#ff80c0'],
+    50: ['50 IN A ROW! UNBELIEVABLE! 🌟','#ff40ff'],
+    75: ['75 IN A ROW! INCREDIBLE! 🔱','#40ffff'],
+    100:['100 IN A ROW! CHAMPION! 👑','#ffffff'],
+  };
+  const BRILLIANT=['✓ Brilliant! Keep swimming! 🌊','✓ Fantastic! You\'re on a roll! 🐠',
+    '✓ Excellent! Don\'t stop now! ⭐','✓ Amazing work! Keep going! 🐙',
+    '✓ Super! Ride that wave! 🌊','✓ Wonderful! You\'re flying! 🐡',
+    '✓ Outstanding! More! More! 🦀','✓ Splendid! Keep it up! 🐚'];
+  const streakSounds={3:'streak3',5:'streak5',10:'streak10',20:'streak20',50:'streak20',75:'streak20',100:'streak20'};
+  if(STREAK_MSGS[streak]){
+    const [msg,col]=STREAK_MSGS[streak];
+    showFeedback(msg,col);
+    document.getElementById('streak-label').textContent=`🌊 ${streak} in a row!`;
+    snd(streakSounds[streak]||'streak3');
+    const rays=streak>=50?24:streak>=10?20:14, cycles=streak>=50?5:streak>=10?4:3;
+    startBurst(W/2,H/2,rays); octopusMood='excited'; startOctopusBounce(cycles);
+  } else if(streak>=2){
+    showFeedback(BRILLIANT[Math.floor(Math.random()*BRILLIANT.length)],COL.correctCol);
+    document.getElementById('streak-label').textContent=`🌊 ${streak} in a row!`;
+    snd('correct');
+  } else {
+    document.getElementById('streak-label').textContent='';
+    showFeedback('✓ Correct! Well done! 🐠',COL.correctCol); snd('correct');
+  }
+}
+
+function skipQuestion() {
+  if(entry.disabled) return;
+  stopTimer(); total++; streak=0;
+  document.getElementById('streak-label').textContent='';
+  const result=engine.recordAnswer(currentQ,false);
+  bumpSave(result); updateScore();
+  // Show answer neutrally (no green, no celebration)
+  skipMode=true; revealed=true; redraw();
+  showFeedback(`Answer: ${correct}`,'#7090a8');
+  entry.disabled=true; entry.style.display='none';
+  if(revealTimeout) clearTimeout(revealTimeout);
+  revealTimeout=setTimeout(newQuestion,1500);
+}
+
+function startTimer() {
+  if(cfg.timer!=='on') return;
+  stopTimer(); timeLeft=10;
+  timerInterval=setInterval(()=>{
+    timeLeft--; redraw();
+    if(timeLeft<=0){
+      stopTimer(); total++;
+      const result=engine.recordAnswer(currentQ,false); bumpSave(result);
+      octopusMood='sad'; revealed=false; redraw();
+      showFeedback(`Time's up! Answer: ${correct} 🐙`,COL.wrongCol); snd('timeout');
+      updateScore(); setTimeout(newQuestion,1400);
+    }
+  },1000);
+}
+function stopTimer() {
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ## SCREENS — screen navigation (Stage 4)
+// ═══════════════════════════════════════════════════════════════
+//
+// Screens.show(id) — hide all .screen elements, show the one matching id.
+// Screens.current() — id of the currently-active screen (or null).
+//
+// Screen-specific init logic (initUserScreen, showSettingsScreen, etc.)
+// remains defined in its current section; those are *populate-then-show*
+// helpers, not pure screen navigation.
+
+const Screens = (() => {
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+  function current() {
+    const el = document.querySelector('.screen.active');
+    return el ? el.id : null;
+  }
+  return { show, current };
+})();
+
+// ── Backward-compat alias (Stage 4). Every call site uses showScreen(id).
+function showScreen(id) { return Screens.show(id); }
+
+// ═══════════════════════════════════════════════════════════════
+// ## SCREENS — USER SCREEN
+// ═══════════════════════════════════════════════════════════════
+
+function initUserScreen() {
+  const list=document.getElementById('user-list'); list.innerHTML='';
+  // Guest
+  const gBtn=document.createElement('button'); gBtn.className='user-btn guest';
+  gBtn.textContent='Play as Guest (no data saved)';
+  gBtn.onclick=()=>selectUser(null);
+  list.appendChild(gBtn);
+  // Named users
+  getUsers().forEach(u=>{
+    const row=document.createElement('div'); row.className='user-row';
+    const btn=document.createElement('button'); btn.className='user-btn';
+    btn.innerHTML=`<span>👤 ${u.name}</span>`; btn.onclick=()=>selectUser(u);
+    const del=document.createElement('button'); del.className='del-btn'; del.textContent='×'; del.title='Remove';
+    del.onclick=e=>{e.stopPropagation();saveUsers(getUsers().filter(x=>x.id!==u.id));initUserScreen();};
+    row.appendChild(btn); row.appendChild(del); list.appendChild(row);
+  });
+}
+
+function selectUser(u) {
+  currentUser=u;
+  // Clear the global engine so debug / any screen that reads it doesn't
+  // show a stale engine belonging to the previously-selected user. The
+  // real engine is rebuilt/restored on the next game-start via ensureEngine.
+  engine=null;
+  showSettingsScreen();
+}
+
+document.getElementById('add-user-btn').addEventListener('click',()=>{
+  const inp=document.getElementById('new-name-input'), name=inp.value.trim();
+  if(!name) return;
+  const users=getUsers();
+  if(users.length>=5){alert('Maximum 5 players');return;}
+  users.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2),name});
+  saveUsers(users); inp.value=''; initUserScreen();
+});
+document.getElementById('new-name-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') document.getElementById('add-user-btn').click();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ## SCREENS — SETTINGS SCREEN
+// ═══════════════════════════════════════════════════════════════
+
+function showSettingsScreen() {
+  document.getElementById('settings-player-label').textContent=currentUser?currentUser.name:'Guest';
+  const s=(currentUser?getUserData(currentUser.id).settings:null)||{...DEFAULT_SETTINGS};
+  setRadio('cfg_level', s.level||'exact10');
+  setRadio('cfg_sound', s.sound||'off');
+  setRadio('cfg_timer', s.timer||'off');
+  setRadio('cfg_omode', s.omode||'none');
+  setRadio('cfg_odisp', s.odisp||'none');
+  setRadio('cfg_style', s.style||'progress');
+  setLocked(true);
+  showScreen('settings-screen');
+}
+
+function setRadio(name,value) {
+  const el=document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if(el) el.checked=true;
+}
+function getRadio(name) {
+  return document.querySelector(`input[name="${name}"]:checked`)?.value||'';
+}
+
+function setLocked(locked) {
+  const badge=document.getElementById('lock-badge');
+  const body=document.getElementById('settings-body');
+  const icon=document.getElementById('lock-icon');
+  const label=document.getElementById('lock-label');
+  if(locked){
+    badge.textContent='LOCKED'; badge.className='lock-badge locked';
+    body.classList.add('settings-locked');
+    icon.textContent='🔒'; label.textContent='Settings locked — tap to change';
+  } else {
+    badge.textContent='UNLOCKED'; badge.className='lock-badge unlocked';
+    body.classList.remove('settings-locked');
+    icon.textContent='🔓'; label.textContent='Settings unlocked — lock to prevent changes';
+  }
+}
+function isSettingsLocked() {
+  return document.getElementById('lock-badge').classList.contains('locked');
+}
+
+// Lock badge click
+document.getElementById('lock-badge').addEventListener('click',()=>{
+  if(isSettingsLocked()) showLockModal();
+  else setLocked(true);
+});
+
+// Lock modal
+function showLockModal() {
+  const factors=[6,7,8,9,12];
+  const a=factors[Math.floor(Math.random()*factors.length)];
+  const b=factors[Math.floor(Math.random()*factors.length)];
+  lockQ={a,b,answer:a*b};
+  document.getElementById('lock-question').textContent=`${a} × ${b} = ?`;
+  document.getElementById('lock-answer-inp').value='';
+  document.getElementById('lock-feedback').textContent='';
+  document.getElementById('lock-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('lock-answer-inp').focus(),80);
+}
+function hideLockModal() {
+  document.getElementById('lock-modal').classList.remove('open');
+}
+function checkLockAnswer() {
+  const val=parseInt(document.getElementById('lock-answer-inp').value);
+  if(val===lockQ.answer){
+    hideLockModal(); setLocked(false);
+  } else {
+    const fb=document.getElementById('lock-feedback');
+    fb.textContent='Not quite — try again!'; fb.style.color='#ff8060';
+    document.getElementById('lock-answer-inp').value='';
+    document.getElementById('lock-answer-inp').focus();
+  }
+}
+document.getElementById('lock-submit-btn').addEventListener('click',checkLockAnswer);
+document.getElementById('lock-cancel-btn').addEventListener('click',hideLockModal);
+document.getElementById('lock-answer-inp').addEventListener('keydown',e=>{if(e.key==='Enter')checkLockAnswer();});
+
+// "Go to Games" button
+document.getElementById('to-games-btn').addEventListener('click',()=>{
+  const s={
+    level: getRadio('cfg_level')||'exact10',
+    sound: getRadio('cfg_sound')||'off',
+    timer: getRadio('cfg_timer')||'off',
+    omode: getRadio('cfg_omode')||'none',
+    odisp: getRadio('cfg_odisp')||'none',
+    style: getRadio('cfg_style')||'progress',
+  };
+  if(currentUser){
+    const ud=getUserData(currentUser.id);
+    const prev=JSON.stringify(ud.settings||{});
+    if(prev!==JSON.stringify(s)){
+      // Settings changed: persist new settings. Engine is not reset here —
+      // startGame decides restore vs rebuild based on mode/style via
+      // ensureEngine. Level changes are merged, not rebuilt.
+      ud.settings=s;
+      saveUserData(currentUser.id,ud);
+    }
+  }
+  activeSettings=s;
+  showGameSelectScreen();
+});
+
+document.getElementById('settings-back-btn').addEventListener('click',()=>{
+  showScreen('user-screen'); initUserScreen();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ## SCREENS — GAME SELECT SCREEN
+// ═══════════════════════════════════════════════════════════════
+
+function showGameSelectScreen() {
+  const s=activeSettings;
+  const mapped=mapSettings(s.level,s.style,s.omode,s.odisp);
+  document.getElementById('game-select-player').textContent=currentUser?currentUser.name:'Guest';
+  const modeStr={both:'Add & Subtract',add:'Addition only',sub:'Subtraction only'}[mapped.mode]||mapped.mode;
+  const dispStr={numbers:'Numbers',both:'Counters & Numbers',counters:'Counters only'}[mapped.display]||mapped.display;
+  const styleStr={progress:'Progress',practice:'Practice',entry:'Entry'}[s.style]||s.style;
+  const earlyMaths=(s.level==='to5'||s.level==='doubles10')&&mapped.display==='counters';
+  document.getElementById('settings-summary').innerHTML=
+    `<b>Level:</b> ${s.level}&nbsp;&nbsp;<b>Style:</b> ${styleStr}<br>`+
+    `<b>Questions:</b> ${modeStr}&nbsp;&nbsp;<b>Display:</b> ${dispStr}`+
+    (earlyMaths?'&nbsp;&nbsp;<b>Early maths mode</b>':'')+
+    `<br><b>Timer:</b> ${s.timer==='on'?'10 sec':'Off'}&nbsp;&nbsp;<b>Sound:</b> ${s.sound==='on'?'On':'Off'}`;
+  showScreen('game-select-screen');
+}
+
+// reef-btn click is wired at the end of the CAVE section by the Games registry loop.
+document.getElementById('back-to-settings-btn').addEventListener('click', () => showScreen('settings-screen'));
+
+// ═══════════════════════════════════════════════════════════════
+// ## REEF GAME — START GAME (startGame)  (Stage 3 → Games.reef.start)
+// ═══════════════════════════════════════════════════════════════
+
+function startGame() {
+  bindActiveCanvas('game-canvas', 'entry-overlay');
+  const s=activeSettings;
+  const ud=currentUser ? getUserData(currentUser.id) : null;
+  const level=computeEffectiveLevel(s.level, ud?.achievedLevel, s.style, clipLevelForReef);
+  const mapped=mapSettings(level,s.style,s.omode,s.odisp);
+
+  cfg = {
+    level,
+    display: mapped.display,
+    mode:    mapped.mode,
+    sound:   s.sound,
+    timer:   s.timer,
+    style:   s.style,
+  };
+
+  // Build or restore engine; use setActiveLevel if only level changed.
+  engine = ensureEngine(currentUser ? ud : null, {level,mode:mapped.mode,style:s.style,settingsLevel:s.level});
+
+  // Reset visual state
+  score=0;total=0;streak=0;revealed=false;skipMode=false;saveCounter=0;
+  octopusMood='thinking';octopusBounce=0;octopusRot=0;
+  if(octopusAnimId){clearInterval(octopusAnimId);octopusAnimId=null;}
+  if(revealTimeout){clearTimeout(revealTimeout);revealTimeout=null;}
+  if(burstAnimId) {clearTimeout(burstAnimId);burstAnimId=null;}
+  if(sadResetId)  {clearTimeout(sadResetId);sadResetId=null;}
+  burstStep=99;banners=[];bubbles=[];
+
+  updateScore();
+  generateBackground();
+  showScreen('game-screen');
+  resizeCanvas();
+  for(let i=0;i<5;i++) spawnBubble(Math.floor(Math.random()*H));
+  startBubbles();
+  newQuestion();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ## REEF GAME — GAME SCREEN EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════
+
+// Reef exit cleanup — stops timers + animations, hides entry widget.
+// Extracted so Games.reef.stop() can call it without the screen navigation.
+function stopReefGame() {
+  stopTimer(); stopBubbles();
+  if (octopusAnimId) { clearInterval(octopusAnimId); octopusAnimId = null; }
+  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout = null; }
+  entry.style.display = 'none';
+  saveEngineState();  // flush on exit
+}
+
+document.getElementById('home-btn').addEventListener('click', () => {
+  Games.reef.stop();
+  showGameSelectScreen();
+});
+document.getElementById('skip-btn').addEventListener('click',skipQuestion);
+
+entry.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){checkAnswer();e.preventDefault();}
+  if(e.key==='.'||e.key==='Delete'){e.preventDefault();entry.value=entry.value.slice(0,-1);}
+});
+entry.addEventListener('input',()=>{if(entry.value.length>2)entry.value=entry.value.slice(0,2);});
+
+// ═══════════════════════════════════════════════════════════════
+// ## CAVE GAME — cave scene + bar-model display (Stage 5)
+// ═══════════════════════════════════════════════════════════════
+//
+// underwaterCave RAF loop runs on cave-canvas independently.
+// Bar-model overlay (#cave-bar-wrap) sits centred over the canvas.
+// The missing bar segment is replaced by a text input styled to match.
+// Keypad + keyboard both submit answers via cave_checkAnswer().
+
+var caveScene    = null;   // underwaterCave instance
+var caveAnswered = false;  // guard against double-submit
+
+// ── Helpers ─────────────────────────────────────────────────────
+
+function cave_updateScore() {
+  document.getElementById('cave-score-label').textContent=`⭐ ${score} / ${total}`;
+}
+
+function cave_bmShowFeedback(msg, cls) {
+  const el = document.getElementById('cave-bm-feedback');
+  el.textContent = msg;
+  el.className = 'bm-feedback show ' + cls;
+}
+function cave_bmHideFeedback() {
+  const el = document.getElementById('cave-bm-feedback');
+  el.className = 'bm-feedback'; el.textContent = '';
+}
+
+// ── Bar rendering ────────────────────────────────────────────────
+
+// Returns an input element styled as a missing bar, or a plain div if known.
+function cave_makeBarSegment(isMissing, value, colorClass, cornerClass) {
+  if (isMissing) {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.inputMode = 'numeric'; inp.autocomplete = 'off';
+    inp.maxLength = 3;
+    inp.className = 'cave-missing-input ' + cornerClass;
+    inp.style.flex = '1'; inp.style.height = '44px';
+    inp.addEventListener('input', () => {
+      if (inp.value.length > 3) inp.value = inp.value.slice(0, 3);
+    });
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { cave_checkAnswer(); ev.preventDefault(); }
+    });
+    return inp;
+  } else {
+    const div = document.createElement('div');
+    div.className = 'bm-bar-part ' + colorClass;
+    div.style.flex = '1'; div.style.height = '44px';
+    div.textContent = value;
+    return div;
+  }
+}
+
+function cave_renderBars(q, isRevealed) {
+  const { whole, partA, partB, missing } = q;
+  const wA = whole > 0 ? Math.round((partA / whole) * 100) : 50;
+
+  // Whole bar
+  const totalWrap = document.getElementById('cave-bm-bar-total-wrap');
+  totalWrap.innerHTML = '';
+  const track = document.createElement('div'); track.className = 'bm-bar-track';
+  if (missing === 'whole' && !isRevealed) {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.inputMode = 'numeric'; inp.autocomplete = 'off';
+    inp.maxLength = 3;
+    inp.className = 'cave-missing-input whole';
+    inp.style.width = '100%';
+    inp.addEventListener('input', () => { if(inp.value.length>3) inp.value=inp.value.slice(0,3); });
+    inp.addEventListener('keydown', ev => { if(ev.key==='Enter'){cave_checkAnswer();ev.preventDefault();} });
+    track.appendChild(inp);
+  } else {
+    const fill = document.createElement('div');
+    fill.className = 'bm-bar-total-fill';
+    fill.textContent = whole;
+    track.appendChild(fill);
+  }
+  totalWrap.appendChild(track);
+
+  // Parts bar
+  const partsWrap = document.getElementById('cave-bm-bar-parts-wrap');
+  partsWrap.innerHTML = '';
+  const parts = document.createElement('div'); parts.className = 'bm-bar-parts';
+
+  const aEl = cave_makeBarSegment(missing==='partA' && !isRevealed, partA, 'part-a', 'part-a');
+  aEl.style.width = wA + '%';
+  const bEl = cave_makeBarSegment(missing==='partB' && !isRevealed, partB, 'part-b', 'part-b');
+  bEl.style.width = (100 - wA) + '%';
+  parts.appendChild(aEl); parts.appendChild(bEl);
+  partsWrap.appendChild(parts);
+
+  // Equation prompt
+  const prompt = document.getElementById('cave-bm-answer-prompt');
+  if (missing === 'whole') {
+    prompt.innerHTML = `${partA} + ${partB} = <span class="missing-box">?</span>`;
+  } else if (missing === 'partA') {
+    prompt.innerHTML = `<span class="missing-box">?</span> + ${partB} = ${whole}`;
+  } else {
+    prompt.innerHTML = `${partA} + <span class="missing-box">?</span> = ${whole}`;
+  }
+
+  // Focus the input after render
+  if (!isRevealed) {
+    requestAnimationFrame(() => {
+      const inp = partsWrap.querySelector('input') || totalWrap.querySelector('input');
+      if (inp) inp.focus();
+    });
+  }
+}
+
+function cave_getMissingInput() {
+  const partsWrap = document.getElementById('cave-bm-bar-parts-wrap');
+  const totalWrap = document.getElementById('cave-bm-bar-total-wrap');
+  return partsWrap.querySelector('input') || totalWrap.querySelector('input');
+}
+
+// ── Pad ──────────────────────────────────────────────────────────
+
+function cave_buildNumPad() {
+  Keypad.mount('cave-num-pad-left', 'cave-num-pad-right');
+  const answer = currentQ ? currentQ.correctAnswer : 1;
+  if (whole > 20) {
+    Keypad.setChoices(caveGenerateChoices(answer), val => {
+      if (caveAnswered) return;
+      const inp = cave_getMissingInput();
+      if (inp) { inp.value = val; cave_checkAnswer(); }
+    });
+  } else {
+    const tenOnly = ['to5','exact10','doubles10','upto10'].includes(cfg.level);
+    const nums = [];
+    for (let n=1; n<=10; n++) nums.push(n);
+    if (!tenOnly) for (let n=11; n<=20; n++) nums.push(n);
+    Keypad.setChoices(nums, val => {
+      if (caveAnswered) return;
+      const inp = cave_getMissingInput();
+      if (inp) { inp.value = val; cave_checkAnswer(); }
+    });
+  }
+  fitCave();
+}
+
+// ── Question flow ────────────────────────────────────────────────
+
+function cave_newQuestion() {
+  cave_stopTimer(); caveAnswered = false;
+  cave_bmHideFeedback();
+  currentQ = engine.nextQuestion();
+  if (!currentQ) return;
+  whole = currentQ.whole; partA = currentQ.partA;
+  partB = currentQ.partB; missing = currentQ.missing; correct = currentQ.correctAnswer;
+  if (caveScene) { caveScene.setExpr('positive'); caveScene.doAction('idle'); }
+  cave_renderBars(currentQ, false);
+  cave_buildNumPad();
+  cave_updateScore();
+  cave_startTimer();
+}
+
+function cave_checkAnswer() {
+  if (caveAnswered) return;
+  const inp = cave_getMissingInput();
+  const raw = inp ? inp.value.trim() : '';
+  if (!raw) {
+    if (inp) { inp.classList.add('bm-shake'); setTimeout(()=>inp.classList.remove('bm-shake'),400); }
+    return;
+  }
+  const val = parseInt(raw, 10);
+  if (isNaN(val)) return;
+
+  caveAnswered = true; cave_stopTimer(); total++;
+  if (inp) inp.disabled = true;
+
+  const isCorrect = val === correct;
+  const result = engine.recordAnswer(currentQ, isCorrect);
+  bumpSave(result);
+  maybeAdvanceAchievedLevel(result, isCorrect);
+
+  if (isCorrect) {
+    score++; streak++;
+    if (caveScene) caveScene.setExpr('happy');
+    if (caveScene) caveScene.doAction(streak >= 5 ? 'celebHi' : 'celebLo');
+    // Green reveal on the missing input
+    if (inp) { inp.value=correct; inp.classList.add('correct'); }
+    cave_bmShowFeedback(cave_streakMsg(), 'correct');
+    cave_updateScore();
+    if (result.graduation) showGraduationBanner(result.graduation_bond.w,result.graduation_bond.a,result.graduation_bond.b);
+    if (result.level_up)   showLevelUpBanner();
+    document.getElementById('cave-streak-label').textContent = streak >= 3 ? `🌊 ${streak} in a row!` : '';
+    snd(streak===3?'streak3':streak===5?'streak5':streak>=10?'streak10':'correct');
+    if (revealTimeout) clearTimeout(revealTimeout);
+    revealTimeout = setTimeout(cave_newQuestion, 1500);
+  } else {
+    streak = 0; document.getElementById('cave-streak-label').textContent = '';
+    if (caveScene) { caveScene.setExpr('sad'); caveScene.doAction('idle'); }
+    // Reveal correct answer in the bar
+    cave_renderBars(currentQ, true);
+    cave_bmShowFeedback(`Not quite — the answer was ${correct}`, 'wrong');
+    snd('wrong'); cave_updateScore();
+    if (sadResetId) clearTimeout(sadResetId);
+    sadResetId = setTimeout(() => { if (caveScene) caveScene.setExpr('positive'); }, 1500);
+    if (revealTimeout) clearTimeout(revealTimeout);
+    revealTimeout = setTimeout(cave_newQuestion, 1500);
+  }
+}
+
+function cave_streakMsg() {
+  const MSGS = {
+    3:'3 in a row! 🦀', 5:'5 in a row! Amazing! 🦀',
+    10:'10 in a row! SUPERSTAR! ⭐', 20:'20 IN A ROW! LEGENDARY! 🏆',
+    50:'50 IN A ROW! UNBELIEVABLE! 🌟', 75:'75 IN A ROW! INCREDIBLE! 🔱',
+    100:'100 IN A ROW! CHAMPION! 👑',
+  };
+  if (MSGS[streak]) return MSGS[streak];
+  if (streak >= 2) {
+    const BRILLIANT = ['✓ Brilliant! 🦀','✓ Fantastic!','✓ Excellent! ⭐','✓ Amazing work!','✓ Splendid! 🦀'];
+    return BRILLIANT[Math.floor(Math.random()*BRILLIANT.length)];
+  }
+  return '✓ Correct! Well done! 🦀';
+}
+
+function cave_skipQuestion() {
+  if (caveAnswered) return;
+  caveAnswered = true; cave_stopTimer(); total++; streak = 0;
+  document.getElementById('cave-streak-label').textContent = '';
+  const result = engine.recordAnswer(currentQ, false);
+  bumpSave(result); cave_updateScore();
+  if (caveScene) { caveScene.setExpr('neutral'); caveScene.doAction('idle'); }
+  cave_renderBars(currentQ, true);
+  cave_bmShowFeedback(`Answer: ${correct}`, 'wrong');
+  if (revealTimeout) clearTimeout(revealTimeout);
+  revealTimeout = setTimeout(cave_newQuestion, 1500);
+}
+
+function cave_startTimer() {
+  if (cfg.timer !== 'on') return;
+  cave_stopTimer(); timeLeft = 10;
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft <= 0) {
+      caveAnswered = true; cave_stopTimer(); total++;
+      const result = engine.recordAnswer(currentQ, false); bumpSave(result);
+      if (caveScene) { caveScene.setExpr('sad'); caveScene.doAction('idle'); }
+      cave_renderBars(currentQ, true);
+      cave_bmShowFeedback(`Time's up! Answer: ${correct} 🦀`, 'wrong');
+      snd('timeout'); cave_updateScore();
+      setTimeout(cave_newQuestion, 1400);
+    }
+  }, 1000);
+}
+function cave_stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function cave_startGame() {
+  const s = activeSettings;
+  const ud = currentUser ? getUserData(currentUser.id) : null;
+  const level = computeEffectiveLevel(s.level, ud?.achievedLevel, s.style, clipLevelForCave);
+  const mapped = mapSettings(level, s.style, s.omode, s.odisp);
+
+  cfg = { level, display:mapped.display, mode:mapped.mode, sound:s.sound, timer:s.timer, style:s.style };
+
+  engine = ensureEngine(currentUser ? ud : null, {level,mode:mapped.mode,style:s.style,settingsLevel:s.level});
+
+  score=0; total=0; streak=0; caveAnswered=false; saveCounter=0;
+  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout=null; }
+  if (sadResetId)    { clearTimeout(sadResetId);    sadResetId=null; }
+
+  cave_updateScore();
+  cave_bmHideFeedback();
+  showScreen('cave-screen');
+  resizeCanvas();
+
+  if (!caveScene) caveScene = underwaterCave('cave-canvas');
+  caveScene.setExpr('positive');
+  caveScene.doAction('idle');
+
+  cave_newQuestion();
+}
+
+function cave_stopGame() {
+  cave_stopTimer();
+  if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout=null; }
+  saveEngineState();  // flush on exit
+}
+
+function fitCave() {
+  const topBar = document.getElementById('cave-top-bar');
+  const btnRow = document.getElementById('cave-btn-row');
+  const topH   = topBar ? topBar.offsetHeight : 0;
+  const phoneLandscape = window.matchMedia('(orientation: landscape) and (max-height: 480px)').matches;
+  document.documentElement.style.setProperty('--top-bar-h', topH + 'px');
+  fitGameLayout({
+    layoutEl:         document.getElementById('cave-game-layout'),
+    canvasEl:         document.getElementById('cave-canvas'),
+    leftPad:          document.getElementById('cave-num-pad-left'),
+    rightPad:         document.getElementById('cave-num-pad-right'),
+    containerWidthEl: document.getElementById('cave-screen'),
+    aspectW: W, aspectH: H,
+    reserveAbove: topH,
+    reserveBelow: phoneLandscape ? 0 : (btnRow ? btnRow.offsetHeight : 0) + 12,
+    reserveSide:  phoneLandscape ? 256 : 0,
+  });
+}
+
+document.getElementById('cave-home-btn').addEventListener('click', () => {
+  Games.get('cave').stop();
+  showGameSelectScreen();
+});
+document.getElementById('cave-skip-btn').addEventListener('click', cave_skipQuestion);
+
+// ═══════════════════════════════════════════════════════════════
+// ## INIT
+// ═══════════════════════════════════════════════════════════════
+//
+// Boot is async: we await Storage.init() so loadData() returns the freshest
+// data (from IndexedDB if available) before any screen is rendered. Without
+// this await, the user list and per-user settings would briefly be empty
+// on the first frame even when IDB has data.
+
+(async () => {
+  await Storage.init();
+  initUserScreen();
+  resizeCanvas();
+  // For debugging: window.__storageStatus = Storage.status();
+})();
+
+
+// ===== UNDERWATER CAVE (embedded) =====
+/**
+ * UNDERWATER CAVE SCENE — v11  (full regenerable source)
+ * Drop into an HTML page with a <canvas id="cave" width="680" height="420"></canvas>
+ * and call: underwaterCave('cave');
+ *
+ * Public API (returned object):
+ *   .setExpr(name)   — 'positive'(default)|'neutral'|'happy'|'sad'|'blush'
+ *   .doAction(name)  — 'idle'|'wave'|'hop'|'scuttle'|'celebLo'|'celebHi'
+ *
+ * ITERATION LOG
+ *   v1   Basic cave, blob crystals, simple crab
+ *   v2   Jagged crystals, puppet claws, ripples
+ *   v3   Saguaro crystals, pac-man claws
+ *   v4   Saguaro arms (horiz+vert), half-ellipse claws
+ *   v5   7 crystals, 3 fixed ripples
+ *   v6   Static crystal geometry, 6-leg crab, portrait layout
+ *   v7   Bilateral/unilateral crystals, portrait depth layers
+ *   v8   IIFE isolation fix (portrait crash), symmetric ARM_OFF
+ *   v9   Arm anatomy redesign — both pincers correct, BASE_L/BASE_R
+ *   v10  Arms point up (BASE_L=π+0.30), shortened 20%, horizontal
+ *        pincers, wriggle added to arm angles
+ *   v11  Expressions (positive/neutral/happy/sad/blush), eyebrows,
+ *        sparkles, tear drops, celebLo (1.2s) + celebHi (3s) with
+ *        particles. Right arm shorter/higher/steeper (closer to body).
+ *        Asymmetric arms: left = display arm, right = tucked arm.
+ */
+
+function underwaterCave(canvasId) {
+  const cv = document.getElementById(canvasId);
+  const g  = cv.getContext('2d');
+  const W  = cv.width, H = cv.height;
+  const SANDY = Math.round(H * 0.881); // ~405 at H=460
+
+  // ═══════════════════════════════════════════
+  // COLOURS
+  // ═══════════════════════════════════════════
+  const COL = {
+    bg:        '#060e1a',
+    wall:      '#091825',
+    ceil:      '#0a1e30',
+    sand:      '#a89060',
+    sandLt:    '#b8a070',
+    ripple:    '#cdb87a',
+    dot:       'rgba(120,255,240,0.5)',
+    purpFill:  '#7a22c4', purpHi: '#c090ff',
+    tealFill:  '#0d9990', tealHi: '#60ffe0',
+    viotFill:  '#6a18b0', viotHi: '#b070f0',
+    cyanFill:  '#0b8080', cyanHi: '#40e0c0',
+    lilFill:   '#9a3fe0', lilHi:  '#d0a0ff',
+    legDark:   '#a03810', legMid: '#c86030',
+    shell:     '#e06820', carap:  '#d45c18', rib: '#f08040',
+    armDark:   '#a03810', armLt:  '#d07030',
+    clawUp:    '#d4631f', clawDn: '#bf4010', clawK: '#c05018',
+    clawHiU:   '#e8874a', clawHiD:'#d06028',
+    brow:      '#7a2800',
+  };
+
+  // ═══════════════════════════════════════════
+  // ARM CONSTANTS — v11
+  // ═══════════════════════════════════════════
+  // LEFT arm: display arm — longer, lower root, shallower angle
+  //   ROOT: (cx - ARM_OFF_L,  cy - ARM_UP_L)   = (cx-22, cy-6)
+  //   BASE_L = π + 0.30  → cos≈-0.955 (left✓)  sin≈-0.296 (up✓)
+  //   ARM_LEN_L = 43
+  //
+  // RIGHT arm: tucked arm — shorter, higher root, steeper angle
+  //   ROOT: (cx + ARM_OFF_R, cy - ARM_UP_R)    = (cx+16, cy-10)
+  //   BASE_R = -0.55       → cos≈+0.852 (right✓) sin≈-0.523 (up✓, steeper)
+  //   ARM_LEN_R = 34
+  //
+  // Both arm roots are inside shell rx=32, covered when shell drawn last.
+  // Pincer frame: isLeft→rotate(π), isRight→rotate(0) — stays horizontal.
+  const ARM_OFF_L = 22,  ARM_OFF_R = 16;
+  const ARM_UP_L  = 6,   ARM_UP_R  = 10;
+  const ARM_LEN_L = 43,  ARM_LEN_R = 34;
+  const BASE_L = Math.PI + 0.30;
+  const BASE_R = -0.55;
+
+  // ═══════════════════════════════════════════
+  // UTILITY
+  // ═══════════════════════════════════════════
+  function jag(seed, n=11) {
+    let s = seed;
+    return Array.from({length:n}, () => {
+      s = (s*1664525 + 1013904223) & 0xffffffff;
+      return ((s>>>0)/4294967296 - 0.5) * 3.5;
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // SAND — 3 static modulated ripples
+  // ═══════════════════════════════════════════
+  // Each ripple: cx (centre x), y (baseline y), ph (phase), amp (peak amplitude)
+  // Edge-fade: sin(t*π) where t=0..1 across ripple width
+  // Internal modulation: 0.72 + 0.28*cos((x-cx)*0.018 + ph*0.5)
+  // All ripples same half-width (scaled for 480-wide scene)
+  const RIPPLES = [
+    {cx: 100, y: SANDY+6,  ph: 0.0, amp: 7},
+    {cx: 240, y: SANDY+12, ph: 1.9, amp: 9},
+    {cx: 380, y: SANDY+8,  ph: 0.8, amp: 6},
+  ];
+  const RH = 113, RF = 0.038;
+
+  function drawSand() {
+    g.fillStyle = COL.sand;    g.fillRect(0, SANDY, W, H-SANDY);
+    g.fillStyle = COL.sandLt;  g.fillRect(0, SANDY, W, 7);
+    g.strokeStyle = COL.ripple; g.lineWidth = 2;
+    for (const r of RIPPLES) {
+      const x0=r.cx-RH, x1=r.cx+RH;
+      g.beginPath(); let first=true;
+      for (let x=x0; x<=x1; x+=2) {
+        const t=(x-x0)/(2*RH), edge=Math.sin(t*Math.PI);
+        const mod=0.72+0.28*Math.cos((x-r.cx)*0.018+r.ph*0.5);
+        const y=r.y+Math.sin((x-r.cx)*RF+r.ph)*r.amp*edge*mod;
+        if(first){g.moveTo(x,y);first=false;}else g.lineTo(x,y);
+      }
+      g.stroke();
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // CRYSTAL GEOMETRY — saguaro style
+  // ═══════════════════════════════════════════
+  // TRUNK: tapered 7-vertex polygon with fixed jitter (never per-frame)
+  // ARM:   horizontal shard from trunk → elbow, then vertical upper shard
+  // 5 bilateral (arms on opposite sides) + 2 unilateral (same side)
+  // Geometry computed ONCE at startup, stored as vertex arrays.
+
+  function mkPoly(x, baseY, h, hw, jv) {
+    return [
+      [x-hw+jv[0], baseY],        [x+hw+jv[1], baseY],
+      [x+hw*0.7+jv[2], baseY-h*0.42+jv[3]],
+      [x+hw*0.5+jv[4], baseY-h*0.72+jv[5]],
+      [x+jv[6],    baseY-h],
+      [x-hw*0.5+jv[7], baseY-h*0.72+jv[8]],
+      [x-hw*0.7+jv[9], baseY-h*0.42+jv[10]],
+    ];
+  }
+  function mkHorizArm(tx, sy, side, hlen, hw) {
+    const ex = tx + side*hlen;
+    return {
+      pts: [[tx,sy+hw*0.75],[tx,sy-hw*0.75],[ex+side*2,sy-hw*0.5],[ex+side*3,sy],[ex+side*2,sy+hw*0.5]],
+      ex, ey: sy
+    };
+  }
+  function buildCrystal(cx, col, hi, trunkH, trunkHW, arms, baseY=SANDY) {
+    const tp = mkPoly(cx, baseY, trunkH, trunkHW, jag(cx*7+trunkH|0));
+    const ba = arms.map((a,i) => {
+      const sy = baseY - trunkH*a.frac;
+      const hz = mkHorizArm(cx, sy, a.side, a.hlen, a.hw);
+      const vp = mkPoly(hz.ex, hz.ey, a.vH, a.hw*0.88, jag(cx*13+i*31+a.vH|0));
+      return {hz, vp};
+    });
+    return {col, hi, tp, ba};
+  }
+  function drawCrystal(c) {
+    for (const a of c.ba) {
+      // horiz arm
+      g.fillStyle=c.col; g.beginPath();
+      g.moveTo(a.hz.pts[0][0],a.hz.pts[0][1]);
+      for(let i=1;i<a.hz.pts.length;i++) g.lineTo(a.hz.pts[i][0],a.hz.pts[i][1]);
+      g.closePath(); g.fill();
+      g.strokeStyle=c.hi; g.lineWidth=1;
+      g.beginPath(); g.moveTo(a.hz.pts[1][0],a.hz.pts[1][1]); g.lineTo(a.hz.pts[2][0],a.hz.pts[2][1]); g.stroke();
+      // vert shard
+      g.fillStyle=c.col; g.beginPath();
+      g.moveTo(a.vp[0][0],a.vp[0][1]);
+      for(let i=1;i<a.vp.length;i++) g.lineTo(a.vp[i][0],a.vp[i][1]);
+      g.closePath(); g.fill();
+      g.strokeStyle=c.hi; g.lineWidth=1.2;
+      g.beginPath(); g.moveTo(a.vp[4][0],a.vp[4][1]);
+      g.lineTo((a.vp[1][0]+a.vp[4][0])/2,(a.vp[0][1]+a.vp[4][1])/2);
+      g.lineTo(a.vp[1][0],a.vp[0][1]); g.stroke();
+    }
+    // trunk
+    g.fillStyle=c.col; g.beginPath();
+    g.moveTo(c.tp[0][0],c.tp[0][1]);
+    for(let i=1;i<c.tp.length;i++) g.lineTo(c.tp[i][0],c.tp[i][1]);
+    g.closePath(); g.fill();
+    g.strokeStyle=c.hi; g.lineWidth=1.2;
+    g.beginPath(); g.moveTo(c.tp[4][0],c.tp[4][1]);
+    g.lineTo((c.tp[1][0]+c.tp[4][0])/2,(c.tp[0][1]+c.tp[4][1])/2);
+    g.lineTo(c.tp[1][0],c.tp[0][1]); g.stroke();
+  }
+
+  // Crystal definitions — 5 bilateral + 2 unilateral
+  // Crab zone [180..300] kept clear (scene now 480 wide)
+  const CRYSTALS = [
+    buildCrystal( 72, COL.purpFill, COL.purpHi, 68,10,[{side:-1,frac:.32,hlen:20,vH:28,hw:6},{side:1,frac:.58,hlen:18,vH:24,hw:5}]),
+    buildCrystal(116, COL.tealFill, COL.tealHi, 58, 9,[{side:1,frac:.35,hlen:22,vH:26,hw:5},{side:-1,frac:.62,hlen:16,vH:22,hw:5}]),
+    buildCrystal(161, COL.viotFill, COL.viotHi, 72,11,[{side:-1,frac:.28,hlen:24,vH:30,hw:7},{side:1,frac:.55,hlen:20,vH:25,hw:6}]),
+    buildCrystal(321, COL.cyanFill, COL.cyanHi, 64,10,[{side:-1,frac:.38,hlen:19,vH:27,hw:6},{side:1,frac:.60,hlen:21,vH:23,hw:5}]),
+    buildCrystal(367, COL.lilFill,  COL.lilHi,  60, 9,[{side:1,frac:.30,hlen:20,vH:25,hw:5},{side:-1,frac:.57,hlen:18,vH:22,hw:5}]),
+    // unilateral — both arms same side
+    buildCrystal(424, COL.purpFill, COL.purpHi, 66,10,[{side:-1,frac:.33,hlen:22,vH:27,hw:6},{side:-1,frac:.60,hlen:18,vH:22,hw:5}]),
+    buildCrystal(100, COL.tealFill, COL.tealHi, 55, 8,[{side:1,frac:.36,hlen:16,vH:22,hw:5},{side:1,frac:.62,hlen:14,vH:18,hw:4}]),
+  ];
+
+  // ═══════════════════════════════════════════
+  // CRAB STATE
+  // ═══════════════════════════════════════════
+  // expr: 'positive'(default) | 'neutral' | 'happy' | 'sad' | 'blush'
+  // state: 'idle' | 'wave' | 'hop' | 'scuttle' | 'celebLo' | 'celebHi'
+  // celebLo duration: 72 frames @ 60fps ≈ 1.2s
+  // celebHi duration: 180 frames @ 60fps ≈ 3.0s
+  const CELEB_LO = 72, CELEB_HI = 180;
+
+  const crab = {
+    x:240, y:385, baseY:385,
+    state:'idle', t:0, expr:'positive',
+    aL:BASE_L, aR:BASE_R, open:0.14,
+    hopVY:0, hopActive:false, scuttleDir:1,
+    blush:0, eyeOff:0,
+    particles:[],
+  };
+
+  // 6 walking legs — 3 per side
+  // ox,oy: body attachment; tdx,tdy: thigh vector; sdx,sdy: shin vector
+  const LEGS = [
+    {ox:-27,oy:5, tdx:-22,tdy:-12,sdx:-16,sdy:24},
+    {ox:-18,oy:6, tdx:-28,tdy:0,  sdx:-18,sdy:26},
+    {ox: -9,oy:7, tdx:-22,tdy:10, sdx:-12,sdy:24},
+    {ox: 27,oy:5, tdx: 22,tdy:-12,sdx: 16,sdy:24},
+    {ox: 18,oy:6, tdx: 28,tdy:0,  sdx: 18,sdy:26},
+    {ox:  9,oy:7, tdx: 22,tdy:10, sdx: 12,sdy:24},
+  ];
+
+  // ═══════════════════════════════════════════
+  // PARTICLES
+  // ═══════════════════════════════════════════
+  const PCOLS = ['#ff6b6b','#ffe066','#7efff5','#c090ff','#ff9a3c','#60ffe0'];
+  function spawnParticles(n) {
+    for (let i=0; i<n; i++) {
+      const ang = Math.random()*Math.PI*2, spd=1.5+Math.random()*3.5;
+      crab.particles.push({
+        x:crab.x, y:crab.y-10,
+        vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd-3.5,
+        life:1, decay:0.012+Math.random()*0.012,
+        r:3+Math.random()*4, col:PCOLS[Math.floor(Math.random()*PCOLS.length)],
+      });
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // EXPRESSIONS
+  // ═══════════════════════════════════════════
+  // Returns {mc, es, ed, sp, ba} for current state+expr
+  // mc = mouthCurve  -1..+1  (negative=frown, 0=flat, positive=smile)
+  // es = eyeSquint   0..1    (0=round, 1=happy-arc)
+  // ed = eyeDrops    0..1    (tear drop opacity)
+  // sp = sparkles    bool
+  // ba = browAngle   (positive=worried inner-up, negative=happy)
+  function getExprParams() {
+    const s = crab.state, e = crab.expr;
+    if (s==='celebHi') return {mc:1,   es:.90, ed:0, sp:true,  ba:-1.0};
+    if (s==='celebLo') return {mc:.70, es:.50, ed:0, sp:true,  ba:-0.5};
+    if (s==='hop')     return {mc:.50, es:.30, ed:0, sp:false, ba:-0.3};
+    if (s==='wave')    return {mc:.55, es:.20, ed:0, sp:false, ba:-0.2};
+    switch(e) {
+      case 'neutral':  return {mc:0,   es:.00, ed:0, sp:false, ba: 0.0};
+      case 'happy':    return {mc:.90, es:.85, ed:0, sp:true,  ba:-1.0};
+      case 'sad':      return {mc:-.70,es:.00, ed:.8,sp:false, ba: 0.9};
+      case 'blush':    return {mc:.45, es:.10, ed:0, sp:false, ba:-0.1};
+      default:         return {mc:.35, es:.10, ed:0, sp:false, ba:-0.1}; // positive
+    }
+  }
+
+  function drawFace(cx, cy, mc, es, ed, sp, ba) {
+    const eY = cy - 24 + crab.eyeOff;
+
+    // eyebrows
+    g.strokeStyle = COL.brow; g.lineWidth = 1.8;
+    g.beginPath();
+    g.moveTo(cx-15, eY-8+ba*3);
+    g.quadraticCurveTo(cx-10, eY-10-Math.abs(ba), cx-5, eY-8-ba*3);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(cx+5, eY-8-ba*3);
+    g.quadraticCurveTo(cx+10, eY-10-Math.abs(ba), cx+15, eY-8+ba*3);
+    g.stroke();
+
+    // eyes
+    if (es < 0.5) {
+      const er = 6*(1-es*0.6);
+      g.fillStyle='#fff';
+      g.beginPath();g.arc(cx-10,eY,er,0,Math.PI*2);g.fill();
+      g.beginPath();g.arc(cx+10,eY,er,0,Math.PI*2);g.fill();
+      g.fillStyle='#111';
+      g.beginPath();g.arc(cx-9,eY+1,er*0.55,0,Math.PI*2);g.fill();
+      g.beginPath();g.arc(cx+11,eY+1,er*0.55,0,Math.PI*2);g.fill();
+      g.fillStyle='#fff';
+      g.beginPath();g.arc(cx-8,eY,er*0.22,0,Math.PI*2);g.fill();
+      g.beginPath();g.arc(cx+12,eY,er*0.22,0,Math.PI*2);g.fill();
+    } else {
+      g.strokeStyle='#111'; g.lineWidth=2.5;
+      g.beginPath();g.arc(cx-10,eY+3,5,Math.PI,0);g.stroke();
+      g.beginPath();g.arc(cx+10,eY+3,5,Math.PI,0);g.stroke();
+    }
+
+    // tears
+    if (ed > 0) {
+      g.fillStyle = `rgba(100,180,255,${ed*0.8})`;
+      g.beginPath();g.ellipse(cx-9, eY+12,2.5,4,0,0,Math.PI*2);g.fill();
+      g.beginPath();g.ellipse(cx+11,eY+12,2.5,4,0,0,Math.PI*2);g.fill();
+    }
+
+    // sparkles
+    if (sp) {
+      g.strokeStyle='#ffe066'; g.lineWidth=1.5;
+      for (const [sx,sy] of [[cx-22,eY-8],[cx+22,eY-8],[cx,eY-16]]) {
+        for (let a=0;a<4;a++) {
+          const ang = a*Math.PI/2 + crab.t*0.08;
+          g.beginPath();g.moveTo(sx,sy);g.lineTo(sx+Math.cos(ang)*5,sy+Math.sin(ang)*5);g.stroke();
+        }
+      }
+    }
+
+    // blush cheeks
+    const blushAmt = Math.max(crab.blush, crab.expr==='blush'?1:0);
+    if (blushAmt > 0) {
+      g.fillStyle = `rgba(220,80,80,${blushAmt*0.65})`;
+      g.beginPath();g.ellipse(cx-18,cy+2,8,5,0,0,Math.PI*2);g.fill();
+      g.beginPath();g.ellipse(cx+18,cy+2,8,5,0,0,Math.PI*2);g.fill();
+    }
+
+    // mouth
+    g.strokeStyle='#222'; g.lineWidth=1.8; g.beginPath();
+    if      (mc >= 0.6)  { g.arc(cx,cy+8,10,0.1,Math.PI-0.1); }
+    else if (mc >= 0.1)  { g.moveTo(cx-8,cy+11); g.quadraticCurveTo(cx,cy+8-mc*4, cx+8,cy+11); }
+    else if (mc > -0.1)  { g.moveTo(cx-7,cy+11); g.lineTo(cx+7,cy+11); }
+    else if (mc > -0.5)  { g.moveTo(cx-8,cy+10); g.quadraticCurveTo(cx,cy+14,cx+8,cy+10); }
+    else                 { g.moveTo(cx-9,cy+13); g.quadraticCurveTo(cx,cy+8,cx+9,cy+13); }
+    g.stroke();
+  }
+
+  // ═══════════════════════════════════════════
+  // PINCER
+  // ═══════════════════════════════════════════
+  // drPincer(rootX, rootY, armAngle, open, isLeft)
+  //   arm line root→tip along armAngle, length ARM_LEN_L or _R
+  //   pincer at tip in HORIZONTAL frame (not arm-angle rotated)
+  //   upper jaw: (0,-2)→(11,-sp-1)→(27,-sp*0.6)→(31,-sp*0.25)→(23,-1)
+  //   lower jaw: mirror
+  //   sp = 3 + open*12
+  function drPincer(rootX, rootY, armAngle, open, isLeft) {
+    const len = isLeft ? ARM_LEN_L : ARM_LEN_R;
+    const sp  = 3 + open*12;
+    const tx  = rootX + Math.cos(armAngle)*len;
+    const ty  = rootY + Math.sin(armAngle)*len;
+    g.lineCap='round';
+    g.strokeStyle=COL.armDark; g.lineWidth=6;
+    g.beginPath();g.moveTo(rootX,rootY);g.lineTo(tx,ty);g.stroke();
+    g.strokeStyle=COL.armLt;   g.lineWidth=4;
+    g.beginPath();g.moveTo(rootX,rootY);g.lineTo(tx,ty);g.stroke();
+    g.save(); g.translate(tx,ty); g.rotate(isLeft?Math.PI:0);
+    g.fillStyle=COL.clawUp; g.strokeStyle=COL.clawHiU; g.lineWidth=1.3;
+    g.beginPath();g.moveTo(0,-2);g.lineTo(11,-sp-1);g.lineTo(27,-sp*.6);g.lineTo(31,-sp*.25);g.lineTo(23,-1);g.closePath();g.fill();g.stroke();
+    g.fillStyle=COL.clawDn; g.strokeStyle=COL.clawHiD; g.lineWidth=1.3;
+    g.beginPath();g.moveTo(0,2);g.lineTo(11,sp+1);g.lineTo(27,sp*.6);g.lineTo(31,sp*.25);g.lineTo(23,1);g.closePath();g.fill();g.stroke();
+    g.fillStyle=COL.clawK;g.beginPath();g.arc(0,0,5,0,Math.PI*2);g.fill();
+    g.restore();
+  }
+
+  // ═══════════════════════════════════════════
+  // DRAW CRAB
+  // ═══════════════════════════════════════════
+  function drawCrab() {
+    const cx=crab.x, cy=crab.y, t=crab.t;
+    const lRX=cx-ARM_OFF_L, lRY=cy-ARM_UP_L;
+    const rRX=cx+ARM_OFF_R, rRY=cy-ARM_UP_R;
+    const isScuttle = crab.state==='scuttle'||crab.state==='celebHi';
+
+    // legs
+    g.lineCap='round'; g.lineJoin='round';
+    for (const [i,l] of LEGS.entries()) {
+      const w = Math.sin(t*0.07+i*0.9) * (isScuttle?6:2.5);
+      const kx=cx+l.ox+l.tdx, ky=cy+l.oy+l.tdy+w;
+      const fx=kx+l.sdx,       fy=ky+l.sdy+w*0.3;
+      g.strokeStyle=COL.legDark; g.lineWidth=5.5;
+      g.beginPath();g.moveTo(cx+l.ox,cy+l.oy);g.lineTo(kx,ky);g.lineTo(fx,fy);g.stroke();
+      g.strokeStyle=COL.legMid;  g.lineWidth=3.5;
+      g.beginPath();g.moveTo(cx+l.ox,cy+l.oy);g.lineTo(kx,ky);g.lineTo(fx,fy);g.stroke();
+    }
+
+    // arms + pincers (before shell)
+    drPincer(lRX, lRY, crab.aL, crab.open, true);
+    drPincer(rRX, rRY, crab.aR, crab.open, false);
+
+    // shell (covers arm roots)
+    g.fillStyle=COL.shell; g.beginPath();g.ellipse(cx,cy,32,22,0,0,Math.PI*2);g.fill();
+    g.fillStyle=COL.carap; g.beginPath();g.moveTo(cx-30,cy-6);g.lineTo(cx-20,cy-20);g.lineTo(cx+20,cy-20);g.lineTo(cx+30,cy-6);g.closePath();g.fill();
+    g.strokeStyle=COL.rib; g.lineWidth=1;
+    for (let s=-20;s<=20;s+=10) {g.beginPath();g.moveTo(cx+s,cy-20);g.lineTo(cx+s,cy+(s===0?20:18));g.stroke();}
+
+    // face
+    const ep = getExprParams();
+    drawFace(cx,cy,ep.mc,ep.es,ep.ed,ep.sp,ep.ba);
+
+    // particles
+    for (const p of crab.particles) {
+      g.globalAlpha=p.life; g.fillStyle=p.col;
+      g.beginPath();g.arc(p.x,p.y,p.r,0,Math.PI*2);g.fill();
+    }
+    g.globalAlpha=1;
+  }
+
+  // ═══════════════════════════════════════════
+  // UPDATE CRAB — state machine
+  // ═══════════════════════════════════════════
+  // wriggle: sin(t*0.038)*0.10 — in phase with body bob (t*0.038)*1.5
+  // Added to aL (positive) and subtracted from aR (mirror)
+  function updateCrab() {
+    crab.t++;
+    const t = crab.t;
+    const wr = Math.sin(t*0.038)*0.10;
+
+    switch(crab.state) {
+      case 'wave':
+        crab.aL = BASE_L + Math.sin(t*0.12)*0.75 + wr;
+        crab.aR = BASE_R - Math.sin(t*0.12)*0.55 - wr;
+        crab.open = 0.5+Math.sin(t*0.2)*0.45;
+        crab.eyeOff = Math.sin(t*0.1)*2;
+        if(t>150){crab.state='idle';crab.t=0;}
+        break;
+      case 'hop':
+        if(!crab.hopActive){crab.hopVY=-13;crab.hopActive=true;}
+        crab.hopVY+=0.85; crab.y+=crab.hopVY;
+        if(crab.y>=crab.baseY){crab.y=crab.baseY;crab.hopActive=false;crab.state='idle';crab.t=0;}
+        crab.aL=BASE_L+0.55; crab.aR=BASE_R-0.45; crab.open=0.9; crab.eyeOff=-3;
+        break;
+      case 'scuttle':
+        crab.x += crab.scuttleDir*3.5;
+        if(crab.x>340||crab.x<140)crab.scuttleDir*=-1;
+        crab.aL=BASE_L+Math.sin(t*0.18)*0.28+wr;
+        crab.aR=BASE_R-Math.sin(t*0.18)*0.22-wr;
+        crab.open=0.2+Math.sin(t*0.18)*0.15;
+        if(t>200){crab.state='idle';crab.x=240;crab.t=0;}
+        break;
+      case 'celebLo':
+        crab.y = crab.baseY + Math.sin(t*0.18)*4;
+        crab.aL = BASE_L+Math.sin(t*0.22)*0.5+wr;
+        crab.aR = BASE_R-Math.sin(t*0.22)*0.35-wr;
+        crab.open = 0.4+Math.sin(t*0.22)*0.35;
+        crab.eyeOff = Math.sin(t*0.18)*1.5;
+        if(t%18===0&&t<CELEB_LO) spawnParticles(3);
+        if(t>CELEB_LO){crab.state='idle';crab.y=crab.baseY;crab.t=0;}
+        break;
+      case 'celebHi':
+        crab.y = crab.baseY + Math.sin(t*0.25)*9;
+        crab.aL = BASE_L+Math.sin(t*0.28)*0.9+wr;
+        crab.aR = BASE_R-Math.sin(t*0.28)*0.7-wr;
+        crab.open = 0.6+Math.sin(t*0.28)*0.4;
+        crab.eyeOff = Math.sin(t*0.2)*3;
+        if(t%10===0&&t<CELEB_HI) spawnParticles(4);
+        if(t>CELEB_HI){crab.state='idle';crab.y=crab.baseY;crab.t=0;}
+        break;
+      default: // idle
+        crab.aL = BASE_L+Math.sin(t*0.035)*0.14+wr;
+        crab.aR = BASE_R-Math.sin(t*0.035)*0.11-wr;
+        crab.open = Math.sin(t*0.055)*0.1+0.14;
+        crab.eyeOff = Math.sin(t*0.045);
+        crab.blush = Math.max(0,crab.blush-0.02);
+        crab.y = crab.baseY + Math.sin(t*0.038)*1.5;
+    }
+
+    // update particles
+    for(const p of crab.particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.12;p.life-=p.decay;}
+    crab.particles = crab.particles.filter(p=>p.life>0);
+  }
+
+  // ═══════════════════════════════════════════
+  // BACKGROUND & WALLS
+  // ═══════════════════════════════════════════
+  function drawBackground() {
+    g.fillStyle=COL.bg; g.fillRect(0,0,W,H);
+    g.fillStyle='rgba(0,180,200,0.025)';
+    for(let i=0;i<6;i++){g.beginPath();g.ellipse(85+i*64,H*0.5,42,H*0.43,0,0,Math.PI*2);g.fill();}
+    g.fillStyle='rgba(120,255,240,0.5)';
+    for(const[dx,dy]of[[127,164],[212,219],[282,142],[367,197],[113,285],[311,263],[410,142]]){
+      g.beginPath();g.arc(dx,dy,2,0,Math.PI*2);g.fill();
+    }
+  }
+  function drawWalls() {
+    g.fillStyle=COL.wall;
+    g.beginPath();g.moveTo(0,0);g.lineTo(0,H);g.lineTo(64,H);g.lineTo(50,373);g.lineTo(40,307);g.lineTo(56,263);g.lineTo(35,219);g.lineTo(42,164);g.lineTo(21,110);g.lineTo(28,55);g.closePath();g.fill();
+    g.beginPath();g.moveTo(W,0);g.lineTo(W,H);g.lineTo(W-64,H);g.lineTo(W-50,373);g.lineTo(W-40,307);g.lineTo(W-56,263);g.lineTo(W-35,219);g.lineTo(W-42,164);g.lineTo(W-21,110);g.lineTo(W-28,55);g.closePath();g.fill();
+    g.fillStyle=COL.ceil;
+    g.beginPath();g.moveTo(0,0);g.lineTo(W,0);g.lineTo(W,66);g.lineTo(438,44);g.lineTo(395,77);g.lineTo(353,49);g.lineTo(311,88);g.lineTo(268,55);g.lineTo(226,82);g.lineTo(184,49);g.lineTo(141,79);g.lineTo(99,53);g.lineTo(56,71);g.lineTo(0,55);g.closePath();g.fill();
+  }
+
+  // ═══════════════════════════════════════════
+  // MAIN LOOP
+  // ═══════════════════════════════════════════
+  // Draw order:
+  //   1. background (dark fill, glow ellipses, bioluminescent dots)
+  //   2. cave walls (left, right, ceiling)
+  //   3. sand + ripples
+  //   4. crystals (bg→fg so trunk covers arm joints)
+  //   5. crab (legs → arms/pincers → shell → face → particles)
+  function loop() {
+    g.clearRect(0,0,W,H);
+    drawBackground();
+    drawWalls();
+    drawSand();
+    for(const c of CRYSTALS) drawCrystal(c);
+    updateCrab();
+    drawCrab();
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  // ═══════════════════════════════════════════
+  // PUBLIC API
+  // ═══════════════════════════════════════════
+  return {
+    setExpr(e) { crab.expr=e; crab.blush=(e==='blush'?1:0); },
+    doAction(s) {
+      crab.state=s; crab.t=0; crab.hopActive=false;
+      if(s==='celebLo') spawnParticles(12);
+      if(s==='celebHi') spawnParticles(28);
+    },
+  };
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// ## DEBUG GAME — human-readable engine/settings readout (Stage 3.5)
+// ═══════════════════════════════════════════════════════════════
+//
+// Temporary inspector for development use. Will be superseded by a real
+// 3rd game later. Registered as a peer game so it sits in the selector.
+// Pure read-only render of live state: user, raw settings, inferred
+// settings, Storage status, Games registry, engine state, per-bond phases.
+
+const Debug = (() => {
+
+  function pad(s, n) { s = String(s); return s + ' '.repeat(Math.max(0, n - s.length)); }
+
+  function fmtUser() {
+    if (typeof currentUser !== 'undefined' && currentUser) {
+      return `  id=${currentUser.id}  name=${currentUser.name}`;
+    }
+    return '  (Guest — no user selected)';
+  }
+
+  function fmtSettings() {
+    const s = (typeof activeSettings !== 'undefined' && activeSettings) ? activeSettings : null;
+    if (!s) return '  (none — open a game once to populate activeSettings)';
+    const keys = ['level','style','sound','timer','omode','odisp'];
+    return keys.map(k => `  ${pad(k,8)}: ${s[k]}`).join('\n');
+  }
+
+  function fmtInferred() {
+    const s = (typeof activeSettings !== 'undefined' && activeSettings) ? activeSettings : null;
+    if (!s) return '  (no settings yet)';
+    const m = CONFIG.settings.map(s.level, s.style, s.omode, s.odisp);
+    const reefClip = CONFIG.levels.clipForReef(s.level);
+    const caveClip = CONFIG.levels.clipForCave(s.level);
+    return [
+      `  display  : ${m.display}`,
+      `  mode     : ${m.mode}`,
+      `  reef-clip: ${reefClip}    cave-clip: ${caveClip}`,
+      `  subStart?: ${CONFIG.levels.subStart.has(reefClip) ? 'yes (engine boots in subtraction phase)' : 'no'}`,
+    ].join('\n');
+  }
+
+  function fmtStorage() {
+    const st = Storage.status();
+    return `  IndexedDB available : ${st.idbAvailable}\n  cache populated     : ${st.hasCache}`;
+  }
+
+  function fmtGames() {
+    return Games.list()
+      .map(g => `  ${pad(g.id,6)} → buttonId=${pad(g.buttonId,12)} screenId=${g.screenId}`)
+      .join('\n');
+  }
+
+  // Current mode's raw phase name for a bondState
+  function rawPhase(bs, mode) {
+    if (mode === 'both') return bs.bPhase;
+    if (mode === 'add')  return bs.aPhase;
+    return bs.sPhase;
+  }
+
+  function fmtEngine() {
+    if (typeof engine === 'undefined' || !engine) {
+      return '  (no engine yet — start a game to create one)';
+    }
+    const lines = [];
+    lines.push(`  activeLevel=${engine.activeLevel}  settingsLevel=${engine.settingsLevel||'-'}  mode=${engine.mode}  style=${engine.style}`);
+    lines.push(`  bonds total  : ${engine.bonds.size}`);
+    // Active-bucket summary
+    let nActive = 0, nRetention = 0, nNeither = 0;
+    for (const bs of engine.bonds.values()) {
+      if (bs.isActive) nActive++;
+      else if (bs.inRetention) nRetention++;
+      else nNeither++;
+    }
+    lines.push(`  active bucket: ${nActive}   retention: ${nRetention}   neither: ${nNeither}`);
+    const qPreview = engine.queue.slice(0, 5).map(([w,a,b]) => `${w}:${Math.max(a,b)}`).join(', ');
+    lines.push(`  queue length : ${engine.queue.length}${engine.queue.length ? '   (next: '+qPreview+(engine.queue.length>5?'…':'')+')' : ''}`);
+    lines.push(`  windows      : both=[${(engine.bothWindow||[]).join(',')}]`);
+    lines.push(`                 add =[${(engine.addnWindow||[]).join(',')}]`);
+    lines.push(`                 sub =[${(engine.subnWindow||[]).join(',')}]`);
+    if (engine.lastQ) {
+      const q = engine.lastQ;
+      lines.push(`  lastQ        : whole=${q.whole} A=${q.partA} B=${q.partB} missing=${q.missing} →${q.correctAnswer}`);
+    }
+    return lines.join('\n');
+  }
+
+  function fmtBonds() {
+    if (typeof engine === 'undefined' || !engine) return '  (no engine)';
+    const mode = engine.mode;
+    // Group by phase
+    const byPhase = {};
+    for (const bs of engine.bonds.values()) {
+      const ph = rawPhase(bs, mode);
+      (byPhase[ph] ||= []).push(bs);
+    }
+    const order = [
+      'checkBoth','addition','subtraction',
+      'probation1','probation2','probation3','free',
+      'additionLearning','additionProbation2','additionRetention',
+      'subtractionLearning','subtractionProbation2','subtractionRetention',
+    ];
+    const phases = [...new Set([...order, ...Object.keys(byPhase)])].filter(p => byPhase[p]);
+    const lines = [];
+    for (const ph of phases) {
+      lines.push(`  [${ph}]  (${byPhase[ph].length})`);
+      for (const bs of byPhase[ph]) {
+        let extra = '';
+        if (mode === 'both') {
+          if (ph === 'checkBoth')      extra = `results=${JSON.stringify(bs.bCheckResults||{})}`;
+          else if (ph === 'addition')  extra = `addConsec=${bs.bAddConsec}`;
+          else if (ph === 'subtraction') extra = `corrLarge=${bs.bSubCorrLarge} corrSmall=${bs.bSubCorrSmall}`;
+          else if (ph.startsWith('probation')) extra = `probN=${bs.bProbN}/5 score=${bs.bProbScore}`;
+        } else if (mode === 'add') {
+          extra = `stage=${bs.aStage} consec=${bs.aConsec} recent5=[${(bs.aRecent5||[]).join(',')}] earned=${bs.earnedAddn?'Y':'N'}`;
+        } else {
+          extra = `stage=${bs.sStage} consec=${bs.sConsec} recent5=[${(bs.sRecent5||[]).join(',')}] earned=${bs.earnedSubn?'Y':'N'}`;
+        }
+        const bucketFlag = bs.queued ? 'Q' : bs.isActive ? 'A' : bs.inRetention ? 'R' : '.';
+        // Pass 3h: admission lineage. E = earned (child set earnedAddn
+        // and/or earnedSubn via 2-consec or queue-release); S = settings
+        // (released by settingsLevel decree, no earned flag yet).
+        const lineageFlag = (bs.earnedAddn || bs.earnedSubn) ? 'E' : 'S';
+        lines.push(`      ${pad(CONFIG.bonds.key(bs.w,bs.a,bs.b), 6)} w=${bs.w} a=${bs.a} b=${bs.b}  [${bucketFlag}][${lineageFlag}] minL=${bs.minLevel||'-'}  ${extra}`);
+      }
+    }
+    return lines.join('\n') || '  (no bonds)';
+  }
+
+  function render() {
+    const now  = new Date().toISOString().replace('T',' ').slice(0,19);
+    const SEP  = '══════════════════════════════════════════════════════════════════';
+    const text = [
+      SEP,
+      `🔍 DEBUG READOUT    (refreshed ${now})`,
+      SEP,
+      '',
+      'USER',
+      fmtUser(),
+      '',
+      'SELECTED SETTINGS  (from settings screen)',
+      fmtSettings(),
+      '',
+      'INFERRED  (via CONFIG.settings.map)',
+      fmtInferred(),
+      '',
+      'STORAGE',
+      fmtStorage(),
+      '',
+      'GAMES REGISTRY',
+      fmtGames(),
+      '',
+      'BOND ENGINE',
+      fmtEngine(),
+      '',
+      'PER-BOND STATE  (grouped by phase, for current mode)',
+      SEP,
+      fmtBonds(),
+      '',
+    ].join('\n');
+    const el = document.getElementById('debug-content');
+    if (el) el.textContent = text;
+  }
+
+  function start() {
+    render();
+    showScreen('debug-screen');
+  }
+
+  function stop() { /* nothing to clean up */ }
+
+  return { start, stop, render };
+})();
+
+// Debug screen buttons
+document.getElementById('debug-back-btn').addEventListener('click', () => {
+  Debug.stop();
+  showGameSelectScreen();
+});
+document.getElementById('debug-refresh-btn').addEventListener('click', Debug.render);
+
+// Register all three games with the registry now that start/stop exist.
+Games.register({
+  id:       'reef',
+  label:    'Reef',
+  buttonId: 'reef-btn',
+  screenId: 'game-screen',
+  start:    startGame,
+  stop:     stopReefGame,
+});
+Games.register({
+  id:       'cave',
+  label:    'Cave',
+  buttonId: 'cave-btn',
+  screenId: 'cave-screen',
+  start:    cave_startGame,
+  stop:     cave_stopGame,
+});
+Games.register({
+  id:       'debug',
+  label:    'Debug',
+  buttonId: 'debug-btn',
+  screenId: 'debug-screen',
+  start:    Debug.start,
+  stop:     Debug.stop,
+});
+
+// Wire game-select buttons through the registry. Kept at the end of the
+// Cave section so both games are registered before listeners are attached.
+for (const g of Games.list()) {
+  const btn = document.getElementById(g.buttonId);
+  if (btn) btn.addEventListener('click', () => g.start());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ## ENGINE.PROGRESS — player progress display (formerly "Bond Map")
+// ═══════════════════════════════════════════════════════════════
+//
+// Conceptually part of the engine: it's a read-only view of the learner's
+// mastery state, not a game. Reads from the live engine if one exists,
+// otherwise from saved user data.
+//
+// Pure-logic helper `tierFor(bondState)` is testable without DOM. Returns
+// one of 8 mode-independent achievement tiers (Pass 3f):
+//   mastered | reinforcement | joinedup | subtraction | addition |
+//   earned | available | notstarted
+// Tier is highest-qualifying: when multiple tiers match a bondState, the
+// higher one wins.
+// DOM rendering `render()` builds the chip grid into #bond-map-grid.
+
+const EngineProgress = (() => {
+
+  // Mode-independent 8-tier achievement classifier. Reads all three tracks
+  // on the bondState (bPhase/aPhase/sPhase + earnedAddn/earnedSubn).
+  function tierFor(bs) {
+    if (!bs) return 'notstarted';
+    // Pass 3l: queued (S-paused) bonds are logically queue-resident.
+    // Display as notstarted — bondState retained but not in play.
+    if (bs.queued) return 'notstarted';
+    // Mastered — both-mode graduated.
+    if (bs.bPhase === 'free') return 'mastered';
+    // Reinforcement — on the both-mode probation2/3 ladder.
+    if (bs.bPhase === 'probation2' || bs.bPhase === 'probation3') return 'reinforcement';
+    // JoinedUp — child has demonstrated unsupported bidirectional
+    // competence (probation1). The both-mode sub-phases `addition` and
+    // `subtraction` are remedial drilling of a failed checkBoth probe
+    // — NOT joined-up yet. They fall through to earned/retention.
+    if (bs.bPhase === 'probation1') return 'joinedup';
+    // Beyond this point, bPhase is checkBoth / addition / subtraction /
+    // unengaged — classify by single-mode retention and earned flags.
+    const addRetention = bs.aPhase === 'additionRetention';
+    const subRetention = bs.sPhase === 'subtractionRetention';
+    // If both retentions reached but bond hasn't yet entered both-mode
+    // ladder (bPhase pre-probation), show the higher single-mode tier.
+    // "Subtraction" ranks above "Addition" in the tier ramp.
+    if (subRetention) return 'subtraction';
+    if (addRetention) return 'addition';
+    // Earned — 2-consec-correct lineage set in at least one mode.
+    if (bs.earnedAddn || bs.earnedSubn) return 'earned';
+    // Available — bond is released (present in engine.bonds Map) but no
+    // earned lineage yet. If bs exists at all, it's released.
+    return 'available';
+  }
+
+  // Back-compat — some existing callers (if any) still reference phaseFor.
+  function phaseFor(bs /* , mode  — ignored */) { return tierFor(bs); }
+
+  // Resolve the bonds Map to display: live engine first, then saved user data.
+  function resolveBonds() {
+    if (typeof engine !== 'undefined' && engine && engine.bonds) return engine.bonds;
+    if (typeof currentUser !== 'undefined' && currentUser) {
+      const ud = getUserData(currentUser.id);
+      if (ud.engine && ud.engine.bonds) return new Map(Object.entries(ud.engine.bonds));
+    }
+    return null;
+  }
+
+  function show() {
+    showScreen('bond-map-screen');
+    render();
+  }
+
+  function render() {
+    const grid = document.getElementById('bond-map-grid');
+    grid.innerHTML = '';
+
+    const bonds = resolveBonds();
+
+    // Baseline = upto20 bond set, grouped by whole.
+    const byWhole = {};
+    for (const [w, a, b] of CONFIG.bonds.forLevel('upto20')) {
+      (byWhole[w] ||= []).push({ w, a, b });
+    }
+    const wholes = Object.keys(byWhole).map(Number).sort((x, y) => x - y);
+
+    for (const whole of wholes) {
+      const row = document.createElement('div');
+      row.className = 'bm-whole-row';
+
+      const lbl = document.createElement('span');
+      lbl.className   = 'bm-whole-label';
+      lbl.textContent = whole;
+      row.appendChild(lbl);
+
+      const chips = document.createElement('div');
+      chips.className = 'bm-bond-chips';
+
+      for (const bond of byWhole[whole]) {
+        const key  = CONFIG.bonds.key(bond.w, bond.a, bond.b);
+        const bs   = bonds ? (bonds.get ? bonds.get(key) : bonds[key]) : null;
+        const tier = tierFor(bs);
+
+        const chip = document.createElement('span');
+        chip.className   = 'bm-chip tier-' + tier;
+        chip.textContent = bond.a + '+' + bond.b;
+        chip.title       = `${bond.w} = ${bond.a} + ${bond.b} (${tier})`;
+        chips.appendChild(chip);
+      }
+
+      row.appendChild(chips);
+      grid.appendChild(row);
+    }
+  }
+
+  return { show, render, tierFor, phaseFor };
+})();
+
+// ── Backward-compat aliases
+function showBondMap()   { return EngineProgress.show(); }
+function renderBondMap() { return EngineProgress.render(); }
+
+document.getElementById('bond-map-btn').addEventListener('click', EngineProgress.show);
+document.getElementById('bond-map-back-btn').addEventListener('click', () => {
+  showScreen('settings-screen');
+});
+
+</script>
+</body>
+</html>
