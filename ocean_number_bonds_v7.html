@@ -427,11 +427,19 @@ canvas#cave-canvas { display:block; }
   gap: 12px; padding: 8px 0;
 }
 .player-card {
+  position: relative;
   background: #0e2848; border: 2px solid #1a5090; border-radius: 12px;
   padding: 16px; text-align: center; cursor: pointer; color: #d0eeff;
   transition: transform 0.1s, border-color 0.1s; user-select: none;
 }
 .player-card:hover { border-color: #00b8d4; }
+.player-card-x {
+  position: absolute; top: 4px; right: 6px;
+  width: 22px; height: 22px; line-height: 20px; text-align: center;
+  border-radius: 50%; font-size: 14px; color: #6a8aa8;
+  cursor: pointer; user-select: none;
+}
+.player-card-x:hover { background: #992200; color: #ffd0c0; }
 .player-card:active { transform: scale(0.97); }
 .player-card.guest { background: #1a1830; border-style: dashed; color: #80a0b8; }
 .player-emoji { font-size: 36px; margin-bottom: 6px; }
@@ -6950,10 +6958,13 @@ function renderS1() {
     const av = AVATARS.find(a => a.id === p.avatar);
     const card = document.createElement("div");
     card.className = "player-card";
-    card.innerHTML = `<div class="player-emoji">${av ? av.emoji : "?"}</div>
+    card.innerHTML = `<div class="player-card-x" title="Manage / delete">✕</div>
+                      <div class="player-emoji">${av ? av.emoji : "?"}</div>
                       <div class="player-name">${av ? av.name : "?"}</div>`;
     card.onclick = () => selectPlayer(pid);
-    // Manage (right-click) always available — the adult gate fires on the action itself.
+    // Manage via the corner ✕ (touch-friendly) or right-click — the adult gate fires on the
+    // action itself. stopPropagation so the ✕ doesn't also select the player.
+    card.querySelector(".player-card-x").onclick = (e) => { e.stopPropagation(); openManagePlayer(pid); };
     card.oncontextmenu = (e) => { e.preventDefault(); openManagePlayer(pid); };
     grid.appendChild(card);
   }
