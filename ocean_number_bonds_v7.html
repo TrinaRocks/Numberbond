@@ -250,7 +250,9 @@ canvas#game-canvas, canvas#cave-canvas { display: block; }
   display: flex; align-items: center; justify-content: center;
   min-width: 0; min-height: 0; line-height: 1;
 }
-.num-pad-btn:hover  { background: #1a5090; }
+/* h52: hover background removed from keypad keys. It lingered under the cursor
+   (desktop) / stuck after a tap (touch) so a just-pressed key looked "selected"
+   into the next question. Press feedback stays via :active. */
 .num-pad-btn:active { transform: scale(0.92); background: #2060b0; }
 /* Keypad visible on all devices (desktop click, touch tap). */
 
@@ -552,7 +554,7 @@ canvas#cave-canvas { display:block; }
   font: inherit; font-weight: bold; letter-spacing: 1px;
   box-sizing: border-box; width: 2.4em; height: 1.26em;
   text-align: center; padding: 0;
-  color: #40ffcc; background: #0e2040; caret-color: #40ffcc;
+  color: #ffffff; background: #0e2040; caret-color: #ffffff;   /* h52: white like the question while typing; plainSubmit recolours green(correct)/red(wrong) */
   border: 3px solid #1a5090; border-radius: 16px;
   -moz-appearance: textfield;
 }
@@ -560,10 +562,15 @@ canvas#cave-canvas { display:block; }
 .plain-inline-entry::-webkit-inner-spin-button,
 .plain-inline-entry::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 /* h52: two-row number pad beneath the question. */
-.plain-pad { display: flex; flex-direction: column; gap: 8px; padding: 8px 6px 18px; }
-.plain-pad-row { display: flex; gap: 6px; justify-content: center; }
+/* h52: match Cave's keypad — full-width row (no extra side padding/cap) so the
+   10-button value pad lands at the same button width as Cave's stack-mode pad.
+   Cave uses .num-pad-panel gap 4, padThick≈44 height, font ≈ btnShort*0.5. */
+/* margin:0 -18px cancels the shell-screen side padding so the pad spans the
+   full app width like Cave's keypad → same button width. */
+.plain-pad { display: flex; flex-direction: column; gap: 8px; padding: 8px 6px 18px; margin: 0 -18px; }
+.plain-pad-row { display: flex; gap: 4px; justify-content: center; }
 .plain-pad-row:empty { display: none; }
-.plain-pad-row .num-pad-btn { flex: 1 1 0; min-width: 40px; max-width: 70px; height: 52px; font-size: 20px; }
+.plain-pad-row .num-pad-btn { flex: 1 1 0; min-width: 0; height: 44px; font-size: 14px; padding: 0 1px; }
 .plain-feedback { font-size: 28px; margin-top: 14px; height: 36px; font-weight: bold; }
 .plain-feedback.correct { color: #40ffcc; }
 .plain-feedback.wrong { color: #ff9070; }
@@ -1142,12 +1149,14 @@ const PROBE_SUBGROUPS_FOR_LEVEL = {
 // User decision (h-this): per-age start beats the spec's always-to5 ascent —
 // an older child should begin nearer their edge, not grind up trivial probes.
 // The search then ascends on a pass and descends on a fail from this anchor.
+// h53 (user): the HIGHEST first-session start is capped at exact10 even for older
+// children — better to start a touch low and ascend than to start high. exact10
+// is not necessarily their best end-spot; the search ascends from here on passes.
+// Youngest (age <= 5) still start at to5.
 function _v8_searchStartLevel(age) {
   const a = age | 0;
   if (a <= 5) return "to5";
-  if (a === 6) return "exact10";
-  if (a <= 9) return "upto10";
-  return "upto20";
+  return "exact10";
 }
 
 // §4.2 probe-bond selection: a random bond drawn from the level's mid-difficulty
@@ -1191,7 +1200,14 @@ function _targetInFluxByAge(age) {
 
 const C = {
   // §3 lifecycle gates
-  MIN_Q_TO_PROGRESS_PHASE:              3,
+  // working → steady minimum questions-in-phase (h53, user: raised 3→7). On entry to working
+  // questionsInPhase resets to 0 (the bridge's own questions don't count), so this is 7 genuine
+  // WORKING questions before the bond may graduate to steady. At the ~2/3 sub op-share that is
+  // ~4-5 subtraction questions, over which subAcc must stay high — a real demonstration, not the
+  // ~2 carryover bridge subs. Only working→steady uses this gate (steady→learnt has its own,
+  // already 8 q + 5 sessions + fluency). MIN_Q_TO_REGRESS_PHASE (3) kept asymmetric: slower to
+  // promote, quicker to demote.
+  MIN_Q_TO_PROGRESS_PHASE:              7,
   MIN_Q_TO_REGRESS_PHASE:               3,
   REGRESSION_WORKING_TO_INTRO_ADDACC:   0.50,
   REGRESSION_STEADY_TO_WORKING_WRONG_STREAK: 3,
@@ -1200,6 +1216,13 @@ const C = {
   REGRESSION_LEARNT_TO_STEADY_ACC:      0.60,
   ACHIEVED_ADD_ACC_THRESHOLD:           0.80,
   ACHIEVED_MIN_ATTEMPTS:                3,
+  // h53 (user): subAchieved needs MORE attempts than addAchieved. A bond entering working from
+  // the bridge already carries ~2 sub attempts (bridge stages 2/3, scaffolded); at the 3-attempt
+  // shared gate subAchieved would set after ~1 working sub → steady too fast. Requiring 6 sub
+  // attempts means the flag (and the achievement display) reflects sustained working-phase sub
+  // practice (~4 beyond the bridge), aligning with the 7-question working→steady gate. Add keeps
+  // ACHIEVED_MIN_ATTEMPTS (3) — add is already heavily practised by the time a bond bridges.
+  SUB_ACHIEVED_MIN_ATTEMPTS:            6,
   ACHIEVED_CLEAR_WRONG_STREAK_ADD:      3,
   CLEAR_ADD_ACC_THRESHOLD:              0.50,
   STEADY_TO_LEARNT_MIN_QUESTIONS:       8,
@@ -1243,6 +1266,13 @@ const C = {
   // child still walks to to5 (each level just gets N chances). Floor (to5) gets N
   // chances too, then settles severe.
   CATASTROPHIC_PROBES_PER_LEVEL:        2,
+  // §4.2 first-play boundary search — questions per op per level (h53, #2, user). The search
+  // asks this many at each level before deciding: ALL right → probe up; EXACTLY ONE right →
+  // settle here ("the level where 1 is first found correct"); ALL wrong → probe down. On an
+  // oscillation (a move would re-enter an already-visited level) settle at the LOWER of the two
+  // (a borderline child is solid at the lower, not working at the higher — releases + boundary
+  // advance lift them later). Replaces the old 1-probe-per-level ascend/descend.
+  PROBES_PER_SEARCH_LEVEL:              2,
   BORED_MIN_ATTEMPTS:                   10,
   BORED_MIN_QUESTIONS:                  10,
   SUB_ONLY_MIN_ADD_ACC:                 0.60,  // §5.6.3 per-op sub guard: in BOTH-mode don't
@@ -1564,7 +1594,7 @@ function _updateAchievementFlags(eng, bs, op, isCorrect) {
   if (!bs.subAchieved
       && bs.lifecycle !== "introduction"
       && bs.subAcc >= C.ACHIEVED_ADD_ACC_THRESHOLD
-      && bs.subAttempts >= C.ACHIEVED_MIN_ATTEMPTS) {
+      && bs.subAttempts >= C.SUB_ACHIEVED_MIN_ATTEMPTS) {   // h53: higher than add (carryover bridge subs)
     bs.subAchieved = true;
     if (bs.needsPrimer) bs.needsPrimer.largeHidden = bs.needsPrimer.smallHidden = false;
   }
@@ -1752,12 +1782,17 @@ function v8_recordBridgeAnswer(eng, bondKey, direction, isCorrect) {
   if (stage === 2) {
     bs.bridgeBattery.subLargeResult = isCorrect;
     if (!isCorrect) {
-      // Stage-2 fail: stay in introduction; set retry gate; clear battery
-      bs.bridgeFailedAtAttempts = bs.addAttempts;
-      bs.bridgePending          = false;
+      // h53 (user): stage-2 fail RETAINS bridgePending (like stage 3, #7) and sets NO retry gate.
+      // The stage-1 ADD was correct (we reached stage 2), so the addition foundation is there — the
+      // subtraction is what's missing. Keeping bridgePending switches the bond into a mode where
+      // every add-form selection re-launches the bridge, i.e. each pick scaffolds subtraction
+      // (add → large-hidden sub → small-hidden sub) until the child gets it. (Contrast stage-1 fail
+      // below, which clears bridgePending + retry-gates: there the add fact itself isn't known.)
       bs.bridgeBattery          = { stage: null, addResult: null, subLargeResult: null, subSmallResult: null };
       eng._bridgeBatteryActive  = null;
-      _emitEvent(eng, "BRIDGE_FAILED", { bondKey, stage: 2 });
+      bs.bridgePending          = true;     // retain — re-launch on next selection
+      bs.bridgeFailedAtAttempts = null;     // no retry throttle
+      _emitEvent(eng, "BRIDGE_FAILED", { bondKey, stage: 2, retained: true });
       return { done: true, transitionedToWorking: false };
     }
     bs.bridgeBattery.stage = 3;
@@ -1765,13 +1800,27 @@ function v8_recordBridgeAnswer(eng, bondKey, direction, isCorrect) {
   }
 
   if (stage === 3) {
-    // Stage 3 answered (right or wrong) → enter working
     bs.bridgeBattery.subSmallResult = isCorrect;
-    bs.bridgePending   = false;
-    bs.bridgeBattery   = { stage: null, addResult: null, subLargeResult: null, subSmallResult: null };
-    bs.bridgeFailedAtAttempts = null;
+    bs.bridgeBattery          = { stage: null, addResult: null, subLargeResult: null, subSmallResult: null };
     eng._bridgeBatteryActive  = null;
 
+    if (!isCorrect) {
+      // h53 (user): stage-3 WRONG → REMAIN in introduction, ready for another bridge.
+      // The child passed stage 1 (add) AND stage 2 (large-hidden sub) — "the subtraction is
+      // partially there" — so don't promote to working yet, but DON'T impose the 5-question
+      // retry gate either: keep `bridgePending` so the next weighted selection of this bond
+      // re-launches a fresh bridge that builds on this one. Conceptually "remain at the end of
+      // introduction, for more scaffolding." (Stage 1/2 fail keep the retry gate — there the
+      // add/large-sub foundation isn't there yet; here it is, so re-offer promptly.)
+      bs.bridgePending          = true;    // re-arm directly (no _checkBridgePending re-gate)
+      bs.bridgeFailedAtAttempts = null;    // NO retry throttle
+      _emitEvent(eng, "BRIDGE_FAILED", { bondKey, stage: 3, retained: true });
+      return { done: true, transitionedToWorking: false };
+    }
+
+    // Stage 3 RIGHT → enter working (full bridge pass).
+    bs.bridgePending          = false;
+    bs.bridgeFailedAtAttempts = null;
     // §3.11: boundarySearchPlacedAbove.sub = true; both needsPrimer = true
     bs.boundarySearchPlacedAbove.sub = true;
     bs.needsPrimer = { largeHidden: true, smallHidden: true };
@@ -1851,12 +1900,17 @@ function v8_recordConfirm3Answer(eng, bondKey, stage, isCorrect) {
   if (stage === 2) {
     bs.confirmBattery.subLargeResult = isCorrect;
     if (!isCorrect) {
-      // Stage-2 fail → working
+      // h53 (user): Stage-2 (subtraction) fail → INTRODUCTION, not working. A child who
+      // can't subtract this bond — often well above the sub boundary — is not served by being
+      // dropped into working, where the sub keeps being asked at a level they can't reach.
+      // They need add practice and then the full bridge battery (§3.4), which only launches
+      // from introduction. The stage-1 add was correct (addResult true → addAcc reflects it),
+      // so the bridge re-launches once the add-attempts gate is met. Mirrors the stage-1-fail
+      // → introduction handling (no needsPrimer / no boundarySearchPlacedAbove — those are
+      // working-entry markers). Stage-3 fail still → working (user ruling: some sub competence
+      // shown). Spec §3.1.3 updated.
       bs.confirmBattery = { stage: null, addResult: null, subLargeResult: null, subSmallResult: null };
-      bs.boundarySearchPlacedAbove.add = true;
-      bs.needsPrimer = { largeHidden: true, smallHidden: true };
-      bs.lifecycle = "working";
-      bs.questionsInPhase = 0;
+      bs.lifecycle = "introduction";
       _emitEvent(eng, "CONFIRM3_FAILED", { bondKey, stage: 2 });
       return;
     }
@@ -2058,6 +2112,15 @@ function _interpAnchors(anchors, x) {
   return last[1];
 }
 function accuracyFactorForOp(bond, op) {
+  // h53: an `introduction` bond is mid-acquisition — its subtraction is not yet learnt (it
+  // arrives via the bridge → working), so the bond as a whole is NOT mastered. Its (often high)
+  // ADD accuracy must not deweight it: with #5 removing introduction bonds from the sub pool,
+  // their only pool weight is the add candidate, and a bridged bond's high addAcc drops the
+  // accuracy factor to the ~10 floor → the bond is rarely re-asked → it re-bridges slowly / gets
+  // stuck in introduction at a low weight (playtest). Hold introduction bonds at the FRONTIER
+  // factor (acc-0 anchor) so they stay in active rotation until they bridge — this restores the
+  // pre-#5 rotation rate (they used to draw the frontier SUB factor via the sub pool).
+  if (bond.lifecycle === "introduction") return _interpAnchors(C.ACCURACY_FACTOR_ANCHORS, 0);
   // Min-attempts gate (h42): until the op has ACCURACY_FACTOR_MIN_ATTEMPTS samples,
   // hold at the frontier factor (anchor at acc 0) so a couple of correct answers can't
   // collapse an incomplete bond's weight before there is enough data to judge accuracy.
@@ -2094,6 +2157,18 @@ function recencyFactorLookup(qsSinceAsked) {
 function bondIsSelectable(bond, opFocus, sessionOpFocus) {
   if (sessionOpFocus === undefined) sessionOpFocus = opFocus;
   if (opFocus === "sub" && sessionOpFocus !== "sub" && bond.addAcc < C.SUB_ONLY_MIN_ADD_ACC) return false;
+  // h53 (#5, user): in a both/add session a bond in `introduction` is NOT sub-selectable for
+  // ORDINARY selection — introduction is add-only (SPEC §5.6.4 lifecycle eligibility) and the
+  // first sub on a bond is the BRIDGE only. The add flag is the next objective; sub is not asked
+  // until it is achieved (via the bridge → working). The bridge is UNAFFECTED: it launches via the
+  // bridgePending override when the bond is picked for ADD (driver step 3b) and runs its sub stages
+  // through _bridgeBatteryActive (driver step 1) — neither consults this predicate for the sub.
+  // The literal "not add-deferred / at-or-below add boundary" qualifiers are subsumed: an add-
+  // deferred bond has addDeferredReasonAdd set → subDeferredActive is also true (next line) → already
+  // unselectable; out-of-scope bonds are deferred/unplaceable. Bypassed for a sub-only session (no
+  // bridge there; introduction bonds are healed to working at session start, defensive). Realises the
+  // §5.6.4 "introduction → add only" rule the live op-first selector never implemented (spec/code gap).
+  if (opFocus === "sub" && sessionOpFocus !== "sub" && bond.lifecycle === "introduction") return false;
   if (opFocus === "sub" && subDeferredActive(bond)) return false;
   if (opFocus === "add" && addDeferredActive(bond)) return false;
   if (opFocus === "both" && subDeferredActive(bond) && addDeferredActive(bond)) return false;
@@ -2418,6 +2493,19 @@ function _v8_newUnlockWithAdvance(eng, op, selectFn, advanceReason) {
   if (cand) return cand;
   // §6.2.4 / §6.4.5: no boundary advance during catastrophic halt or cooldown.
   if (eng.bondScope === "Auto" && eng._catastrophic == null && eng._catastrophicCooldown == null) {
+    // h53 (user, issue #1): NEVER advance the boundary while any member of the
+    // current level is still unreleased. The bored selector (_v8_selectBoredNewUnlock)
+    // only checks FRONTIER bonds (firstAppearance == boundary); the comprehensive
+    // selector (_v8_selectNewUnlock) checks every bond at firstAppearance <= ceiling
+    // — i.e. all members of the level, both first-appearance AND also-appears-at
+    // (a member's firstAppearance is always <= that level). If a lower / also-appears-at
+    // member is still unplaced, RELEASE IT (backfill) instead of advancing. This makes
+    // the advance gate identical for slow-release and bored: advance past level L only
+    // once every bond that is a member of L has been released. (No-op on the slow-release
+    // path — there selectFn IS _v8_selectNewUnlock, so reaching here means backfill is
+    // null too; the bored path is the only one this changes.)
+    const backfill = _v8_selectNewUnlock(eng, op);
+    if (backfill) return backfill;
     const from = (op === "add") ? eng.settledBoundaryAdd : eng.settledBoundarySub;
     const nl = nextLevel(from);
     // item 1 (h41): sub boundary may never exceed add boundary. Block an in-play
@@ -2689,12 +2777,13 @@ function v8_fireSeed(eng, playerAge) {
 // both ops settle it writes the boundaries, emits BOUNDARY_SETTLED, and fires
 // the §6.1 seed (§4.2.3 termination).
 //
-// Probe shape (per op), driven by one outcome at a time:
-//   first probe (dir null): pass → ascend; fail → descend.
-//   ascending:  pass → record bestPass, step up (settle at top if no higher);
-//               fail → settle at bestPass (highest passed level).
-//   descending: pass → settle here (first pass on the way down);
-//               fail → step down (settle at to5 floor if no lower).
+// Probe shape (per op, h53 #2): PROBES_PER_SEARCH_LEVEL (2) questions at each level, then:
+//   both right → probe UP a level (settle at the cap if no higher);
+//   exactly one right → SETTLE here (the level where 1 is first found correct);
+//   both wrong → probe DOWN a level (settle at the to5 floor if no lower).
+//   Oscillation (a move would re-enter an already-visited level) → settle at the LOWER of the
+//   two levels (a borderline child is solid at the lower, not working at the higher — extra
+//   releases + boundary advance lift them later; OQ1 user ruling).
 //
 // Ceremonial (§4.2.2): probe answers feed only child-facing counters +
 // bond.lastAskedAtQ (handled by v8_anyAnswerReceived with descriptor.ceremonial
@@ -2717,7 +2806,10 @@ function v8_beginBoundarySearch(eng, playerAge) {
   if (eng._seedFired) return false;
   if (eng._boundarySearch && eng._boundarySearch.active) return true;
   const start = _v8_searchStartLevel(playerAge || 7);
-  const mkOp = () => ({ settled: false, settledLevel: null, level: start, dir: null, bestPass: null });
+  // h53 (#2): per-op machine accumulates PROBES_PER_SEARCH_LEVEL outcomes at `level` (asked/
+  // correct), then moves up/settles/down; `visited` bounds the walk and drives the settle-low
+  // oscillation rule.
+  const mkOp = () => ({ settled: false, settledLevel: null, level: start, asked: 0, correct: 0, visited: [] });
   eng._boundarySearch = { active: true, lastProbedOp: null, add: mkOp(), sub: mkOp() };
   // h51: single-op probes ONLY the active op — the child never sees ceremonial probes for
   // the op the adult excluded (add/sub probe alternation is a both-mode behaviour). Pre-settle
@@ -2770,7 +2862,8 @@ function v8_recordBoundaryProbe(eng, op, level, correct, playerAge) {
   if (!bs || !bs.active) return;
   const st = bs[op];
   if (st.settled) return;
-  _emitEvent(eng, "BOUNDARY_SEARCH_PROGRESSED", { op, level, result: correct ? "pass" : "fail" });
+  const here = st.level;
+  _emitEvent(eng, "BOUNDARY_SEARCH_PROGRESSED", { op, level: here, result: correct ? "pass" : "fail" });
 
   // §4.2.2 first-play cap: the search may not ascend past FIRST_PLAY_MAX_LEVEL
   // (it cannot settle in Tier100). A pass at the cap settles there rather than
@@ -2779,31 +2872,29 @@ function v8_recordBoundaryProbe(eng, op, level, correct, playerAge) {
     const nx = nextLevel(lvl);
     return (nx && levelIndex(nx) <= levelIndex(C.FIRST_PLAY_MAX_LEVEL)) ? nx : null;
   };
-  if (st.dir === null) {
-    if (correct) {
-      st.dir = "up"; st.bestPass = level;
-      const nx = _cappedNext(level);
-      if (nx) st.level = nx; else _v8_settleSearchOp(eng, op, level);
-    } else {
-      st.dir = "down";
-      const pv = prevLevel(level);
-      if (pv) st.level = pv; else _v8_settleSearchOp(eng, op, "to5");
-    }
-  } else if (st.dir === "up") {
-    if (correct) {
-      st.bestPass = level;
-      const nx = _cappedNext(level);
-      if (nx) st.level = nx; else _v8_settleSearchOp(eng, op, level);
-    } else {
-      _v8_settleSearchOp(eng, op, st.bestPass);
-    }
-  } else { // "down"
-    if (correct) {
-      _v8_settleSearchOp(eng, op, level);
-    } else {
-      const pv = prevLevel(level);
-      if (pv) st.level = pv; else _v8_settleSearchOp(eng, op, "to5");
-    }
+
+  // h53 (#2): accumulate PROBES_PER_SEARCH_LEVEL outcomes at this level, then decide.
+  st.asked += 1;
+  if (correct) st.correct += 1;
+  if (st.asked < C.PROBES_PER_SEARCH_LEVEL) return;     // need the remaining outcome(s) here
+
+  st.visited.push(here);
+  const lowerOf = (x, y) => (levelIndex(x) <= levelIndex(y) ? x : y);
+  // Move to `dest`, OR — if `dest` was already visited (oscillation) — settle at the LOWER of
+  // {here, dest} (OQ1, settle low). Resets the per-level counters on a real move.
+  const moveOrSettle = (dest) => {
+    if (st.visited.includes(dest)) { _v8_settleSearchOp(eng, op, lowerOf(here, dest)); return; }
+    st.level = dest; st.asked = 0; st.correct = 0;
+  };
+
+  if (st.correct === C.PROBES_PER_SEARCH_LEVEL) {        // ALL right → up
+    const nx = _cappedNext(here);
+    if (nx) moveOrSettle(nx); else _v8_settleSearchOp(eng, op, here);
+  } else if (st.correct === 0) {                         // ALL wrong → down
+    const pv = prevLevel(here);
+    if (pv) moveOrSettle(pv); else _v8_settleSearchOp(eng, op, "to5");
+  } else {                                               // mixed (≥1 right, ≥1 wrong) → settle here
+    _v8_settleSearchOp(eng, op, here);
   }
 
   if (bs.add.settled && bs.sub.settled) _v8_settleBoundarySearch(eng, playerAge);
@@ -2889,6 +2980,7 @@ function _v8_armNormalReentry(eng) {
     phase: "current",
     probeLevel: eng.settledBoundaryAdd,   // ops[0] === "add"
     descentSteps: 0,
+    asked: 0, correct: 0,                  // h53 (#2 stage 2): 2 questions per level
     active: true,
   };
 }
@@ -3051,7 +3143,8 @@ function _v8_reentryAdvanceOp(eng) {
 // (walk level, maxRaise, eligibility) is done by _v8_reentrySetupCurrentOp.
 function _v8_armPostCatReentryCaseA(eng) {
   eng._reentry = { mode: "postcat_caseA", ops: ["add", "sub"], opIdx: 0, phase: "walk",
-                   probeLevel: null, descentSteps: 0, raisedThisCall: 0, maxRaise: 0, allowAdvance: true, active: true };
+                   probeLevel: null, descentSteps: 0, raisedThisCall: 0, maxRaise: 0, allowAdvance: true,
+                   asked: 0, correct: 0, active: true };
   _v8_reentrySetupCurrentOp(eng);
 }
 
@@ -3059,7 +3152,8 @@ function _v8_armPostCatReentryCaseA(eng) {
 // per-op advance gate are computed in _v8_reentrySetupCurrentOp.
 function _v8_armPostCatReentryCaseB(eng) {
   eng._reentry = { mode: "postcat_caseB", ops: ["add", "sub"], opIdx: 0, phase: "current",
-                   probeLevel: null, descentSteps: 0, raisedThisCall: 0, maxRaise: 0, allowAdvance: true, active: true };
+                   probeLevel: null, descentSteps: 0, raisedThisCall: 0, maxRaise: 0, allowAdvance: true,
+                   asked: 0, correct: 0, active: true };
   _v8_reentrySetupCurrentOp(eng);
 }
 
@@ -3099,14 +3193,28 @@ function v8_recordReentryProbe(eng, op, level, correct, playerAge) {
   // in the log (it otherwise only surfaces via the after-the-fact BOUNDARY_SETTLED/UNDEFERRED).
   // mode = "normal" | "postcat_caseA" | "postcat_caseB"; phase is the pre-record phase.
   _emitEvent(eng, "REENTRY_PROBE", { mode: r.mode, op, level, phase: r.phase, result: correct ? "pass" : "fail" });
-  if (r.mode === "postcat_caseA") { _v8_recordCaseAProbe(eng, op, correct); return; }
+
+  // h53 (#2 stage 2, user): PROBES_PER_SEARCH_LEVEL (2) questions per level here too — re-entry
+  // changes the questions the child is asked, so be SURE before moving the boundary. Accumulate;
+  // only act on the aggregate once both probes at this level are in. (Re-entry is bounded — ±1 up,
+  // REENTRY_CHECK_MAX_DESCENT down — so no oscillation rule is needed, OQ2-d.)
+  r.asked += 1;
+  if (correct) r.correct += 1;
+  if (r.asked < C.PROBES_PER_SEARCH_LEVEL) return;       // wait for the remaining probe(s) here
+  const nRight = r.correct;
+  r.asked = 0; r.correct = 0;                            // reset; the next level/op starts fresh
+
+  // Case A (postcat): aggressive one-shot walk UP. Raise a level only on a CLEAN 2/2 (OQ2-a, user:
+  // the child already showed weakness at a higher level — don't advance too fast; several-levels-
+  // at-once is aggressive enough). <2/2 stops the walk for this op.
+  if (r.mode === "postcat_caseA") { _v8_recordCaseAProbe(eng, op, nRight === C.PROBES_PER_SEARCH_LEVEL); return; }
+
   // normal + postcat_caseB share the one-step current/up/down shape below.
   const setB = (lvl) => { if (op === "add") eng.settledBoundaryAdd = lvl; else eng.settledBoundarySub = lvl; };
   const curB = () => (op === "add") ? eng.settledBoundaryAdd : eng.settledBoundarySub;
 
   if (r.phase === "current") {
-    if (correct) {
-      // up step: probe cur+1, capped at FIRST_PLAY_MAX_LEVEL (no cold-cross into Tier100)
+    if (nRight === C.PROBES_PER_SEARCH_LEVEL) {           // both right → try up (+1)
       const up = nextLevel(curB());
       if (up && levelIndex(up) <= levelIndex(C.FIRST_PLAY_MAX_LEVEL)) {
         r.phase = "up";
@@ -3114,7 +3222,9 @@ function v8_recordReentryProbe(eng, op, level, correct, playerAge) {
       } else {
         _v8_reentryAdvanceOp(eng);          // at cap/top → boundary stays
       }
-    } else {
+    } else if (nRight > 0) {                              // mixed (1/2) → settle here (stay, no tilt)
+      _v8_reentryAdvanceOp(eng);            // boundary unchanged — already at the right level
+    } else {                                              // both wrong → descend
       const down = prevLevel(curB());
       if (down) {
         r.phase = "down";
@@ -3131,11 +3241,12 @@ function v8_recordReentryProbe(eng, op, level, correct, playerAge) {
   }
 
   if (r.phase === "up") {
-    // Case B gates the upward boundary move (allowAdvance = caseBAdvanceGate, set at
-    // op start). Normal mode has allowAdvance undefined → treated as true. Gate-blocked
-    // or wrong: the probe was still asked (ceremonial), boundary stays, no tilt.
+    // Case B gates the upward boundary move (allowAdvance = caseBAdvanceGate, set at op start).
+    // Normal mode has allowAdvance undefined → treated as true. OQ2-b (user): at boundary+1, BOTH
+    // 2/2 AND 1/2 raise — a 1/2 here suggests this raised level is right for the child to learn at.
+    // 0/2 or gate-blocked: boundary stays, no tilt.
     const advanceOk = (r.allowAdvance !== false);
-    if (correct && advanceOk) {
+    if (nRight > 0 && advanceOk) {
       const nb = r.probeLevel;               // = cur+1
       setB(nb);
       clearRecoveryTiltOnBoundaryAdvance(eng, op);
@@ -3147,8 +3258,8 @@ function v8_recordReentryProbe(eng, op, level, correct, playerAge) {
     return;
   }
 
-  // r.phase === "down"
-  if (correct) {
+  // r.phase === "down": ≥1 correct → this level is workable, settle here (net-down); 0/2 → deeper.
+  if (nRight > 0) {
     setB(r.probeLevel);
     setRecoveryTilt(eng, op);                // net-down
     _emitEvent(eng, "BOUNDARY_SETTLED", { op, level: r.probeLevel });
@@ -3729,35 +3840,52 @@ function v8_playNextQuestion(eng, opFocus, rng) {
   const to5Only = !!(cd && SEVERITY_TABLE[cd.severity].poolFilter === "to5_add_only");
   const forceAdd = to5Only && cd.addOnlyRemaining > 0;
 
-  // (2) OP-FIRST selection (D, h45). Decide the op BEFORE the bond: severe phase 1 forces
-  //     add; opFocus pins it; otherwise draw against the sub op-share (baseline 2/3 sub,
-  //     floor lifts a lagging add). Then build that op's eligible pool and rejection-sample
-  //     within it. A confirm-3 bond belongs to the op of its current stage (stage 1 = add,
-  //     stages 2/3 = sub) — placement probes the op being asked; ordinary bonds use the
-  //     per-op weight. Falls back to the other op if the drawn op has no eligible bonds
-  //     (only when not severe-phase-1-forced and opFocus is "both").
-  let op = forceAdd ? "add" : _v8_decideOp(eng, opFocus, rand);
-  const buildOpPool = (forOp) => {
-    const p = [];
-    for (const k in eng.bonds) {
-      const bond = eng.bonds[k];
-      if (to5Only && bond.firstAppearance !== "to5") continue;
-      let w;
-      if (bond.confirmBattery.stage !== null) {
-        const cop = (bond.confirmBattery.stage === 1) ? "add" : "sub";
-        if (cop !== forOp) continue;
-        w = _v8_confirm3Weight(eng, bond, currentChildQ, opFocus);
-      } else {
-        w = v8_computeWeightForOp(eng, bond, currentChildQ, forOp, opFocus);
-      }
-      if (w > 0) p.push({ key: k, bond, weight: w });
+  // (2) OP-FIRST selection (D, h45) with confirm-3 reshaping (h53). The op is decided BEFORE
+  //     the bond, but via TWO buckets rather than a single sub/add op:
+  //       Bucket A ("priority", drawn with prob _v8_subOpShare — preserves the lagging-add
+  //         floor): every SUB-eligible (bond, sub) PLUS every confirm-3 (bond, stage-op). A
+  //         confirm-3 stage-1 ADD is an ASSESSMENT question, so it lives in A (NOT the ordinary
+  //         add bucket) — this stops the first confirm-3 bond to advance from monopolising the
+  //         sub pool while the cold bonds starve in the rare add bucket (the early-assessment
+  //         concentration; h53 playtest). Stages 2/3 are sub → also A.
+  //       Bucket B: NON-confirm-3 add only (ordinary add practice).
+  //     With NO confirm-3 bonds present, A = sub and B = add — i.e. this reduces EXACTLY to the
+  //     D 2/3 sub : 1/3 add op-share (steady state unchanged). A confirm-3 bond belongs to the
+  //     op of its current stage (1 = add, 2/3 = sub); ordinary bonds use the per-op weight.
+  const candFor = (bond, k, forOp) => {
+    if (to5Only && bond.firstAppearance !== "to5") return null;
+    let w;
+    if (bond.confirmBattery.stage !== null) {
+      const cop = (bond.confirmBattery.stage === 1) ? "add" : "sub";
+      if (cop !== forOp) return null;
+      w = _v8_confirm3Weight(eng, bond, currentChildQ, opFocus);
+    } else {
+      w = v8_computeWeightForOp(eng, bond, currentChildQ, forOp, opFocus);
     }
-    return p;
+    return (w > 0) ? { key: k, bond, weight: w, op: forOp } : null;
   };
-  let pool = buildOpPool(op);
-  if (pool.length === 0 && !forceAdd && opFocus === "both") {
-    op = (op === "sub") ? "add" : "sub";
-    pool = buildOpPool(op);
+  const bucketA = [], bucketB = [];
+  for (const k in eng.bonds) {
+    const bond = eng.bonds[k];
+    const isConfirm3 = bond.confirmBattery.stage !== null;
+    const cs = candFor(bond, k, "sub");
+    if (cs) bucketA.push(cs);                          // all sub candidates → A
+    const ca = candFor(bond, k, "add");
+    if (ca) (isConfirm3 ? bucketA : bucketB).push(ca); // confirm-3 add → A; ordinary add → B
+  }
+  let pool;
+  if (forceAdd || opFocus === "add") {
+    // add-only (severe phase-1 forced, or add-only session): every add candidate.
+    pool = bucketA.filter(c => c.op === "add").concat(bucketB);
+  } else if (opFocus === "sub") {
+    // sub-only session: every sub candidate (confirm-3 is skipped at routing in sub-only).
+    pool = bucketA.filter(c => c.op === "sub");
+  } else {
+    // both-mode: draw Bucket A with prob _v8_subOpShare (lagging-add floor preserved), else B;
+    // fall back to the other bucket if the drawn one is empty.
+    const drawA = rand() < _v8_subOpShare(eng);
+    pool = drawA ? bucketA : bucketB;
+    if (pool.length === 0) pool = drawA ? bucketB : bucketA;
   }
   if (pool.length === 0) return null;
 
@@ -3769,7 +3897,7 @@ function v8_playNextQuestion(eng, opFocus, rng) {
   }
   if (chosen === null) chosen = pool[Math.floor(rand() * pool.length)];
 
-  const bond = chosen.bond, bk = chosen.key;
+  const bond = chosen.bond, bk = chosen.key, op = chosen.op;
 
   // (3a) selected bond is mid confirm-3 -> emit current stage.
   if (bond.confirmBattery.stage !== null) {
@@ -3785,8 +3913,7 @@ function v8_playNextQuestion(eng, opFocus, rng) {
     // launch blocked (rule d / serendipity loss handled inside) -> ordinary.
   }
 
-  // (3c) ordinary question: op was decided op-first at step (2) (D, h45 — no longer the
-  // emergent heavier-per-op-weight pick). The bond was drawn from that op's pool.
+  // (3c) ordinary question: op is the chosen candidate's op (bucket-decided at step 2, h53).
   return _v8_describeOrdinary(bond, bk, op, rand);
 }
 
@@ -7065,10 +7192,17 @@ function plainSubmit() {
   total++; plainQ++;
   const result = engine.recordAnswer(currentQ, isCorrect);
   bumpSave(result);
-  if (isCorrect) { score++; plainCorrect++; }
   const fb = document.getElementById("plain-feedback");
-  fb.textContent = isCorrect ? "✓ correct" : `✗ (was ${correct})`;
-  fb.className = "plain-feedback " + (isCorrect ? "correct" : "wrong");
+  if (isCorrect) {
+    score++; plainCorrect++;
+    if (inp) inp.style.color = "#40ffcc";              // green, matching the ✓ tick
+    fb.textContent = "✓ correct"; fb.className = "plain-feedback correct";
+  } else {
+    // h52: don't show the child's wrong entry — show the CORRECT answer in white
+    // (the same white as the question) so the child sees what they should have put.
+    if (inp) { inp.value = String(correct); inp.style.color = "#ffffff"; }
+    fb.textContent = `✗ actually ${correct}`; fb.className = "plain-feedback wrong";
+  }
   document.getElementById("plain-q").textContent = plainQ;
   document.getElementById("plain-correct").textContent = plainCorrect;
   setTimeout(plainNextQuestion, 700);   // box value + tick both show during this
