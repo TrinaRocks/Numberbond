@@ -710,7 +710,7 @@ canvas#cave-canvas { display:block; }
   <div class="topbar">
     <button class="back-btn" onclick="goA1()">Back</button>
     <div class="title">Settings (Advanced)</div>
-    <button class="lock-btn" onclick="lockNow()">🔒 Lock</button>
+    <div style="width:36px;"></div>
   </div>
   <div class="settings-section">
     <div class="settings-row"><label>Player:</label><select id="a2-player"></select></div>
@@ -739,9 +739,6 @@ canvas#cave-canvas { display:block; }
     </div>
     <div class="settings-row"><label>Counters at lower levels:</label>
       <select id="a2-counters"><option value="off">Off</option><option value="on">On</option></select>
-    </div>
-    <div class="settings-row"><label>Auto-relock on close:</label>
-      <select id="a2-relock"><option value="off">Off</option><option value="on">On</option></select>
     </div>
   </div>
   <div class="shell-btn-row"><button class="nav-btn" onclick="exitSettings()">Games</button></div>
@@ -2175,6 +2172,32 @@ function bondIsSelectable(bond, opFocus, sessionOpFocus) {
   return true;
 }
 
+// §6.0.1 scope eligibility — adult-set STRICT filter (h53-followup; was §6.0.1 future
+// work). In Auto mode every bond is in scope: the settled boundaries govern availability
+// and may advance. When the adult fixes bondScope to a level L, the in-scope set is
+// EXACTLY { b : firstAppearance(b) == L } ∪ { b : L ∈ alsoAppearsAt(b) }
+// = { b : L ∈ levelsForBond(b) } — a strict SINGLE-level filter, NOT the cumulative
+// firstApp<=L boundary set. No backfill below L, no boundary advance (both Auto-only).
+// The lock is intentional: the child resumes progression only when the adult unsets
+// bondScope back to Auto. Consulted at every selection chokepoint — emission weight
+// (v8_computeWeight*), pool-health count (inFluxCount), and the unlock/undefer
+// selectors — so an out-of-scope bond left over from a scope CHANGE becomes both
+// unaskable and uncounted (eviction) and no new out-of-scope bond is ever placed.
+// SPEC §6.0.1 / §2.2. NB: an out-of-scope bond mid-bridge-battery is still forced by
+// the driver's contiguous-bridge rule (step 1) until the battery resolves — scope
+// changes are between-session adult actions, so the window is negligible; not handled.
+function v8_inScope(eng, bond) {
+  if (eng.bondScope === "Auto") return true;
+  return bond.firstAppearance === eng.bondScope
+      || bond.alsoAppearsAt.indexOf(eng.bondScope) >= 0;
+}
+// WAB variant for the unlock/seed selectors, which work on raw [w,a,b] triples before
+// a bond state exists. Same predicate via levelsForBond (= firstApp ∪ alsoAppearsAt).
+function v8_inScopeWAB(eng, w, a, b) {
+  if (eng.bondScope === "Auto") return true;
+  return levelsForBond(w, a, b).has(eng.bondScope);
+}
+
 // levelIdx(level) -> LEVELS-order index (helper for recovery-tilt boundary test).
 function levelIdx(level) { return LEVELS.indexOf(level); }
 
@@ -2229,6 +2252,7 @@ function _v8_weightCore(eng, bond, currentChildQ, accFactor, fluContributes) {
 }
 
 function v8_computeWeight(eng, bond, currentChildQ, opFocus) {
+  if (!v8_inScope(eng, bond)) return 0;          // §6.0.1 adult-set strict filter
   if (!bondIsSelectable(bond, opFocus)) return 0;
   // item 0a (h41): pool-selection accuracy factor is the MAX over ASKABLE ops only.
   // A deferred / opFocus-excluded op contributes nothing. Otherwise a deferred op's
@@ -2258,6 +2282,7 @@ function v8_computeWeightForOp(eng, bond, currentChildQ, op, opFocus) {
   // Honour the session opFocus: in add-only / sub-only mode the other op is never asked.
   if (opFocus === "add" && op === "sub") return 0;
   if (opFocus === "sub" && op === "add") return 0;
+  if (!v8_inScope(eng, bond)) return 0;          // §6.0.1 adult-set strict filter
   if (!bondIsSelectable(bond, op, opFocus)) return 0;
   const accFactor = accuracyFactorForOp(bond, op);
   const flu = fluencyContributesToWeight(bond, op);
@@ -2381,6 +2406,7 @@ function inFluxCount(eng) {
     // it just stops blocking new releases. both-mode unchanged (an intro/working bond is
     // never steady → !_v8_progressionMastered is always true → counts as before).
     if ((b.lifecycle === "introduction" || b.lifecycle === "working")
+        && v8_inScope(eng, b)                          // §6.0.1: out-of-scope bonds don't count toward pool health
         && bondIsSelectable(b, eng.opFocus)
         && !_v8_progressionMastered(eng, b)) {
       n += 1;
@@ -2399,6 +2425,8 @@ function effectiveMinInFlux(eng, age) {
   const seen = new Set();
   for (let li = 0; li <= hi; li++) {
     for (const [w, a, b] of bondsForLevel(LEVELS[li])) {
+      // §6.0.1: in adult-set mode the reachable set is the strict filter, not firstApp<=hi.
+      if (!v8_inScopeWAB(eng, w, a, b)) continue;
       if (levelIndex(firstAppearance(w, a, b)) <= hi) seen.add(bondKey(w, a, b));
     }
   }
@@ -2461,6 +2489,7 @@ function _v8_selectNewUnlock(eng, op) {
     for (const [w, a, b] of bondsForLevel(sgLvl)) {
       if (classifyBond_v8(w, a, b) !== sg) continue;
       if (!_v8_isUnplaced(eng, w, a, b)) continue;
+      if (!v8_inScopeWAB(eng, w, a, b)) continue;   // §6.0.1: no out-of-scope backfill in adult-set mode
       cands.push([w, a, b]);
     }
     if (cands.length === 0) continue;
@@ -2554,6 +2583,7 @@ function _v8_selectBoredNewUnlock(eng, op) {
       if (classifyBond_v8(w, a, b) !== sg) continue;
       if (firstAppearance(w, a, b) !== boundary) continue;
       if (!_v8_isUnplaced(eng, w, a, b)) continue;
+      if (!v8_inScopeWAB(eng, w, a, b)) continue;   // §6.0.1: no out-of-scope frontier unlock in adult-set mode
       cands.push([w, a, b]);
     }
     if (cands.length === 0) continue;
@@ -2590,6 +2620,7 @@ function _v8_selectDeferredCandidate(eng, op) {
     const flagged = (op === "add") ? b.addDeferredReasonAdd : b.subDeferredReasonSub;
     if (!flagged) continue;
     if (levelIndex(b.firstAppearance) > bIdx) continue;
+    if (!v8_inScope(eng, b)) continue;             // §6.0.1: don't undefer out-of-scope bonds in adult-set mode
     const sgIdx = SUBGROUP_ORDER.indexOf(classifyBond_v8(b.w, b.a, b.b));
     const rank = [levelIndex(b.firstAppearance), sgIdx, b.w, b.a];
     if (best === null || _v8_lexLess(rank, bestRank)) { best = k; bestRank = rank; }
@@ -6847,21 +6878,24 @@ const AVATARS = [
 function createPlayerState(id, avatarId, age) {
   return {
     id, avatar: avatarId, age, created: Date.now(),
-    settings: { bondScope: "auto", opFocus: "both", countersLowLevel: false },
+    // All settings are PER-PLAYER (3 children in different situations need their own
+    // sound/timer/scope). sound + timer were device-level (shared) before — moved here.
+    settings: { bondScope: "auto", opFocus: "both", countersLowLevel: false,
+                soundOn: true, timerOn: false },
     engine: null,        // v8 adapter state (one per child, all skins)
     lastPlayed: null,
   };
 }
-function createDeviceState() { return { locked: false, autoRelock: false, soundOn: true, timerOn: false }; }
 function createRootState() {
   const p = createPlayerState("player_1", "ozzy", 7);
-  return { schemaVersion: SHELL_SCHEMA_VERSION, device: createDeviceState(),
+  return { schemaVersion: SHELL_SCHEMA_VERSION,
            activePlayerId: "player_1", players: { "player_1": p } };
 }
 
 let rootState = null;
 let pendingSettingsReturn = "s2";
-let pendingLockTarget = null;
+let pendingLockAction = null;   // callback to run when the adult gate is solved
+let achAdultRevealed = false;   // transient: adult progress detail shown this achievements visit only
 let manageTargetPid = null;
 
 function loadOrInit() {
@@ -6889,12 +6923,10 @@ function openSettings(from) {
   pendingSettingsReturn = from;
   goA1();
 }
-function goAdvanced() {
-  if (rootState.device.locked) promptLock("advanced");
-  else goA2();
-}
+// Advanced settings ALWAYS require solving the adult gate — no persistent unlock,
+// no lock on/off toggle, no Lock button. The challenge fires on every entry.
+function goAdvanced() { promptLock(goA2); }
 function exitSettings() { if (pendingSettingsReturn === "s1") goS1(); else goS2(); }
-function lockNow() { rootState.device.locked = true; save(); exitSettings(); }
 // Compat shim: v7 game back-buttons call showGameSelectScreen() on exit →
 // now routes through the S4 summary, then S2.
 function showGameSelectScreen() { goSummary(); }
@@ -6921,8 +6953,8 @@ function renderS1() {
     card.innerHTML = `<div class="player-emoji">${av ? av.emoji : "?"}</div>
                       <div class="player-name">${av ? av.name : "?"}</div>`;
     card.onclick = () => selectPlayer(pid);
-    if (!rootState.device.locked)
-      card.oncontextmenu = (e) => { e.preventDefault(); openManagePlayer(pid); };
+    // Manage (right-click) always available — the adult gate fires on the action itself.
+    card.oncontextmenu = (e) => { e.preventDefault(); openManagePlayer(pid); };
     grid.appendChild(card);
   }
   const guestCard = document.createElement("div");
@@ -6930,8 +6962,7 @@ function renderS1() {
   guestCard.innerHTML = `<div class="player-emoji">👤</div><div class="player-name">Guest</div>`;
   guestCard.onclick = () => selectGuest();
   grid.appendChild(guestCard);
-  document.getElementById("player-mgmt-area").style.display =
-    rootState.device.locked ? "none" : "block";
+  document.getElementById("player-mgmt-area").style.display = "block";
 }
 function selectPlayer(pid) { rootState.activePlayerId = pid; save(); goS2(); }
 function selectGuest() {
@@ -6940,7 +6971,9 @@ function selectGuest() {
   rootState.activePlayerId = gid; save(); goS2();
 }
 function addPlayerFlow() {
-  if (rootState.device.locked) { promptLock("s1"); return; }
+  promptLock(doAddPlayerFlow);   // adult gate every time
+}
+function doAddPlayerFlow() {
   const opts = document.getElementById("avatar-options");
   opts.innerHTML = "";
   const used = new Set(Object.values(rootState.players).map(p => p.avatar));
@@ -6961,7 +6994,9 @@ function createPlayer(avatarId) {
   save(); closeAddPlayerModal(); renderS1();
 }
 function openManagePlayer(pid) {
-  if (rootState.device.locked) { promptLock("s1"); return; }
+  promptLock(() => doManagePlayer(pid));   // adult gate every time
+}
+function doManagePlayer(pid) {
   manageTargetPid = pid;
   const av = AVATARS.find(a => a.id === rootState.players[pid].avatar);
   document.getElementById("mpm-title").textContent = `Manage: ${av ? av.name : pid}`;
@@ -7012,13 +7047,14 @@ function _fillPlayerSelect(sel, onPick) {
   sel.onchange = () => { rootState.activePlayerId = sel.value; save(); onPick(); };
 }
 function renderA1() {
-  // Child-facing: sound + timer (device-level, no lock).
+  // Child-facing: sound + timer (PER-PLAYER, no lock) — act on the active player.
+  const p = getCurrentPlayer();
   const sndEl = document.getElementById("a1-sound");
-  sndEl.value = rootState.device.soundOn ? "on" : "off";
-  sndEl.onchange = (e) => { rootState.device.soundOn = e.target.value === "on"; save(); };
+  sndEl.value = (p.settings.soundOn !== false) ? "on" : "off";   // default-on for players saved pre-split
+  sndEl.onchange = (e) => { p.settings.soundOn = e.target.value === "on"; save(); };
   const tmrEl = document.getElementById("a1-timer");
-  tmrEl.value = rootState.device.timerOn ? "on" : "off";
-  tmrEl.onchange = (e) => { rootState.device.timerOn = e.target.value === "on"; save(); };
+  tmrEl.value = (p.settings.timerOn === true) ? "on" : "off";
+  tmrEl.onchange = (e) => { p.settings.timerOn = e.target.value === "on"; save(); };
 }
 function renderA2() {
   _fillPlayerSelect(document.getElementById("a2-player"), renderA2);
@@ -7035,14 +7071,11 @@ function renderA2() {
   const cntEl = document.getElementById("a2-counters");
   cntEl.value = p.settings.countersLowLevel ? "on" : "off";
   cntEl.onchange = (e) => { p.settings.countersLowLevel = e.target.value === "on"; save(); };
-  const relockEl = document.getElementById("a2-relock");
-  relockEl.value = rootState.device.autoRelock ? "on" : "off";
-  relockEl.onchange = (e) => { rootState.device.autoRelock = e.target.value === "on"; save(); };
 }
 
 // ── lock (multiplication gate; sticky per-device) ──
-function promptLock(target) {
-  pendingLockTarget = target || "advanced";   // "advanced" (A1→A2 gate) | "s1" (player mgmt)
+function promptLock(onSuccess) {
+  pendingLockAction = (typeof onSuccess === "function") ? onSuccess : null;
   // Gate factors: each factor independently from {6,7,8,9,12} (v7 set; harder,
   // more effective gate for younger children). e.g. 6×8 ok, 6×3 not.
   const LOCK_FACTORS = [6, 7, 8, 9, 12];
@@ -7060,11 +7093,10 @@ function submitLock() {
   const expected = parseInt(document.getElementById("lock-question").dataset.answer);
   const given = parseInt(document.getElementById("lock-answer").value);
   if (given === expected) {
-    rootState.device.locked = false; save();
     document.getElementById("lock-modal").classList.remove("active");
-    if (pendingLockTarget === "s1") renderS1();          // stay on S1; player mgmt now available
-    else if (pendingLockTarget === "ach") renderAchievements();   // reveal adult progress detail
-    else goA2();                                         // A1→A2 gate cleared
+    const action = pendingLockAction;
+    pendingLockAction = null;
+    if (action) action();
   } else {
     document.getElementById("lock-feedback").textContent = "Try again";
     document.getElementById("lock-answer").value = "";
@@ -7076,8 +7108,8 @@ function cancelLock() { document.getElementById("lock-modal").classList.remove("
 // Build cfg + the v8 engine for the active player. Shared by Reef/Cave/Plain.
 // Display policy: NUMBERS ALWAYS. Counter dots are decided PER QUESTION by
 // shellShowDots() (adult "counters at lower levels" toggle + the low-band rule),
-// NOT a session-static cfg.display. opFocus + bondScope drive the engine; timer
-// from device; style 'progress' (kept only because a few legacy guards read it).
+// NOT a session-static cfg.display. opFocus + bondScope drive the engine; sound +
+// timer are per-player; style 'progress' (kept only because a few legacy guards read it).
 function shellBuildEngine() {
   const p = getCurrentPlayer();
   const scope = p.settings.bondScope || "auto";
@@ -7085,8 +7117,8 @@ function shellBuildEngine() {
     level:   scope,
     display: "numbers",   // baseline; dots added per-question via shellShowDots
     mode:    p.settings.opFocus || "both",
-    sound:   rootState.device.soundOn ? "on" : "off",
-    timer:   rootState.device.timerOn ? "on" : "off",   // child-set on A1
+    sound:   (p.settings.soundOn !== false) ? "on" : "off",   // per-player (child-set on A1); default-on
+    timer:   (p.settings.timerOn === true) ? "on" : "off",    // per-player (child-set on A1)
     style:   "progress",
   };
   engine = makeV8Adapter(p.engine, {
@@ -7124,7 +7156,7 @@ function enterGame(skin) {
   else if (skin === "plain") plainStartGame();
 }
 function enterDebug() { renderDebug(); showScreen("d1"); }
-function enterAchievements() { renderAchievements(); showScreen("s5"); }
+function enterAchievements() { achAdultRevealed = false; renderAchievements(); showScreen("s5"); }
 function exitGame() { goS2(); }
 
 // ── Plain skin (h52 S3b — minimal adapter-driven loop; keypad/2-row deferred).
@@ -7291,8 +7323,10 @@ function renderAchLegend() {
 }
 function renderAchAdult(counts, bonds) {
   const sec = document.getElementById("achievement-adult");
-  if (rootState.device.locked) {
-    sec.innerHTML = `<button class="lock-btn" onclick="promptLock('ach')">🔒 Adult — show progress detail</button>`;
+  // Adult detail is gated EVERY visit — no persistent unlock. achAdultRevealed is a
+  // transient flag set by the gate and cleared on each fresh achievements entry.
+  if (!achAdultRevealed) {
+    sec.innerHTML = `<button class="lock-btn" onclick="promptLock(function(){ achAdultRevealed = true; renderAchievements(); })">🔒 Adult — show progress detail</button>`;
     return;
   }
   const p = getCurrentPlayer();
