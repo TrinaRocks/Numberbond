@@ -409,17 +409,13 @@ canvas#cave-canvas { display:block; }
   margin-bottom: 14px; gap: 10px;
 }
 .shell-screen .title { font-weight: bold; font-size: 18px; color: #40ffcc; flex: 1; text-align: center; }
-.back-btn {
+/* Settings (gear) shares the Back-button style so the two read as a pair. */
+.back-btn, .gear-btn {
   background: #0e3a6a; color: #d0eeff; border: none;
   padding: 8px 14px; border-radius: 6px; font-size: 14px; cursor: pointer;
   font-family: inherit; min-width: 60px;
 }
-.back-btn:hover { background: #1a5090; }
-.gear-btn {
-  background: transparent; border: 1px solid #1a5090; color: #d0eeff;
-  width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer;
-}
-.gear-btn:hover { background: #0e2848; }
+.back-btn:hover, .gear-btn:hover { background: #1a5090; }
 
 /* S1 player grid */
 .player-grid {
@@ -624,7 +620,7 @@ canvas#cave-canvas { display:block; }
   <div class="topbar">
     <div style="width:60px;"></div>
     <div class="title">🐙 Choose Player</div>
-    <button class="gear-btn" onclick="openSettings('s1')">⚙</button>
+    <button class="gear-btn" onclick="openSettings('s1')">⚙ Settings</button>
   </div>
   <div class="player-grid" id="player-grid"></div>
   <div id="player-mgmt-area" style="margin-top:12px;">
@@ -637,7 +633,7 @@ canvas#cave-canvas { display:block; }
   <div class="topbar">
     <button class="back-btn" onclick="goS1()">Back</button>
     <div class="title" id="s2-title">Pick a Game</div>
-    <button class="gear-btn" onclick="openSettings('s2')">⚙</button>
+    <button class="gear-btn" onclick="openSettings('s2')">⚙ Settings</button>
   </div>
   <div class="skin-tiles">
     <div class="skin-tile" onclick="enterGame('reef')">
@@ -726,6 +722,9 @@ canvas#cave-canvas { display:block; }
     <div class="settings-row"><label>Bond scope:</label>
       <select id="a2-scope">
         <option value="auto">Auto (engine chooses)</option>
+        <option value="start5">Start on 5, then adapt</option>
+        <option value="start10">Start on 10, then adapt</option>
+        <option value="start20">Start on 20, then adapt</option>
         <option value="to5">Bonds to 5</option>
         <option value="exact10">Bonds to 10 (exact)</option>
         <option value="doubles10">Doubles up to 10</option>
@@ -767,7 +766,7 @@ canvas#cave-canvas { display:block; }
   <div class="modal-card">
     <h3>🔐 Unlock Settings</h3>
     <p id="lock-question">Solve: ?</p>
-    <input id="lock-answer" type="number" autocomplete="off" />
+    <input id="lock-answer" type="number" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLock();}" />
     <div id="lock-feedback" style="color:#ff8060; min-height:18px; margin-top:6px;"></div>
     <div><button class="teal-btn" onclick="submitLock()">Unlock</button>
     <button class="lock-btn" onclick="cancelLock()">Cancel</button></div>
@@ -806,6 +805,9 @@ canvas#cave-canvas { display:block; }
   <div class="plain-question-area">
     <div class="plain-question-text" id="plain-question">—</div>
     <div class="plain-feedback" id="plain-feedback"></div>
+  </div>
+  <div class="plain-help-row" style="text-align:center;margin:6px 0;">
+    <button class="back-btn" id="plain-help-btn">Help me out</button>
   </div>
   <div class="plain-pad">
     <div id="plain-pad-top" class="plain-pad-row"></div>
@@ -875,6 +877,7 @@ canvas#cave-canvas { display:block; }
   </div>
   <div id="cave-right-rail">
     <div id="cave-btn-row">
+      <button class="back-btn" id="cave-help-btn">Help me out</button>
       <button class="game-btn" id="cave-skip-btn">Skip →</button>
     </div>
   </div>
@@ -917,9 +920,79 @@ function bondKey(w, a, b) {
   return `${w}-${A}-${B}`;
 }
 
+// h54 — Tier100 CURATED EXEMPLAR sets. The Tier100 levels are NOT exhaustively enumerated
+// (exact100=50, but bonds-to-10s≈275, upto100≈2450 — far past the engine's per-bond scale).
+// Instead each level is defined as a fixed sample chosen to teach the pattern; the per-bond
+// engine then treats them like any other bonds (each Tier100 level is a single subgroup).
+// Mastery here = competence on a representative sample, not the full space. Edited from
+// tier100_exemplars_scratch.md. A few upto100 triples deliberately overlap bonds-to-10s /
+// bonds-to-100 (→ firstAppearance at the earlier level, alsoAppearsAt includes upto100).
+const TIER100_BONDS_TO_100 = [
+  [100, 99, 1], [100, 98, 2], [100, 97, 3], [100, 96, 4], [100, 95, 5],
+  [100, 94, 6], [100, 93, 7], [100, 92, 8], [100, 91, 9], [100, 90, 10],
+  [100, 89, 11], [100, 88, 12], [100, 87, 13], [100, 86, 14], [100, 85, 15],
+  [100, 84, 16], [100, 83, 17], [100, 82, 18], [100, 81, 19], [100, 80, 20],
+  [100, 79, 21], [100, 78, 22], [100, 77, 23], [100, 76, 24], [100, 75, 25],
+  [100, 74, 26], [100, 73, 27], [100, 72, 28], [100, 71, 29], [100, 70, 30],
+  [100, 69, 31], [100, 68, 32], [100, 67, 33], [100, 66, 34], [100, 65, 35],
+  [100, 64, 36], [100, 63, 37], [100, 62, 38], [100, 61, 39], [100, 60, 40],
+  [100, 59, 41], [100, 58, 42], [100, 57, 43], [100, 56, 44], [100, 55, 45],
+  [100, 54, 46], [100, 53, 47], [100, 52, 48], [100, 51, 49], [100, 50, 50],
+];  // 50 exemplars
+
+const TIER100_BONDS_TO_10S = [
+  [30, 29, 1], [30, 27, 3], [30, 26, 4], [30, 25, 5], [30, 23, 7],
+  [30, 22, 8], [30, 20, 10], [30, 19, 11], [30, 18, 12], [30, 16, 14],
+  [40, 38, 2], [40, 36, 4], [40, 35, 5], [40, 33, 7], [40, 31, 9],
+  [40, 30, 10], [40, 29, 11], [40, 27, 13], [40, 25, 15], [40, 24, 16],
+  [40, 22, 18], [40, 20, 20], [50, 48, 2], [50, 45, 5], [50, 43, 7],
+  [50, 41, 9], [50, 40, 10], [50, 39, 11], [50, 36, 14], [50, 34, 16],
+  [50, 30, 20], [50, 29, 21], [50, 27, 23], [60, 57, 3], [60, 55, 5],
+  [60, 52, 8], [60, 50, 10], [60, 49, 11], [60, 46, 14], [60, 44, 16],
+  [60, 41, 19], [60, 40, 20], [60, 38, 22], [60, 35, 25], [60, 33, 27],
+  [60, 30, 30], [70, 67, 3], [70, 64, 6], [70, 60, 10], [70, 57, 13],
+  [70, 54, 16], [70, 51, 19], [70, 50, 20], [70, 48, 22], [70, 45, 25],
+  [70, 40, 30], [70, 35, 35], [70, 38, 32], [80, 76, 4], [80, 73, 7],
+  [80, 70, 10], [80, 69, 11], [80, 65, 15], [80, 62, 18], [80, 60, 20],
+  [80, 58, 22], [80, 55, 25], [80, 51, 29], [80, 50, 30], [80, 47, 33],
+  [80, 44, 36], [80, 40, 40], [90, 86, 4], [90, 82, 8], [90, 80, 10],
+  [90, 78, 12], [90, 74, 16], [90, 70, 20], [90, 65, 25], [90, 61, 29],
+  [90, 60, 30], [90, 57, 33], [90, 53, 37], [90, 50, 40], [90, 49, 41],
+];  // 85 exemplars
+
+const TIER100_UPTO100 = [
+  [21, 20, 1], [26, 24, 2], [28, 23, 5], [33, 31, 2], [36, 30, 6],
+  [39, 38, 1], [44, 41, 3], [47, 43, 4], [49, 44, 5], [55, 52, 3],
+  [58, 57, 1], [61, 60, 1], [66, 64, 2], [68, 63, 5], [73, 71, 2],
+  [76, 70, 6], [79, 78, 1], [84, 81, 3], [87, 83, 4], [89, 84, 5],
+  [95, 92, 3], [98, 97, 1], [21, 19, 2], [23, 18, 5], [26, 17, 9],
+  [31, 25, 6], [33, 24, 9], [40, 39, 1], [42, 39, 3], [44, 36, 8],
+  [50, 45, 5], [52, 45, 7], [55, 47, 8], [61, 59, 2], [63, 58, 5],
+  [66, 57, 9], [71, 65, 6], [73, 64, 9], [80, 79, 1], [82, 79, 3],
+  [84, 76, 8], [90, 85, 5], [92, 85, 7], [95, 87, 8], [24, 13, 11],
+  [37, 26, 11], [45, 34, 11], [49, 37, 12], [55, 42, 13], [58, 44, 14],
+  [63, 52, 11], [66, 52, 14], [68, 42, 26], [73, 62, 11], [75, 51, 24],
+  [77, 46, 31], [79, 63, 16], [83, 52, 31], [85, 52, 33], [87, 54, 33],
+  [89, 77, 12], [92, 61, 31], [95, 84, 11], [96, 64, 32], [98, 87, 11],
+  [99, 86, 13], [30, 19, 11], [41, 27, 14], [47, 29, 18], [52, 39, 13],
+  [56, 37, 19], [61, 44, 17], [63, 39, 24], [67, 49, 18], [70, 38, 32],
+  [72, 48, 24], [75, 58, 17], [80, 66, 14], [81, 67, 14], [82, 56, 26],
+  [84, 57, 27], [86, 49, 37], [90, 64, 26], [91, 68, 23], [92, 59, 33],
+  [94, 68, 26], [96, 68, 28], [100, 79, 21], [31, 16, 15], [52, 29, 23],
+  [56, 29, 27], [75, 48, 27], [80, 56, 24], [84, 67, 17], [86, 47, 39],
+  [93, 48, 45], [91, 58, 33], [92, 49, 43], [21, 11, 10], [26, 13, 13],
+  [36, 18, 18], [41, 21, 20], [46, 23, 23], [51, 26, 25], [56, 28, 28],
+  [61, 31, 30], [66, 33, 33], [71, 36, 35], [76, 38, 38], [81, 41, 40],
+  [86, 43, 43], [91, 46, 45], [96, 48, 48], [22, 12, 10], [39, 29, 10],
+  [47, 25, 22], [54, 39, 15], [59, 35, 24], [64, 40, 24], [68, 35, 33],
+  [73, 60, 13], [76, 40, 36], [80, 65, 15], [83, 53, 30], [86, 46, 40],
+  [89, 59, 30], [92, 55, 37], [95, 65, 30], [98, 85, 13],
+];  // 129 exemplars
+
 function bondsForLevel(level) {
   // returns array of [w, a, b] with a >= b >= 1
   const out = [];
+  function addCurated(list) { for (const t of list) out.push([t[0], t[1], t[2]]); }
   function addRange(wMin, wMax, predicate) {
     for (let w = wMin; w <= wMax; w++) {
       for (let pa = 1; pa <= Math.floor(w / 2); pa++) {
@@ -938,11 +1011,9 @@ function bondsForLevel(level) {
     case "exact20":  addRange(20, 20); break;
     case "doubles20": for (let w = 2; w <= 20; w += 2) out.push([w, w/2, w/2]); break;
     case "upto20":   addRange(2, 20); break;
-    case "bonds-to-100": addRange(100, 100); break;
-    case "bonds-to-10s":
-      addRange(2, 100, (w) => w % 10 === 0);
-      break;
-    case "upto100":  addRange(2, 100); break;
+    case "bonds-to-100": addCurated(TIER100_BONDS_TO_100); break;   // h54: curated exemplars (was addRange(100,100))
+    case "bonds-to-10s": addCurated(TIER100_BONDS_TO_10S); break;   // h54: curated (was addRange(2,100, w%10===0))
+    case "upto100":      addCurated(TIER100_UPTO100); break;        // h54: curated (was addRange(2,100))
   }
   return out;
 }
@@ -1430,6 +1501,12 @@ function v8_newBondState(w, a, b) {
     addDeferredReasonAdd: false,
     subDeferredReasonSub: false,
     boundarySearchPlacedAbove: { add: false, sub: false },
+    // h55 (cohort-sim B5): provenance — true if this bond was first PLACED while an
+    // adult scope was pinned (bondScope != Auto). Used by v8_clearAdultScope to evict
+    // adult-placed bonds left ABOVE the restored Auto boundary (they would otherwise
+    // leak into Auto play, which never asks above-boundary bonds). Achieved flags/stats
+    // survive the eviction (deferral), so genuine gains are banked, not lost.
+    placedUnderAdult: false,
   };
 }
 
@@ -1446,6 +1523,12 @@ function v8_newEngineState() {
     // §1.2 per-player engine-managed boundaries
     settledBoundaryAdd: null,
     settledBoundarySub: null,
+    // h54: stash of the genuine Auto-progression boundary while an adult fixed scope is in
+    // force, so exit from adult mode restores it (v8_applyAdultScope / v8_clearAdultScope).
+    _autoBoundaryAdd:   null,
+    _autoBoundarySub:   null,
+    // h54: first-play warmup questions remaining (see WARMUP_QS / v8_newGame). 0 = none.
+    _warmupRemaining:   0,
 
     // §1.3 per-bond state map: bondKey → bondState
     bonds: {},
@@ -1515,12 +1598,46 @@ function v8_enterGame(eng, opts) {
 // New engine state + begin the §4.2 boundary search (first questions are ceremonial
 // probes; the §6.1 seed fires in-loop once both ops settle). Folds in the runtime's
 // ptFreshEngine so a consumer never has to know to call v8_beginBoundarySearch itself.
-function v8_newGame(age, opFocus) {
+// h54 (child playtest): first-play WARMUP — N ceremonial To5 practice questions emitted BEFORE
+// the boundary-search probes, so the child learns the interface (bond circles / bars / equation +
+// the number pad) before placement measures them. A strong child was placed too low because the
+// unfamiliar interface, not ability, sank the early probes. Warmup covers both ops at To5, is NOT
+// scored (ceremonial), and does not touch the search. Fixed sequence (deterministic): 3 add, 2 sub
+// (both sub directions). op/direction drive the descriptor; correctAnswer is the missing value.
+const WARMUP_QS = [
+  { w: 5, a: 4, b: 1, op: "add",                          correctAnswer: 5 },  // 1 + 4 = 5
+  { w: 5, a: 3, b: 2, op: "sub", direction: "largeHidden", correctAnswer: 3 },  // 5 − 2 = 3
+  { w: 4, a: 2, b: 2, op: "add",                          correctAnswer: 4 },  // 2 + 2 = 4
+  { w: 4, a: 3, b: 1, op: "sub", direction: "smallHidden", correctAnswer: 1 },  // 4 − 3 = 1
+  { w: 5, a: 3, b: 2, op: "add",                          correctAnswer: 5 },  // 2 + 3 = 5
+];
+// h54: warmup respects opFocus — a single-op session only rehearses that op (an add-only child
+// must never see a sub question, even ceremonial; mirrors the §4.2 single-op probe-skip).
+function _v8_warmupList(opFocus) {
+  if (opFocus === "add") return WARMUP_QS.filter(q => q.op === "add");
+  if (opFocus === "sub") return WARMUP_QS.filter(q => q.op === "sub");
+  return WARMUP_QS;
+}
+
+// h54: optional `startLevel` is an adult PLACEMENT SHORTCUT (distinct from an adult-set rigid
+// scope). When given, the boundary search is skipped: both boundaries seed at `startLevel` and
+// normal AUTO progression (advance / catastrophic / re-entry) continues from there — bondScope
+// stays "Auto". "Start on 5/10/20" = seed at to5 / exact10 / exact20. Warmup still runs first.
+function v8_newGame(age, opFocus, startLevel) {
   const eng = v8_newEngineState();
   // h51: opFocus MUST be set before arming the boundary search — the single-op probe-skip
   // (and seed routing) read eng.opFocus at arm/seed time. (Callers that omit it get "both".)
   if (opFocus) eng.opFocus = opFocus;
-  v8_beginBoundarySearch(eng, age);
+  if (startLevel && LEVELS.indexOf(startLevel) >= 0) {
+    eng.settledBoundaryAdd = startLevel;
+    eng.settledBoundarySub = startLevel;
+    v8_fireSeed(eng, age);                                     // placement shortcut: seed at level, NO search, NO warmup
+  } else {
+    // Warmup ONLY precedes the placement SEARCH (h54, child playtest): its purpose is to ensure the
+    // child's real ability shows during placement. A placement shortcut / adult-set scope skips it.
+    eng._warmupRemaining = _v8_warmupList(eng.opFocus).length;
+    v8_beginBoundarySearch(eng, age);
+  }
   return eng;
 }
 
@@ -1848,6 +1965,8 @@ function v8_routeNewBond(eng, w, a, b) {
   const bk = bondKey(w, a, b);
   if (!eng.bonds[bk]) eng.bonds[bk] = v8_newBondState(w, a, b);
   const bs = eng.bonds[bk];
+  // h55 (cohort-sim B5): stamp provenance — placed while an adult scope is pinned.
+  if (eng.bondScope !== "Auto") bs.placedUnderAdult = true;
   const fa = bs.firstAppearance;
   // h51: placement ceiling. both/add-only use the add boundary (the sub≤add invariant's
   // master ceiling); sub-only parallelises to the SUB boundary — the add boundary is frozen
@@ -2196,14 +2315,110 @@ function bondIsSelectable(bond, opFocus, sessionOpFocus) {
 // changes are between-session adult actions, so the window is negligible; not handled.
 function v8_inScope(eng, bond) {
   if (eng.bondScope === "Auto") return true;
+  if (_v8_belowTier100ForScope(eng, bond.firstAppearance)) return false;
   return bond.firstAppearance === eng.bondScope
       || bond.alsoAppearsAt.indexOf(eng.bondScope) >= 0;
+}
+// h54-followup (user): a Tier100 adult scope (bondScope at/above bonds-to-100) admits ONLY
+// Tier100-REGION bonds (firstAppearance at/above Tier100). A below-Tier100 bond is excluded
+// even when its (possibly STALE, pre-curation) alsoAppearsAt names the Tier100 level — under
+// the old exhaustive upto100, EVERY bond alsoAppearedAt upto100, so session-history bonds like
+// 9=5+4 swamped an adult upto100 scope. Keyed on firstAppearance (always correct: a low bond
+// first-appears low regardless of upto100's old breadth), so it filters stale stored state too.
+// Does NOT touch the deliberate curated overlaps (their firstAppearance is bonds-to-10s /
+// bonds-to-100 — themselves Tier100-region — so they survive).
+function _v8_belowTier100ForScope(eng, faLevel) {
+  return levelIndex(eng.bondScope) >= levelIndex(C.TIER100_ENTRY_LEVEL)
+      && levelIndex(faLevel) < levelIndex(C.TIER100_ENTRY_LEVEL);
 }
 // WAB variant for the unlock/seed selectors, which work on raw [w,a,b] triples before
 // a bond state exists. Same predicate via levelsForBond (= firstApp ∪ alsoAppearsAt).
 function v8_inScopeWAB(eng, w, a, b) {
   if (eng.bondScope === "Auto") return true;
+  if (_v8_belowTier100ForScope(eng, firstAppearance(w, a, b))) return false;   // symmetry with v8_inScope
   return levelsForBond(w, a, b).has(eng.bondScope);
+}
+
+// h54 (user option c): Tier100-specific HARD selection suppression in AUTO mode. Tier100
+// (bonds-to-100 / bonds-to-10s / upto100) is conceptually a special case — curated exemplars
+// reusing the same machine — so it gets its own guard rather than a general above-boundary
+// rule. A Tier100-firstAppearance bond must NOT be ordinarily selected unless THIS op's
+// settled boundary has actually reached Tier100. This is the targeted fix for the adult-set-
+// Tier100 → revert-to-Auto case: the exemplars were PLACED during the adult stint, but once
+// the child's genuine Auto boundary is restored (below Tier100, see v8_clearAdultScope) they
+// stay placed yet UNASKED. No effect in adult-set mode (§6.0.1 strict filter governs there),
+// nor once the Auto boundary legitimately advances into Tier100 (gated by _v8_tier100EntryAllowed).
+function _v8_tier100SelectBlocked(eng, bond, op) {
+  if (eng.bondScope !== "Auto") return false;
+  const t100 = levelIndex(C.TIER100_ENTRY_LEVEL);
+  if (levelIndex(bond.firstAppearance) < t100) return false;   // not a Tier100 bond
+  const b = (op === "sub") ? eng.settledBoundarySub : eng.settledBoundaryAdd;
+  return !(b != null && levelIndex(b) >= t100);                // blocked unless this op's boundary is in Tier100
+}
+
+// h54 — adult-set scope transitions (§6.6.4). Centralised so the game adapter AND the playtest
+// harness share ONE implementation. Pinning to an adult level stashes the child's genuine Auto-
+// progression boundary; clearing back to Auto restores it (user: "revert the boundary to the
+// last Auto-chosen level on exit from adult mode"). Pairs with _v8_tier100SelectBlocked: a
+// Tier100 adult stint pins to upto100, places exemplars, then on exit the boundary drops back to
+// (say) upto20 and those exemplars fall silent.
+function v8_applyAdultScope(eng, level, age) {
+  if (level === "Auto" || level == null) { v8_clearAdultScope(eng); return; }
+  // Capture the pre-adult Auto boundary ONCE, on the Auto→level transition. A level→level
+  // change while already in adult mode must NOT overwrite the stash (it holds the genuine Auto value).
+  if (eng.bondScope === "Auto") {
+    eng._autoBoundaryAdd = eng.settledBoundaryAdd;
+    eng._autoBoundarySub = eng.settledBoundarySub;
+  }
+  // h55 (cohort-sim B4): catastrophic is suppressed in adult mode — clear any
+  // in-flight halt / cooldown / ease-in carried in from Auto play so the pinned
+  // level is not undermined by below-pin descent or recovery questions.
+  eng._catastrophic = null;
+  eng._catastrophicCooldown = null;
+  eng._easeInQueue = [];
+  eng.bondScope = level;
+  if (eng.settledBoundaryAdd !== level || eng.settledBoundarySub !== level) {
+    eng.settledBoundaryAdd = level;
+    eng.settledBoundarySub = level;
+    eng._seedFired = false;            // re-seed at the new level (existing bonds/mastery preserved)
+    v8_fireSeed(eng, age || 7);
+  }
+}
+function v8_clearAdultScope(eng) {
+  if (eng.bondScope === "Auto") return;        // already Auto — nothing to restore
+  eng.bondScope = "Auto";
+  // Restore the last Auto-chosen boundary if one was stashed. If none (engine was adult-set from
+  // fresh and never ran a boundary search), leave the pinned boundary as-is — there is no genuine
+  // Auto level to fall back to; the next boundary search / play settles it.
+  if (eng._autoBoundaryAdd != null) eng.settledBoundaryAdd = eng._autoBoundaryAdd;
+  if (eng._autoBoundarySub != null) eng.settledBoundarySub = eng._autoBoundarySub;
+  eng._autoBoundaryAdd = null;
+  eng._autoBoundarySub = null;
+  // h55 (cohort-sim B5): evict adult-placed bonds left ABOVE the restored Auto boundary —
+  // BUT keep what the child currently knows. A pin ABOVE the child's level (e.g. upto20 over
+  // an upto10 child) places bonds they cannot yet sustain; on revert to Auto — which never
+  // asks above-boundary bonds — those would leak into ordinary play. The achieved flag is the
+  // proxy assessment of present knowledge, and KNOWLEDGE IS RETAINED BY CONTINUING TO ASK:
+  //   • op achieved  → KEEP ACTIVE (retention practice; appropriate because the child knows it);
+  //   • op NOT achieved → DEFER (pause until the boundary legitimately climbs to its level,
+  //     then §6.2 deferred-first release re-admits it).
+  // Per-op (a bond add-achieved but sub-unachieved keeps add live, defers sub). Provenance-
+  // scoped (placedUnderAdult) so it cannot touch Auto-placed or search-placed bonds.
+  if (eng.settledBoundaryAdd != null && eng.settledBoundarySub != null) {
+    const ceil = Math.max(levelIndex(eng.settledBoundaryAdd), levelIndex(eng.settledBoundarySub));
+    for (const k in eng.bonds) {
+      const bs = eng.bonds[k];
+      if (!bs.placedUnderAdult || levelIndex(bs.firstAppearance) <= ceil) continue;
+      let deferred = false;
+      if (!bs.addAchieved && !bs.addDeferredReasonAdd) { bs.addDeferredReasonAdd = true; deferred = true; }
+      if (!bs.subAchieved && !bs.subDeferredReasonSub) { bs.subDeferredReasonSub = true; deferred = true; }
+      if (deferred) {
+        _emitEvent(eng, "BOND_DEFERRED_ON_ADULT_EXIT",
+                   { bondKey: k, firstAppearance: bs.firstAppearance,
+                     keptAdd: bs.addAchieved, keptSub: bs.subAchieved });
+      }
+    }
+  }
 }
 
 // levelIdx(level) -> LEVELS-order index (helper for recovery-tilt boundary test).
@@ -2274,6 +2489,7 @@ function v8_computeWeight(eng, bond, currentChildQ, opFocus) {
     if (opFocus === "add" && op === "sub") continue;
     if (opFocus === "sub" && op === "add") continue;
     if (!bondIsSelectable(bond, op, opFocus)) continue;
+    if (_v8_tier100SelectBlocked(eng, bond, op)) continue;   // h54: Tier100 auto-mode hard suppression
     accFactor = Math.max(accFactor, accuracyFactorForOp(bond, op));
   }
   const flu = fluencyContributesToWeight(bond, "add") || fluencyContributesToWeight(bond, "sub");
@@ -2292,6 +2508,7 @@ function v8_computeWeightForOp(eng, bond, currentChildQ, op, opFocus) {
   if (opFocus === "sub" && op === "add") return 0;
   if (!v8_inScope(eng, bond)) return 0;          // §6.0.1 adult-set strict filter
   if (!bondIsSelectable(bond, op, opFocus)) return 0;
+  if (_v8_tier100SelectBlocked(eng, bond, op)) return 0;   // h54: Tier100 auto-mode hard suppression
   const accFactor = accuracyFactorForOp(bond, op);
   const flu = fluencyContributesToWeight(bond, op);
   return _v8_weightCore(eng, bond, currentChildQ, accFactor, flu);
@@ -2484,27 +2701,39 @@ function _v8_unlockCeilingLevel(eng, op) {
 }
 
 // §6.2.4 new-unlock candidate selection (core-now: deferred-first omitted).
-// Walk SUBGROUP_ORDER; first subgroup at-or-below the unlock ceiling with an
-// unplaced bond yields its canonical-next bond (ascending whole, then large part).
+// h54 (child playtest): release the MEMBERS of the current boundary level —
+// bondsForLevel(L) = { firstAppearance==L } ∪ { alsoAppearsAt==L } — NOT every bond with
+// firstAppearance<=L. So at doubles20 we release the doubles up to 20 (incl. the doubles10
+// members, which alsoAppearAt doubles20) but NOT to5/exact10 non-doubles; at exact20 we
+// release the sum-to-20 bonds only. Full lower backfill happens organically at upto10 /
+// upto20 — there EVERY lower bond is a member (alsoAppearsAt), so bondsForLevel returns them
+// all. This matches the seed (§6.1.2, also firstApp==L ∪ alsoAppearsAt==L). The advance gate
+// (_v8_newUnlockWithAdvance) then advances once all members of L are placed. Order: source-
+// subgroup (SUBGROUP_ORDER of classifyBond) then canonical (whole, large part).
 function _v8_selectNewUnlock(eng, op) {
   const boundary = _v8_unlockCeilingLevel(eng, op);
   if (!boundary) return null;
   const bIdx = levelIndex(boundary);
-  for (const sg of SUBGROUP_ORDER) {
-    if (levelIndex(SUBGROUP_BELONGS_TO_LEVEL[sg]) > bIdx) continue;
-    const sgLvl = SUBGROUP_BELONGS_TO_LEVEL[sg];
-    const cands = [];
-    for (const [w, a, b] of bondsForLevel(sgLvl)) {
-      if (classifyBond_v8(w, a, b) !== sg) continue;
-      if (!_v8_isUnplaced(eng, w, a, b)) continue;
-      if (!v8_inScopeWAB(eng, w, a, b)) continue;   // §6.0.1: no out-of-scope backfill in adult-set mode
-      cands.push([w, a, b]);
-    }
-    if (cands.length === 0) continue;
-    cands.sort((x, y) => (x[0] - y[0]) || (x[1] - y[1]));
-    return cands[0];
+  const cands = [];
+  for (const [w, a, b] of bondsForLevel(boundary)) {
+    if (!_v8_isUnplaced(eng, w, a, b)) continue;
+    if (!v8_inScopeWAB(eng, w, a, b)) continue;   // §6.0.1: no out-of-scope backfill in adult-set mode
+    cands.push([w, a, b]);
   }
-  return null;
+  if (cands.length === 0) return null;
+  // FRONTIER-FIRST (h54, user): the level's OWN frontier bonds (firstAppearance==L) are the main
+  // releases; the lower alsoAppearsAt members are backfill (also topped up by _v8_belowBoundaryTopUp).
+  // So on entering upto20 we release the upto20 frontier before a to5 member like 3+2. Within each
+  // group: natural subgroup order, then canonical.
+  cands.sort((x, y) => {
+    const fx = (levelIndex(firstAppearance(x[0], x[1], x[2])) === bIdx) ? 0 : 1;
+    const fy = (levelIndex(firstAppearance(y[0], y[1], y[2])) === bIdx) ? 0 : 1;
+    if (fx !== fy) return fx - fy;
+    const sx = SUBGROUP_ORDER.indexOf(classifyBond_v8(x[0], x[1], x[2]));
+    const sy = SUBGROUP_ORDER.indexOf(classifyBond_v8(y[0], y[1], y[2]));
+    return (sx - sy) || (x[0] - y[0]) || (x[1] - y[1]);
+  });
+  return cands[0];
 }
 
 // §6.2.4 single-step auto-mode boundary advance, then retry once. Parametrized
@@ -2699,20 +2928,21 @@ function _v8_belowBoundaryTopUp(eng, op) {
     if (levelIndex(b.firstAppearance) < bIdx) below += 1;
   }
   if (total === 0 || below / total >= C.BELOW_BOUNDARY_SHARE_TARGET) return;
-  for (let li = 0; li < bIdx; li++) {
-    const cands = [];
-    for (const [w, a, b] of bondsForLevel(LEVELS[li])) {
-      if (levelIndex(firstAppearance(w, a, b)) !== li) continue;
-      if (!_v8_isUnplaced(eng, w, a, b)) continue;
-      cands.push([w, a, b]);
-    }
-    if (cands.length === 0) continue;
-    cands.sort((x, y) => (x[0] - y[0]) || (x[1] - y[1]));
-    const [w, a, b] = cands[0];
-    v8_routeNewBond(eng, w, a, b);
-    _emitEvent(eng, "BOND_UNLOCKED", { bondKey: bondKey(w, a, b), op, reason: "slow_release_below_share" });
-    return;
+  // h54: top up only with LOWER MEMBERS of the boundary level (bondsForLevel(L) whose
+  // firstAppearance < L — i.e. the alsoAppearsAt members), never arbitrary lower bonds. At
+  // doubles20 this tops up with doubles10 members, NOT to5 non-doubles. Ordered lowest-first.
+  const cands = [];
+  for (const [w, a, b] of bondsForLevel(boundary)) {
+    if (levelIndex(firstAppearance(w, a, b)) >= bIdx) continue;   // frontier members handled by the main selector
+    if (!_v8_isUnplaced(eng, w, a, b)) continue;
+    if (!v8_inScopeWAB(eng, w, a, b)) continue;
+    cands.push([w, a, b]);
   }
+  if (cands.length === 0) return;
+  cands.sort((x, y) => (x[0] - y[0]) || (x[1] - y[1]));
+  const [w, a, b] = cands[0];
+  v8_routeNewBond(eng, w, a, b);
+  _emitEvent(eng, "BOND_UNLOCKED", { bondKey: bondKey(w, a, b), op, reason: "slow_release_below_share" });
 }
 
 // ============================================================
@@ -3363,7 +3593,12 @@ function v8_evaluateTriggers(eng, playerAge) {
   }
   // Catastrophic trigger (singleton; sub checked first per §6.4.1). §6.4.1:
   // a severe cooldown on the op blocks a fresh catastrophic on the same op.
-  if (eng._catastrophic == null) {
+  // h55 (user decision, cohort-sim B4): SUPPRESS the catastrophic trigger entirely
+  // in adult-set scope (bondScope != Auto). The adult pinned the practice level;
+  // recovery-by-descent contradicts the pin and serves below-pin questions (down to
+  // to5 under an upto100 pin). Catastrophic is an Auto-mode adaptation only. (Pairs
+  // with v8_applyAdultScope clearing any in-flight halt/cooldown on entry to adult mode.)
+  if (eng._catastrophic == null && eng.bondScope === "Auto") {
     for (const op of ["sub", "add"]) {
       const ra = rollingAccFor(eng, op);
       const zone = classifyZone(ra, ra.attempts);
@@ -3749,6 +3984,22 @@ function _v8_describeBattery(bond, bk, kind, stage) {
   return d;
 }
 
+// h54 first-play warmup descriptor: ceremonial (child-opaque, not scored) + _isWarmup. Shaped
+// like an ordinary question so every skin renders it normally. `bond` is synthetic (nothing is
+// placed). op/direction come from the spec; the adapter recomputes `missing` from them.
+function _v8_describeWarmup(spec) {
+  const d = {
+    bond: { w: spec.w, a: spec.a, b: spec.b, lastAskedAtQ: 0 },
+    bondKey: bondKey(spec.w, spec.a, spec.b),
+    op: spec.op, partA: spec.a, partB: spec.b, whole: spec.w,
+    correctAnswer: spec.correctAnswer,
+    ceremonial: true, _isWarmup: true,
+  };
+  if (spec.op === "add") { d.missing = "whole"; }
+  else { d.direction = spec.direction; }
+  return d;
+}
+
 function _v8_describeOrdinary(bond, bk, op, rand) {
   const d = { bond, bondKey: bk, op, partA: bond.a, partB: bond.b, whole: bond.w };
   if (op === "add") {
@@ -3793,6 +4044,14 @@ function v8_playNextQuestion(eng, opFocus, rng) {
   const rand = rng || Math.random;
   opFocus = opFocus || eng.opFocus || "both";
   const currentChildQ = eng._childQuestionEverCount;
+
+  // (−1) h54 first-play WARMUP: emit the ceremonial To5 practice questions (WARMUP_QS) before
+  //      anything else — even before the boundary search — so the child rehearses the interface
+  //      before placement measures them. Not scored; decremented in v8_recordAnswer.
+  if (eng._warmupRemaining > 0) {
+    const list = _v8_warmupList(opFocus);
+    return _v8_describeWarmup(list[list.length - eng._warmupRemaining]);
+  }
 
   // (0) first-play boundary search (§4.2) preempts everything: emit a ceremonial
   //     probe, shaped as an ordinary (child-opaque) question. The search settles
@@ -3974,6 +4233,18 @@ function v8_playNextQuestion(eng, opFocus, rng) {
 function v8_recordAnswer(eng, descriptor, correct, rt, age) {
   correct = !!correct;
 
+  // (−1) h54 first-play warmup: ceremonial practice, NOT scored. Child-facing counters + recency
+  //      via anyAnswerReceived (ceremonial skips scoring); decrement the warmup counter so the
+  //      next tick advances (to the next warmup, then the boundary search). No search/bond work.
+  if (descriptor._isWarmup) {
+    v8_anyAnswerReceived(eng, descriptor, correct, rt, age);
+    eng._warmupRemaining = Math.max(0, eng._warmupRemaining - 1);
+    eng._lastEmittedDescriptor = {
+      bondKey: descriptor.bondKey, op: descriptor.op, isCorrect: correct, ceremonial: true,
+    };
+    return;
+  }
+
   // (0) first-play boundary-search probe (§4.2): ceremonial ONLY. Child-facing
   //     counters + recency via anyAnswerReceived (ceremonial:true skips scoring),
   //     then advance the search machine (which settles boundaries + fires the
@@ -4062,7 +4333,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = { v8_playNextQuestion, v8_recordAnswer, v8_seedFromBoundaries };
 }
 
-return { v8_newGame, v8_newEngineState, v8_fireSeed, v8_beginSession, v8_sessionEnded, v8_enterGame, v8_playNextQuestion, v8_recordAnswer, v8_computeDisplayAchievement, levelIndex: levelIndex, LEVELS: LEVELS };
+return { v8_newGame, v8_newEngineState, v8_fireSeed, v8_applyAdultScope, v8_clearAdultScope, v8_beginSession, v8_sessionEnded, v8_enterGame, v8_playNextQuestion, v8_recordAnswer, v8_computeDisplayAchievement, levelIndex: levelIndex, LEVELS: LEVELS };
 })();
 // ============================================================
 // _v8_adapter.js — h50 Stage 1 glue. Exposes the v7 `engine.*` surface
@@ -4159,7 +4430,15 @@ function makeV8Adapter(savedState, opts) {
   // + auto-advance). A known v8 level => adult-set scope seeded+capped at that level.
   // Unknown/absent => Auto, so fireSeed never gets a bad symbol.
   var bondScope = opts.bondScope || (savedState && savedState.bondScope) || "auto";
-  var scope = (bondScope !== "auto" && V8.LEVELS.indexOf(bondScope) >= 0) ? bondScope : "Auto";
+  // h54: "start5/10/20" = adult PLACEMENT SHORTCUT — Auto mode, but the first-play boundary
+  // search is skipped and play seeds at the chosen level (v8_newGame startLevel). Distinct from
+  // a rigid adult-set scope (a level name). Only bites on a FRESH engine; a restored child is
+  // already placed, so it resolves to plain Auto (continue from the settled boundary).
+  var startLevel = null;
+  if (bondScope === "start5")       startLevel = "to5";
+  else if (bondScope === "start10") startLevel = "exact10";
+  else if (bondScope === "start20") startLevel = "exact20";
+  var scope = (bondScope !== "auto" && startLevel === null && V8.LEVELS.indexOf(bondScope) >= 0) ? bondScope : "Auto";
   // h51: opFocus MUST be resolved + applied BEFORE any engine-mutating call (boundary-search
   // arm, fireSeed, beginSession) — single-op probe-skip, seed routing, and the intro→working
   // migration all read eng.opFocus at that point. Setting it afterwards (the old M7 line) left
@@ -4169,33 +4448,21 @@ function makeV8Adapter(savedState, opts) {
   var eng;
   if (savedState && savedState.bonds) {
     eng = savedState;                          // restore as-is (plain object)
-    eng.bondScope = scope;                     // honour a style/level change across sessions
     eng.opFocus = opFocus;                     // before beginSession (migration/re-entry read it)
-    // h52 fix: an adult FIXED-scope change must actually take effect on an
-    // existing engine. The restore path used to set only the bondScope STRING,
-    // so the boundary + placed bonds stayed at the old level and the child never
-    // saw the new level's questions. When a non-Auto scope doesn't match the
-    // settled boundary, move both boundaries to it and re-seed at that level
-    // (existing bonds/mastery are preserved; seed only adds new-level bonds).
-    // (NB: the >20 "ask any bond at random / principle-mastery advance" model is
-    // a separate, unspecified engine task — this only makes the SETTING apply.)
-    if (scope !== "Auto" &&
-        (eng.settledBoundaryAdd !== scope || eng.settledBoundarySub !== scope)) {
-      eng.settledBoundaryAdd = scope;
-      eng.settledBoundarySub = scope;
-      eng._seedFired = false;                  // allow the seed to re-fire at the new level
-      V8.v8_fireSeed(eng, age);
-    }
+    // h52/h54: apply the adult scope change to the existing engine. v8_applyAdultScope pins
+    // both boundaries to a fixed level (re-seeding there; existing bonds/mastery preserved) and,
+    // crucially, STASHES the genuine Auto boundary on entry. scope === "Auto" routes to
+    // v8_clearAdultScope, which RESTORES that stashed boundary — so reverting from an adult-set
+    // Tier100 stint drops the boundary back to the child's last Auto level (and the Tier100
+    // exemplars placed during the stint go silent via _v8_tier100SelectBlocked).
+    V8.v8_applyAdultScope(eng, scope, age);
     V8.v8_beginSession(eng, { daysSinceLastPlay: v8aDaysSince(opts.lastPlayed), seedSafe: true });
   } else if (scope === "Auto") {
-    eng = V8.v8_newGame(age, opFocus);         // opFocus set before arming §4.2 boundary search
+    eng = V8.v8_newGame(age, opFocus, startLevel);   // startLevel = placement shortcut (else null → search)
   } else {
     eng = V8.v8_newEngineState();              // adult-set scope: no search; seed at the level
     eng.opFocus = opFocus;                     // before fireSeed (single-op seed routing reads it)
-    eng.bondScope = scope;
-    eng.settledBoundaryAdd = scope;
-    eng.settledBoundarySub = scope;
-    V8.v8_fireSeed(eng, age);
+    V8.v8_applyAdultScope(eng, scope, age);    // pin + seed at the level (no stash: fresh engine, no Auto history)
   }
 
   var curMapped = null;   // last emitted mapped question
@@ -6642,6 +6909,44 @@ let bubbleAnimId = null, bubbles = [];
 let burstAnimId = null, banners = [];
 let sadResetId = null;
 
+// h54: copy-the-answer corrective. On a wrong answer to a TEACHING question (ordinary /
+// confirm-3 / bridge — anything NOT a ceremonial probe), reveal the correct answer and make
+// the child COPY it into the box before advancing ("I got it wrong, so now it sticks"). The
+// wrong answer is already recorded to the engine; the copy is UI-only (never re-scored), so
+// it cannot touch confirm-3/bridge lifecycle logic. Ceremonial probes stay light (reveal +
+// advance) — they are child-opaque measurement, not teaching (user ruling, h54). Shared
+// across all three skins (one is active at a time; `correct`/`currentQ` are shared globals).
+let copyMode = false, copyTarget = null;
+// A probe carries `ceremonial` on the RAW descriptor (`_v8`), not the mapped question.
+function shellIsProbe(q) { return !!(q && q._v8 && q._v8.ceremonial); }
+function shellIsTeaching(q) { return !!q && !shellIsProbe(q); }
+// h54: the COMPLETED equation, shown as a clue on a wrong teaching answer — built from the
+// ACTUAL question (a/b/whole/missing) so it always matches what the child saw, with `box`
+// standing in for the answer (or '?' for the live question). The child copies it across /
+// works it out and enters the answer themselves — we show the fact, not "type N", and do NOT
+// fill the box for them. Each skin mirrors its OWN display: Reef reuses its sum-label builder
+// (flip- and sub-form-aware, HTML); Plain mirrors its inline equation (HTML &minus;); Cave has
+// no text label, so a plain equation (U+2212 minus).
+// NB: read from currentQ, NOT the module globals — Plain doesn't maintain the whole/partA/
+// partB/missing globals (it renders from a local q), so those globals go stale between skins.
+function shellSumLabelHTML(box) {   // Reef sum-label, `box` filled in
+  const q = currentQ;
+  if (q.missing === 'whole') return q._flip ? `${q.partB} + ${q.partA} = ${box}` : `${q.partA} + ${q.partB} = ${box}`;
+  return v8aSubLabel(q, box);
+}
+function plainEqHTML(box) {
+  const q = currentQ;
+  if (q.missing === 'whole') return `${q.partA} + ${q.partB} = ${box}`;
+  if (q.missing === 'partA') return `${q.whole} &minus; ${q.partB} = ${box}`;
+  return `${q.whole} &minus; ${q.partA} = ${box}`;
+}
+function caveEqText(box) {
+  const q = currentQ;
+  if (q.missing === 'whole') return `${q.partA} + ${q.partB} = ${box}`;
+  if (q.missing === 'partA') return `${q.whole} − ${q.partB} = ${box}`;
+  return `${q.whole} − ${q.partA} = ${box}`;
+}
+
 // ─── session ───
 let currentUser   = null;  // { id, name } or null for guest
 let activeSettings = null; // raw settings from settings screen
@@ -6661,6 +6966,7 @@ function showFeedback(msg,col) {
 }
 function updateSumLabel() {
   const el=document.getElementById('sum-label');
+  el.style.color='';   // h54: reset any green correction colour from a prior copy-corrective
   if (missing==='whole') {
     const flip = currentQ && currentQ._flip;
     el.innerHTML = flip ? `${partB} + ${partA} = ?` : `${partA} + ${partB} = ?`;
@@ -6719,6 +7025,8 @@ function maybeAdvanceAchievedLevel(result, isCorrect) {
 
 function newQuestion() {
   stopTimer(); revealed=false; skipMode=false;
+  copyMode=false; copyTarget=null;
+  document.getElementById('feedback-label').textContent='';   // h54: clear stale answer/feedback
   entry.value=''; entry.disabled=false;
   currentQ=engine.nextQuestion();
   // Reef presents bonds to 20 only (visual model unsuited to harder bonds); skip whole>20 (#3).
@@ -6739,6 +7047,25 @@ function checkAnswer() {
   if(!raw){showFeedback('Type a number first!',COL.wrongCol);return;}
   const val=parseInt(raw);
   if(isNaN(val)){showFeedback('Numbers only!',COL.wrongCol);return;}
+  // h54 copy-corrective: while copying the revealed answer, no scoring — just gate the advance.
+  if(copyMode){
+    if(val===copyTarget){
+      // correct copy — display like an ordinary correct (revealed bond + completed sum, held
+      // for the normal correct duration = the implicit "well done"). NOT scored / no streak.
+      copyMode=false;
+      octopusMood='happy'; revealed=true; redraw();
+      document.getElementById('sum-label').innerHTML = shellSumLabelHTML(correct);
+      document.getElementById('sum-label').style.color = COL.correctCol;
+      entry.disabled=true; entry.style.display='none';
+      if(revealTimeout) clearTimeout(revealTimeout);
+      revealTimeout=setTimeout(newQuestion,1500);
+    } else {
+      document.getElementById('sum-label').innerHTML = shellSumLabelHTML(correct);   // keep the clue
+      document.getElementById('sum-label').style.color = COL.correctCol;
+      entry.value='';
+    }
+    return;
+  }
   stopTimer();
   const isCorrect=val===correct; total++;
   const result=engine.recordAnswer(currentQ,isCorrect);
@@ -6753,8 +7080,8 @@ function checkAnswer() {
     if(result.level_up)   showLevelUpBanner();
     if(revealTimeout) clearTimeout(revealTimeout);
     revealTimeout=setTimeout(newQuestion,1500);
-  } else if (currentQ && currentQ._noRepeat) {
-    // ceremonial/battery question cannot be re-asked — reveal + advance (looks ordinary to child)
+  } else if (shellIsProbe(currentQ)) {
+    // ceremonial probe — child-opaque measurement; reveal + advance (light, no copy). h54.
     streak=0; document.getElementById('streak-label').textContent='';
     octopusMood='sad'; revealed=true; redraw();
     showFeedback(`Answer: ${correct}`,COL.wrongCol); snd('wrong');
@@ -6762,30 +7089,35 @@ function checkAnswer() {
     if(revealTimeout) clearTimeout(revealTimeout);
     revealTimeout=setTimeout(newQuestion,1500);
   } else {
+    // teaching question (ordinary / confirm-3 / bridge) — copy-the-answer corrective (h54).
     streak=0; document.getElementById('streak-label').textContent='';
-    octopusMood='sad'; redraw();
-    showFeedback('Not quite — try again! 🐙',COL.wrongCol); snd('wrong');
-    entry.value='';
-    if(sadResetId) clearTimeout(sadResetId);
-    sadResetId=setTimeout(()=>{if(octopusMood==='sad'){octopusMood='thinking';redraw();}},1500);
-    updateScore(); startTimer();
+    octopusMood='sad'; revealed=false; redraw();   // leave the slot empty for the copy box
+    // reveal the completed sum in the label below the picture ("11 + 3 = 14"), in green;
+    // the child copies the answer into the empty bond circle.
+    document.getElementById('sum-label').innerHTML = shellSumLabelHTML(correct);
+    document.getElementById('sum-label').style.color = COL.correctCol;
+    document.getElementById('feedback-label').textContent=''; snd('wrong');
+    copyMode=true; copyTarget=correct;
+    entry.disabled=false; entry.value=''; positionEntry();
+    setTimeout(()=>{entry.focus();},30);
+    updateScore();
   }
 }
 
 function handleStreak() {
   const STREAK_MSGS={
     3:  ['3 in a row! 🌊','#40ffcc'],
-    5:  ['5 in a row! Amazing! 🐠','#00d4ff'],
-    10: ['10 in a row! SUPERSTAR! ⭐','#ffff60'],
-    20: ['20 IN A ROW! LEGENDARY! 🏆','#ff80c0'],
-    50: ['50 IN A ROW! UNBELIEVABLE! 🌟','#ff40ff'],
-    75: ['75 IN A ROW! INCREDIBLE! 🔱','#40ffff'],
-    100:['100 IN A ROW! CHAMPION! 👑','#ffffff'],
+    5:  ['5 in a row! Keep it up! 🐠','#00d4ff'],
+    10: ['10 in a row! I like it! ⭐','#ffff60'],
+    20: ['20 IN A ROW! Keep swimming! 🏆','#ff80c0'],
+    50: ['50 IN A ROW! Way to go! 🌟','#ff40ff'],
+    75: ['75 IN A ROW! Wow! 🔱','#40ffff'],
+    100:['100 IN A ROW! Well done! 👑','#ffffff'],
   };
-  const BRILLIANT=['✓ Brilliant! Keep swimming! 🌊','✓ Fantastic! You\'re on a roll! 🐠',
+  const BRILLIANT=['✓ Keep it up! 🌊','✓ You\'re on a roll! 🐠',
     '✓ Excellent! Don\'t stop now! ⭐','✓ Amazing work! Keep going! 🐙',
-    '✓ Super! Ride that wave! 🌊','✓ Wonderful! You\'re flying! 🐡',
-    '✓ Outstanding! More! More! 🦀','✓ Splendid! Keep it up! 🐚'];
+    '✓ Ride that wave! 🌊','✓ Nice! 🐡',
+    '✓ Watch that streak! 🦀','✓ Way to go! 🐚'];
   const streakSounds={3:'streak3',5:'streak5',10:'streak10',20:'streak20',50:'streak20',75:'streak20',100:'streak20'};
   if(STREAK_MSGS[streak]){
     const [msg,col]=STREAK_MSGS[streak];
@@ -6805,6 +7137,7 @@ function handleStreak() {
 }
 
 function skipQuestion() {
+  if(copyMode){ if(revealTimeout)clearTimeout(revealTimeout); newQuestion(); return; }   // h54: don't re-record during copy
   if(entry.disabled) return;
   stopTimer(); total++; streak=0;
   document.getElementById('streak-label').textContent='';
@@ -7186,6 +7519,7 @@ function plainStartGame() {
 // Equation with an inline entry box where the answer goes (3-digit, question
 // font size). Keyboard digits + Return submit; pad taps fill+submit.
 function plainNextQuestion() {
+  copyMode = false; copyTarget = null;   // h54
   const fb = document.getElementById("plain-feedback");
   fb.textContent = ""; fb.className = "plain-feedback";
   currentQ = engine.nextQuestion();
@@ -7209,7 +7543,7 @@ function plainNextQuestion() {
 // Tap fills the box (visual confirmation) then submits immediately. Two rows.
 function plainBuildPad(q) {
   const padPick = (val) => {
-    if (plainAnswered) return;
+    if (plainAnswered && !copyMode) return;   // h54: allow taps during copy-corrective
     const inp = document.getElementById("plain-entry");
     if (inp) inp.value = val;          // flash the chosen value in the box
     plainSubmit();
@@ -7226,8 +7560,26 @@ function plainBuildPad(q) {
   Keypad.setSplit(true);   // always two rows
 }
 function plainSubmit() {
-  if (!currentQ || plainAnswered) return;
   const inp = document.getElementById("plain-entry");
+  const fb = document.getElementById("plain-feedback");
+  // h54 copy-corrective: gate the advance on copying the revealed answer; no scoring.
+  if (copyMode) {
+    const cv = parseInt(inp ? inp.value : "", 10);
+    if (isNaN(cv)) { if (inp) inp.focus(); return; }
+    if (cv === copyTarget) {
+      // correct copy — green box completing the equation, held for the normal correct
+      // duration = the implicit "well done". NOT scored.
+      copyMode = false;
+      if (inp) { inp.value = String(copyTarget); inp.style.color = "#40ffcc"; inp.disabled = true; }
+      fb.innerHTML = plainEqHTML(copyTarget); fb.className = "plain-feedback correct";
+      setTimeout(plainNextQuestion, 700);
+    } else {
+      fb.innerHTML = plainEqHTML(copyTarget); fb.className = "plain-feedback correct";   // keep clue
+      if (inp) inp.value = '';
+    }
+    return;
+  }
+  if (!currentQ || plainAnswered) return;
   const v = parseInt(inp ? inp.value : "", 10);
   if (isNaN(v)) { if (inp) inp.focus(); return; }
   plainAnswered = true;
@@ -7235,25 +7587,41 @@ function plainSubmit() {
   total++; plainQ++;
   const result = engine.recordAnswer(currentQ, isCorrect);
   bumpSave(result);
-  const fb = document.getElementById("plain-feedback");
+  document.getElementById("plain-q").textContent = plainQ;
   if (isCorrect) {
     score++; plainCorrect++;
     if (inp) inp.style.color = "#40ffcc";              // green, matching the ✓ tick
     fb.textContent = "✓ correct"; fb.className = "plain-feedback correct";
-  } else {
-    // h52: don't show the child's wrong entry — show the CORRECT answer in white
-    // (the same white as the question) so the child sees what they should have put.
+    document.getElementById("plain-correct").textContent = plainCorrect;
+    setTimeout(plainNextQuestion, 700);
+  } else if (shellIsProbe(currentQ)) {
+    // ceremonial probe — reveal + advance (light, no copy). h54.
     if (inp) { inp.value = String(correct); inp.style.color = "#ffffff"; }
     fb.textContent = `✗ actually ${correct}`; fb.className = "plain-feedback wrong";
+    document.getElementById("plain-correct").textContent = plainCorrect;
+    setTimeout(plainNextQuestion, 700);
+  } else {
+    // teaching question (ordinary / confirm-3 / bridge) — copy-the-answer corrective (h54).
+    document.getElementById("plain-correct").textContent = plainCorrect;
+    copyMode = true; copyTarget = correct;
+    if (inp) { inp.value = ''; inp.style.color = "#ffffff"; inp.disabled = false; setTimeout(()=>inp.focus(),30); }
+    fb.innerHTML = plainEqHTML(correct); fb.className = "plain-feedback correct";   // completed sum, green
   }
-  document.getElementById("plain-q").textContent = plainQ;
-  document.getElementById("plain-correct").textContent = plainCorrect;
-  setTimeout(plainNextQuestion, 700);   // box value + tick both show during this
 }
 function plainEmptyPool() {
   document.getElementById("plain-question").textContent = "All done for now! 🎉";
 }
 function plainExit() { saveEngineState(); goSummary(); }
+// h54 (child playtest): "Help me out" — for a child who can't yet do the sum (e.g. counts on
+// fingers). It engages the wrong-answer copy mechanism: records a miss (they needed help) and
+// reveals the completed equation for the child to copy. Just a wrong answer, routed through the
+// normal path (teaching → copy-corrective; ceremonial probe/warmup → reveal+advance).
+function plainHelpMeOut() {
+  if (copyMode || plainAnswered) return;
+  const inp = document.getElementById("plain-entry");
+  if (inp) inp.value = String(correct + 1);   // any value ≠ correct engages the wrong-answer path
+  plainSubmit();
+}
 
 // h52 S6: graceful empty-pool — engine returned no question (pool exhausted
 // under the current scope/opFocus). Show a gentle message, then summary.
@@ -7629,7 +7997,7 @@ function cave_buildNumPad() {
   const answer = currentQ ? currentQ.correctAnswer : 1;
   if (whole > 20) {
     Keypad.setChoices(caveGenerateChoices(answer), val => {
-      if (caveAnswered) return;
+      if (caveAnswered && !copyMode) return;   // h54: allow taps during copy-corrective
       const inp = cave_getMissingInput();
       if (inp) { inp.value = val; cave_checkAnswer(); }
     });
@@ -7639,7 +8007,7 @@ function cave_buildNumPad() {
     for (let n=1; n<=10; n++) nums.push(n);
     if (!tenOnly) for (let n=11; n<=20; n++) nums.push(n);
     Keypad.setChoices(nums, val => {
-      if (caveAnswered) return;
+      if (caveAnswered && !copyMode) return;   // h54: allow taps during copy-corrective
       const inp = cave_getMissingInput();
       if (inp) { inp.value = val; cave_checkAnswer(); }
     });
@@ -7651,6 +8019,7 @@ function cave_buildNumPad() {
 
 function cave_newQuestion() {
   cave_stopTimer(); caveAnswered = false;
+  copyMode = false; copyTarget = null;   // h54
   cave_bmHideFeedback();
   currentQ = engine.nextQuestion();
   if (!currentQ) { shellEmptyPool('cave'); return; }   // h52 S6: graceful empty-pool
@@ -7664,9 +8033,28 @@ function cave_newQuestion() {
 }
 
 function cave_checkAnswer() {
-  if (caveAnswered) return;
   const inp = cave_getMissingInput();
   const raw = inp ? inp.value.trim() : '';
+  // h54 copy-corrective: gate the advance on copying the revealed answer; no scoring.
+  if (copyMode) {
+    const cv = parseInt(raw, 10);
+    if (!raw || isNaN(cv)) { if (inp) { inp.classList.add('bm-shake'); setTimeout(()=>inp.classList.remove('bm-shake'),400); } return; }
+    if (cv === copyTarget) {
+      // correct copy — display like an ordinary correct (green bar + completed sum) for the
+      // normal correct duration = the implicit "well done". NOT scored / no streak.
+      copyMode = false;
+      if (inp) { inp.value = String(copyTarget); inp.disabled = true; inp.classList.add('correct'); }
+      if (caveScene) caveScene.setExpr('happy');
+      cave_bmShowFeedback(caveEqText(copyTarget), 'correct');
+      if (revealTimeout) clearTimeout(revealTimeout);
+      revealTimeout = setTimeout(cave_newQuestion, 1500);
+    } else {
+      cave_bmShowFeedback(caveEqText(copyTarget), 'correct');   // keep the clue (completed sum)
+      if (inp) inp.value = '';
+    }
+    return;
+  }
+  if (caveAnswered) return;
   if (!raw) {
     if (inp) { inp.classList.add('bm-shake'); setTimeout(()=>inp.classList.remove('bm-shake'),400); }
     return;
@@ -7696,17 +8084,26 @@ function cave_checkAnswer() {
     snd(streak===3?'streak3':streak===5?'streak5':streak>=10?'streak10':'correct');
     if (revealTimeout) clearTimeout(revealTimeout);
     revealTimeout = setTimeout(cave_newQuestion, 1500);
-  } else {
+  } else if (shellIsProbe(currentQ)) {
+    // ceremonial probe — reveal + advance (light, no copy). h54.
     streak = 0; document.getElementById('cave-streak-label').textContent = '';
     if (caveScene) { caveScene.setExpr('sad'); caveScene.doAction('idle'); }
-    // Reveal correct answer in the bar
-    cave_renderBars(currentQ, true);
+    cave_renderBars(currentQ, true);   // reveal answer in the bar
     cave_bmShowFeedback(`Not quite — the answer was ${correct}`, 'wrong');
     snd('wrong'); cave_updateScore();
     if (sadResetId) clearTimeout(sadResetId);
     sadResetId = setTimeout(() => { if (caveScene) caveScene.setExpr('positive'); }, 1500);
     if (revealTimeout) clearTimeout(revealTimeout);
     revealTimeout = setTimeout(cave_newQuestion, 1500);
+  } else {
+    // teaching question (ordinary / confirm-3 / bridge) — copy-the-answer corrective (h54).
+    // Keep the bar input editable (do NOT re-render to a static reveal) so the child copies in.
+    streak = 0; document.getElementById('cave-streak-label').textContent = '';
+    if (caveScene) { caveScene.setExpr('sad'); caveScene.doAction('idle'); }
+    cave_bmShowFeedback(caveEqText(correct), 'correct');   // completed sum as the clue (green)
+    snd('wrong'); cave_updateScore();
+    copyMode = true; copyTarget = correct;
+    if (inp) { inp.disabled = false; inp.value = ''; inp.classList.remove('correct'); setTimeout(()=>inp.focus(),30); }
   }
 }
 
@@ -7718,13 +8115,21 @@ function cave_streakMsg() {
     100:'100 IN A ROW! CHAMPION! 👑',
   };
   if (MSGS[streak]) return MSGS[streak];
-  if (streak >= 2) {
-    const BRILLIANT = ['✓ Brilliant! 🦀','✓ Fantastic!','✓ Excellent! ⭐','✓ Amazing work!','✓ Splendid! 🦀'];
+  if (streak >= 3) {
+    const BRILLIANT = ['✓ Keep focussed! 🦀','✓ Stay in the zone!','✓ Nice job! ⭐','✓ Watch that streak grow!','✓ Splendid! 🦀'];
     return BRILLIANT[Math.floor(Math.random()*BRILLIANT.length)];
   }
-  return '✓ Correct! Well done! 🦀';
+  return '✓ You got it! 🦀';
 }
 
+// h54 (child playtest): "Help me out" for Cave — see plainHelpMeOut. Records a miss and reveals
+// the completed sum for the child to copy in.
+function cave_helpMeOut() {
+  if (copyMode || caveAnswered) return;
+  const inp = cave_getMissingInput();
+  if (inp) inp.value = String(correct + 1);   // any value ≠ correct engages the wrong-answer path
+  cave_checkAnswer();
+}
 function cave_skipQuestion() {
   if (caveAnswered) return;
   caveAnswered = true; cave_stopTimer(); total++; streak = 0;
@@ -7807,6 +8212,8 @@ document.getElementById('cave-home-btn').addEventListener('click', () => {
   showGameSelectScreen();
 });
 document.getElementById('cave-skip-btn').addEventListener('click', cave_skipQuestion);
+document.getElementById('cave-help-btn').addEventListener('click', cave_helpMeOut);
+{ const _ph = document.getElementById('plain-help-btn'); if (_ph) _ph.addEventListener('click', plainHelpMeOut); }
 
 // ═══════════════════════════════════════════════════════════════
 // ## INIT
