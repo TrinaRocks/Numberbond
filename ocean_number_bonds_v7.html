@@ -437,7 +437,7 @@ canvas#cave-canvas { display:block; }
 }
 .player-card-x:hover { background: #992200; color: #ffd0c0; }
 .player-card:active { transform: scale(0.97); }
-.player-card.guest { background: #1a1830; border-style: dashed; color: #80a0b8; }
+.player-card.guest { background: #0e2848; border-style: solid; color: #d0eeff; }
 .player-emoji { font-size: 36px; margin-bottom: 6px; }
 .player-name { font-size: 14px; font-weight: bold; }
 
@@ -454,9 +454,10 @@ canvas#cave-canvas { display:block; }
 .skin-tile.disabled { opacity: 0.4; cursor: not-allowed; }
 .skin-tile.debug { background: #1a1028; border-color: #5a3060; }
 .skin-icon { font-size: 38px; margin-bottom: 8px; }
+.skin-tile .skin-title { color: #40ffcc; }
 .skin-tile .skin-sub { font-size: 11px; color: #5090b0; }
 .achievements-link {
-  background: #071428; border: 1px solid #0e3060; color: #5090b0;
+  background: #071428; border: 1px solid #0e3060; color: #40ffcc;
   padding: 12px; border-radius: 8px; text-align: center; cursor: pointer; margin-top: 10px;
 }
 .achievements-link:hover { color: #40ffcc; border-color: #1a5090; }
@@ -604,7 +605,7 @@ canvas#cave-canvas { display:block; }
 }
 .player-manage-actions .danger { color: #ff8060; border-color: #992200; }
 .add-player-btn {
-  background: #0e2848; border: 1px dashed #1a5090; color: #80c0e0;
+  background: #0e2848; border: 2px solid #1a5090; color: #d0eeff; font-weight: bold;
   padding: 12px; border-radius: 8px; cursor: pointer; text-align: center; width: 100%;
 }
 .add-player-btn:hover { border-color: #00b8d4; }
@@ -637,19 +638,19 @@ canvas#cave-canvas { display:block; }
   </div>
   <div class="skin-tiles">
     <div class="skin-tile" onclick="enterGame('reef')">
-      <div class="skin-icon">🐠</div><div>The Reef</div>
-      <div class="skin-sub">coral bonds</div>
+      <div class="skin-icon">🐠</div><div class="skin-title">Reef</div>
+      <div class="skin-sub">part-part-whole diagrams</div>
     </div>
     <div class="skin-tile" onclick="enterGame('cave')">
-      <div class="skin-icon">🦀</div><div>Cave</div>
-      <div class="skin-sub">bar diagrams</div>
+      <div class="skin-icon">🦀</div><div class="skin-title">Cave</div>
+      <div class="skin-sub">barmodels</div>
     </div>
     <div class="skin-tile" onclick="enterGame('plain')">
-      <div class="skin-icon">➕</div><div>Plain</div>
+      <div class="skin-icon">➕</div><div class="skin-title">Plain</div>
       <div class="skin-sub">arithmetic</div>
     </div>
     <div class="skin-tile debug" onclick="enterDebug()">
-      <div class="skin-icon">🛠</div><div>Debug</div>
+      <div class="skin-icon">🛠</div><div class="skin-title">Debug</div>
       <div class="skin-sub">dev only</div>
     </div>
   </div>
@@ -735,6 +736,7 @@ canvas#cave-canvas { display:block; }
         <option value="bonds-to-100">Bonds to 100 (exact)</option>
         <option value="bonds-to-10s">Bonds to 10s (10, 20 … 100)</option>
         <option value="upto100">Bonds to 100 (+ &amp; −)</option>
+        <option value="upto100-missing">Bonds to 100 — missing numbers</option>
       </select>
     </div>
     <div class="settings-row"><label>Op focus:</label>
@@ -746,6 +748,13 @@ canvas#cave-canvas { display:block; }
     </div>
     <div class="settings-row"><label>Counters at lower levels:</label>
       <select id="a2-counters"><option value="off">Off</option><option value="on">On</option></select>
+    </div>
+    <div class="settings-row">
+      <label>Assessment:</label>
+      <button class="teal-btn" id="a2-reassess" onclick="triggerFreshAssessment()">🔄 Fresh assessment</button>
+    </div>
+    <div id="a2-reassess-note" style="font-size:12px; opacity:0.75; margin:2px 0 0 4px;">
+      Re-tests the child's level, then continues in Auto-selection mode.
     </div>
   </div>
   <div class="shell-btn-row"><button class="nav-btn" onclick="exitSettings()">Games</button></div>
@@ -759,6 +768,11 @@ canvas#cave-canvas { display:block; }
     <button class="back-btn" onclick="renderDebug()">↻</button>
   </div>
   <div class="debug-pane" id="debug-content">—</div>
+  <div style="display:flex; gap:8px; margin:8px 0;">
+    <button class="lock-btn" onclick="shellDumpState()" title="Copy this player's engine state (JSON) to clipboard + the box below">⤓ Dump state</button>
+    <button class="lock-btn" onclick="shellLoadState()" title="Replace this player's engine with the JSON in the box below (paste a dump, then Load)">⤒ Load state</button>
+  </div>
+  <textarea id="dbg-state-io" placeholder="engine-state JSON (dump writes here; paste here then Load)" style="width:100%; height:120px; font-family:monospace; font-size:11px; background:#071428; color:#9fd0e8; border:1px solid #1a5090; border-radius:6px; padding:6px; box-sizing:border-box;"></textarea>
 </div>
 
 <!-- Lock modal -->
@@ -1501,6 +1515,10 @@ function v8_newBondState(w, a, b) {
     addDeferredReasonAdd: false,
     subDeferredReasonSub: false,
     boundarySearchPlacedAbove: { add: false, sub: false },
+    // h56: sub-foundation asserted at placement (full-release Tier100 upto100/bonds-to-100 only) →
+    // bypasses the per-bond SUB_ONLY_MIN_ADD_ACC gate so sub is selectable from q1 (adult asserts
+    // both-op readiness on the practice sample). NOT set for bonds-to-10s "add-to-X0" bonds (add scaffolds sub).
+    subFoundationAsserted: false,
     // h55 (cohort-sim B5): provenance — true if this bond was first PLACED while an
     // adult scope was pinned (bondScope != Auto). Used by v8_clearAdultScope to evict
     // adult-placed bonds left ABOVE the restored Auto boundary (they would otherwise
@@ -2280,7 +2298,10 @@ function recencyFactorLookup(qsSinceAsked) {
 // (fresh engine addAcc=0 everywhere → nothing sub-selectable → pool→null → dead game).
 function bondIsSelectable(bond, opFocus, sessionOpFocus) {
   if (sessionOpFocus === undefined) sessionOpFocus = opFocus;
-  if (opFocus === "sub" && sessionOpFocus !== "sub" && bond.addAcc < C.SUB_ONLY_MIN_ADD_ACC) return false;
+  // h56: subFoundationAsserted bonds (full-release Tier100 upto100/bonds-to-100) bypass the per-bond
+  // add-gate — sub is selectable from q1 (adult asserted both-op readiness). Same principle as the
+  // sub-only-session bypass on the same line; here it is per-bond, not session-wide.
+  if (opFocus === "sub" && sessionOpFocus !== "sub" && !bond.subFoundationAsserted && bond.addAcc < C.SUB_ONLY_MIN_ADD_ACC) return false;
   // h53 (#5, user): in a both/add session a bond in `introduction` is NOT sub-selectable for
   // ORDINARY selection — introduction is add-only (SPEC §5.6.4 lifecycle eligibility) and the
   // first sub on a bond is the BRIDGE only. The add flag is the next objective; sub is not asked
@@ -2363,7 +2384,7 @@ function _v8_tier100SelectBlocked(eng, bond, op) {
 // Tier100 adult stint pins to upto100, places exemplars, then on exit the boundary drops back to
 // (say) upto20 and those exemplars fall silent.
 function v8_applyAdultScope(eng, level, age) {
-  if (level === "Auto" || level == null) { v8_clearAdultScope(eng); return; }
+  if (level === "Auto" || level == null) { v8_clearAdultScope(eng, age); return; }
   // Capture the pre-adult Auto boundary ONCE, on the Auto→level transition. A level→level
   // change while already in adult mode must NOT overwrite the stash (it holds the genuine Auto value).
   if (eng.bondScope === "Auto") {
@@ -2376,6 +2397,13 @@ function v8_applyAdultScope(eng, level, age) {
   eng._catastrophic = null;
   eng._catastrophicCooldown = null;
   eng._easeInQueue = [];
+  // h56: an adult-pinned scope has NO first-play warmup and NO boundary search — warmup is
+  // "search-path only" and adult-set scope skips the search (§4.6). If the engine carries a
+  // pending warmup / active search from an interrupted Auto session (the restore path), clear
+  // them here so the pin takes effect immediately instead of running the Auto placement ceremony
+  // (warmup to5 Qs + exact10 probes) despite being pinned. No-op on the fresh-adult-set path.
+  eng._warmupRemaining = 0;
+  if (eng._boundarySearch) eng._boundarySearch.active = false;
   eng.bondScope = level;
   if (eng.settledBoundaryAdd !== level || eng.settledBoundarySub !== level) {
     eng.settledBoundaryAdd = level;
@@ -2383,17 +2411,37 @@ function v8_applyAdultScope(eng, level, age) {
     eng._seedFired = false;            // re-seed at the new level (existing bonds/mastery preserved)
     v8_fireSeed(eng, age || 7);
   }
+  // h56: a FULL-RELEASE scope (upto100 / bonds-to-100) must have its whole curated set present on
+  // EVERY entry — not only when the boundary just changed. v8_fireSeed above is gated on _seedFired
+  // + boundary-change, so a player ALREADY sitting at this boundary is skipped: re-entering the
+  // scope, or an old save whose pre-curation upto100 bonds are a stale handful, would otherwise get
+  // a starved pool (→ "All done for now" after a few Qs). _v8_fireFullRelease is idempotent (places
+  // only UNPLACED in-scope exemplars; existing bonds/mastery untouched), so firing it here is safe.
+  if (_v8_isFullReleaseScope(eng)) _v8_fireFullRelease(eng);
 }
-function v8_clearAdultScope(eng) {
+function v8_clearAdultScope(eng, age) {
   if (eng.bondScope === "Auto") return;        // already Auto — nothing to restore
   eng.bondScope = "Auto";
-  // Restore the last Auto-chosen boundary if one was stashed. If none (engine was adult-set from
-  // fresh and never ran a boundary search), leave the pinned boundary as-is — there is no genuine
-  // Auto level to fall back to; the next boundary search / play settles it.
+  // Restore the last Auto-chosen boundary if one was stashed.
+  const hadAutoBoundary = (eng._autoBoundaryAdd != null || eng._autoBoundarySub != null);
   if (eng._autoBoundaryAdd != null) eng.settledBoundaryAdd = eng._autoBoundaryAdd;
   if (eng._autoBoundarySub != null) eng.settledBoundarySub = eng._autoBoundarySub;
   eng._autoBoundaryAdd = null;
   eng._autoBoundarySub = null;
+  // h56: adult-set-from-FRESH (never ran an Auto placement) → the stash is null, so there is no
+  // genuine Auto boundary to return to. The OLD behaviour left the pinned adult boundary in place
+  // (e.g. upto100), which stranded the child there in Auto forever: the first-play search only arms
+  // on NULL boundaries, so no placement ever occurred and Tier100 questions kept being asked (user-
+  // reported). Instead, re-arm a placement search so Auto actually measures the child. Tier100 bonds
+  // placed under the pin are inert in Auto (_v8_tier100SelectBlocked), and the search settlement
+  // reseeds at the level found. (Skips the above-boundary eviction below — no boundary to compare.)
+  if (!hadAutoBoundary) {
+    eng.settledBoundaryAdd = null;
+    eng.settledBoundarySub = null;
+    eng._seedFired = false;
+    v8_beginBoundarySearch(eng, age || 7);
+    return;
+  }
   // h55 (cohort-sim B5): evict adult-placed bonds left ABOVE the restored Auto boundary —
   // BUT keep what the child currently knows. A pin ABOVE the child's level (e.g. upto20 over
   // an upto10 child) places bonds they cannot yet sustain; on revert to Auto — which never
@@ -2419,6 +2467,29 @@ function v8_clearAdultScope(eng) {
       }
     }
   }
+}
+
+// h56: adult-initiated FRESH PLACEMENT ("Trigger fresh assessment then continue in Auto-selection
+// mode"). Callable from ANY scope (Auto or adult-set). Unlike a scope revert — which restores a
+// stashed Auto boundary — this ALWAYS re-measures the child: drop to Auto, discard the current
+// boundary + any stash, and re-arm the first-play boundary search. Existing bonds are LEFT in place
+// (no deferral): above-boundary bonds simply re-enter selection as the search-found boundary climbs
+// (user: friction undesirable; Tier100 bonds remain adult-only via _v8_tier100SelectBlocked). Any
+// in-flight catastrophic / re-entry / warmup is cleared — the re-test starts clean. The search runs
+// next session and, on settling, fires the seed and normal Auto play resumes.
+function v8_triggerPlacement(eng, age) {
+  eng.bondScope = "Auto";
+  eng._autoBoundaryAdd = null;
+  eng._autoBoundarySub = null;
+  eng.settledBoundaryAdd = null;
+  eng.settledBoundarySub = null;
+  eng._seedFired = false;
+  eng._warmupRemaining = 0;          // a re-test is not first-play — skip the interface warmup
+  eng._catastrophic = null;
+  eng._catastrophicCooldown = null;
+  eng._easeInQueue = [];
+  eng._reentry = null;
+  v8_beginBoundarySearch(eng, age || 7);
 }
 
 // levelIdx(level) -> LEVELS-order index (helper for recovery-tilt boundary test).
@@ -3004,6 +3075,43 @@ function _v8_seedCandidates(eng, op) {
   return _v8_roundRobin(p1groups).concat(_v8_roundRobin(p2groups));
 }
 
+// h54c (user, playtest): FULL-RELEASE Tier100 scopes. The curated upto100 / bonds-to-100 sets are
+// METHOD-PRACTICE SAMPLES, not per-fact pacing targets — so the slow-release drip (which leaves a
+// stagnant low-whole window the child sees again and again) is wrong here. These scopes place the
+// WHOLE in-scope set at once (see _v8_fireFullRelease). bonds-to-10s is deliberately EXCLUDED (user:
+// keep it on slow-release). Only ever matches in adult-pin: bondScope is the level string here;
+// Auto scope never equals a level name.
+const FULL_RELEASE_SCOPES = ["bonds-to-100", "upto100"];
+function _v8_isFullReleaseScope(eng) {
+  return FULL_RELEASE_SCOPES.indexOf(eng.bondScope) !== -1;
+}
+
+// h54c: place every in-scope exemplar of a full-release Tier100 scope at once, at `working` with
+// clean stats — a flat, equal-weighted practice pool. No confirm-3 ceremony (×129 batteries) and
+// no slow-release drip. Zone-INDEPENDENT: placement is at scope-entry, NOT via the slow-release
+// trigger (which gates on SLOW_RELEASE/BORED zone, so a struggling child would otherwise get no
+// releases). Real answers then differentiate: fail → low acc → higher weight, then steady→working
+// regression / working→introduction scaffold; master → working→steady→learnt (auto-deweight).
+// Provenance-stamped so v8_clearAdultScope's exit-eviction treats them like any adult-placed bond.
+function _v8_fireFullRelease(eng) {
+  for (const [w, a, b] of bondsForLevel(eng.bondScope)) {
+    if (!_v8_isUnplaced(eng, w, a, b)) continue;
+    if (!v8_inScopeWAB(eng, w, a, b)) continue;
+    const bk = bondKey(w, a, b);
+    if (!eng.bonds[bk]) eng.bonds[bk] = v8_newBondState(w, a, b);
+    const bs = eng.bonds[bk];
+    if (eng.bondScope !== "Auto") bs.placedUnderAdult = true;   // always true here; mirrors routeNewBond
+    // h56: assert the sub-foundation (sub selectable from q1) ONLY for bonds first-appearing at
+    // upto100 / bonds-to-100. bonds-to-10s "add-to-X0" overlaps (e.g. 30=19+11) keep the add-first
+    // gate — there the addition scaffolds the subtraction (user). Without this, the sub op-share (2/3)
+    // hammers the 1-2 bonds that trickle across the per-bond add-gate → 3-distinct-in-6 concentration.
+    const fa = firstAppearance(w, a, b);
+    if (fa === "upto100" || fa === "bonds-to-100") bs.subFoundationAsserted = true;
+    _setPhase(bs, "working");
+    _emitEvent(eng, "BOND_UNLOCKED", { bondKey: bk, op: "both", reason: "full_release" });
+  }
+}
+
 // §6.1 seed: place SEED_BOND_COUNT_BY_AGE bonds, alternating add/sub
 // (bond 1 → add, bond 2 → sub, …); each routed via v8_routeNewBond, which
 // applies the §6.0 confirm-3-vs-introduction split by firstAppearance. Bonds
@@ -3012,6 +3120,8 @@ function _v8_seedCandidates(eng, op) {
 function v8_fireSeed(eng, playerAge) {
   if (eng._seedFired) return;
   if (!eng.settledBoundaryAdd || !eng.settledBoundarySub) return;
+  // h54c: full-release Tier100 scopes place the whole in-scope set at once, then done.
+  if (_v8_isFullReleaseScope(eng)) { _v8_fireFullRelease(eng); eng._seedFired = true; return; }
   const count = _seedBondCountByAge(playerAge || 7);
   const lists = { add: _v8_seedCandidates(eng, "add"), sub: _v8_seedCandidates(eng, "sub") };
   const idx = { add: 0, sub: 0 };
@@ -3239,15 +3349,26 @@ function normalReentryDue(eng, daysSinceLastPlay) {
       && !postCatastrophicReentryDue(eng);
 }
 
+// h57: re-entry probes ONLY the active op in single-op mode — the child must never see a
+// ceremonial probe for the op the adult excluded (the boundary search already honours this by
+// pre-settling the inactive op; re-entry didn't, so an add-only child returning after 14 days,
+// or a single-op child post-catastrophic, got an excluded-op probe. Found by the Tier-A fuzzer.)
+function _v8_reentryOps(eng) {
+  if (eng.opFocus === "add") return ["add"];
+  if (eng.opFocus === "sub") return ["sub"];
+  return ["add", "sub"];
+}
+
 // Arm the normal-mode re-entry machine: probe add then sub (add-first, h47), each
 // via the one-step probe shape (current → up-on-pass / down-on-fail).
 function _v8_armNormalReentry(eng) {
+  const ops = _v8_reentryOps(eng);
   eng._reentry = {
     mode: "normal",
-    ops: ["add", "sub"],
+    ops: ops,
     opIdx: 0,
     phase: "current",
-    probeLevel: eng.settledBoundaryAdd,   // ops[0] === "add"
+    probeLevel: (ops[0] === "add") ? eng.settledBoundaryAdd : eng.settledBoundarySub,
     descentSteps: 0,
     asked: 0, correct: 0,                  // h53 (#2 stage 2): 2 questions per level
     active: true,
@@ -3411,7 +3532,7 @@ function _v8_reentryAdvanceOp(eng) {
 // §4.4.4 Case A: arm the one-shot aggressive-walk machine (add-first). Per-op setup
 // (walk level, maxRaise, eligibility) is done by _v8_reentrySetupCurrentOp.
 function _v8_armPostCatReentryCaseA(eng) {
-  eng._reentry = { mode: "postcat_caseA", ops: ["add", "sub"], opIdx: 0, phase: "walk",
+  eng._reentry = { mode: "postcat_caseA", ops: _v8_reentryOps(eng), opIdx: 0, phase: "walk",
                    probeLevel: null, descentSteps: 0, raisedThisCall: 0, maxRaise: 0, allowAdvance: true,
                    asked: 0, correct: 0, active: true };
   _v8_reentrySetupCurrentOp(eng);
@@ -3420,7 +3541,7 @@ function _v8_armPostCatReentryCaseA(eng) {
 // §4.4.4 Case B: arm the paced one-step machine (add-first). Eligibility + the
 // per-op advance gate are computed in _v8_reentrySetupCurrentOp.
 function _v8_armPostCatReentryCaseB(eng) {
-  eng._reentry = { mode: "postcat_caseB", ops: ["add", "sub"], opIdx: 0, phase: "current",
+  eng._reentry = { mode: "postcat_caseB", ops: _v8_reentryOps(eng), opIdx: 0, phase: "current",
                    probeLevel: null, descentSteps: 0, raisedThisCall: 0, maxRaise: 0, allowAdvance: true,
                    asked: 0, correct: 0, active: true };
   _v8_reentrySetupCurrentOp(eng);
@@ -4333,7 +4454,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = { v8_playNextQuestion, v8_recordAnswer, v8_seedFromBoundaries };
 }
 
-return { v8_newGame, v8_newEngineState, v8_fireSeed, v8_applyAdultScope, v8_clearAdultScope, v8_beginSession, v8_sessionEnded, v8_enterGame, v8_playNextQuestion, v8_recordAnswer, v8_computeDisplayAchievement, levelIndex: levelIndex, LEVELS: LEVELS };
+return { v8_newGame, v8_newEngineState, v8_fireSeed, v8_applyAdultScope, v8_clearAdultScope, v8_triggerPlacement, v8_beginSession, v8_sessionEnded, v8_enterGame, v8_playNextQuestion, v8_recordAnswer, v8_computeDisplayAchievement, levelIndex: levelIndex, LEVELS: LEVELS };
 })();
 // ============================================================
 // _v8_adapter.js — h50 Stage 1 glue. Exposes the v7 `engine.*` surface
@@ -4406,18 +4527,46 @@ function v8aSubLabel(q, box) {
   return parts[0] || "";
 }
 
-function v8aMapDescriptor(d) {
+function v8aMapDescriptor(d, missingNumberMode) {
   var missing;
   if (d.op === "add") missing = "whole";
   else missing = (d.direction === "largeHidden") ? "partA" : "partB";
+  // h56 missing-number mode: bake ONE surface form, chosen uniformly at random over ALL forms
+  // for this missing element — whole has 3 (idx 0 = standard `a+b=?`, 1 `?−a=b`, 2 `?−b=a`); a
+  // part has 4 (idx 0 = standard `w−known=?`, 1 `?+known=w`, 2 `known+?=w`, 3 `w−?=known`). Baked
+  // once so the render is stable across re-renders (like _flip / _subForms). Uniform over all
+  // forms gives ≈1/3 standard (whole) / 1/4 (part) — the ~1/3-standard target. Undefined when off.
+  var mnFormIdx;
+  if (missingNumberMode) mnFormIdx = Math.floor(Math.random() * (missing === "whole" ? 3 : 4));
   return {
     whole: d.whole, partA: d.partA, partB: d.partB,
     missing: missing, correctAnswer: d.correctAnswer,
     _flip: Math.random() < 0.5,
     _noRepeat: !!(d.ceremonial || d._isConfirm3 || d._isBridge),  // ceremonial/battery: one answer only
     _subForms: (missing === "whole") ? null : v8aSubForms(d.whole, !!d.ceremonial),
+    _mnFormIdx: mnFormIdx,   // undefined unless "Up to 100 — missing numbers" scope
     _v8: d,
   };
+}
+
+// h56: missing-number surface-form renderer (the "Up to 100 — missing numbers" scope).
+// Renders q into the form indexed by q._mnFormIdx; `box` stands in for the blank (the missing
+// element), `minus` is the skin's subtraction glyph ("&minus;" HTML entity for innerHTML
+// contexts — Plain + Cave live reminder; "−" U+2212 literal for textContent — Cave clue). The
+// ANSWER is unchanged (still q.correctAnswer = the missing element's value); only the surface
+// arrangement moves the blank out of the result position.
+function mnEqHTML(q, box, minus) {
+  var w = q.whole, A = q.partA, B = q.partB, i = q._mnFormIdx || 0;
+  if (q.missing === "whole") {
+    if (i === 1) return box + " " + minus + " " + A + " = " + B;   // ?−a=b
+    if (i === 2) return box + " " + minus + " " + B + " = " + A;   // ?−b=a
+    return A + " + " + B + " = " + box;                            // a+b=? (standard)
+  }
+  var known = (q.missing === "partA") ? B : A;   // the visible part (the missing one is the answer)
+  if (i === 1) return box + " + " + known + " = " + w;             // ?+known=w
+  if (i === 2) return known + " + " + box + " = " + w;             // known+?=w
+  if (i === 3) return w + " " + minus + " " + box + " = " + known; // w−?=known
+  return w + " " + minus + " " + known + " = " + box;              // w−known=? (standard)
 }
 
 // makeV8Adapter(savedEngState | null, opts) -> v7-shaped engine.
@@ -4430,6 +4579,14 @@ function makeV8Adapter(savedState, opts) {
   // + auto-advance). A known v8 level => adult-set scope seeded+capped at that level.
   // Unknown/absent => Auto, so fireSeed never gets a bad symbol.
   var bondScope = opts.bondScope || (savedState && savedState.bondScope) || "auto";
+  // h56: "upto100-missing" = the "Up to 100 — missing numbers" adult scope. It REUSES the
+  // upto100 engine level UNCHANGED (same bonds, same selection); the only difference is
+  // display — ~2/3 of questions render in a missing-number surface form (the blank in a
+  // non-result position, e.g. `? − 24 = 31` / `55 − ? = 24`). The ANSWER is unchanged (still
+  // the missing element), so answer capture/validation are untouched. Remap to the real engine
+  // level here and carry a display-only flag (re-derived from settings on every construction).
+  var missingNumberMode = (bondScope === "upto100-missing");
+  if (missingNumberMode) bondScope = "upto100";
   // h54: "start5/10/20" = adult PLACEMENT SHORTCUT — Auto mode, but the first-play boundary
   // search is skipped and play seeds at the chosen level (v8_newGame startLevel). Distinct from
   // a rigid adult-set scope (a level name). Only bites on a FRESH engine; a restored child is
@@ -4472,7 +4629,7 @@ function makeV8Adapter(savedState, opts) {
   function nextQuestion() {
     var d = V8.v8_playNextQuestion(eng, eng.opFocus || "both");
     if (!d) { curMapped = null; return null; }
-    curMapped = v8aMapDescriptor(d);
+    curMapped = v8aMapDescriptor(d, missingNumberMode);
     recorded = false;
     shownAt = Date.now();
     return curMapped;
@@ -6936,12 +7093,14 @@ function shellSumLabelHTML(box) {   // Reef sum-label, `box` filled in
 }
 function plainEqHTML(box) {
   const q = currentQ;
+  if (q._mnFormIdx != null) return mnEqHTML(q, box, '&minus;');   // h56 missing-number scope
   if (q.missing === 'whole') return `${q.partA} + ${q.partB} = ${box}`;
   if (q.missing === 'partA') return `${q.whole} &minus; ${q.partB} = ${box}`;
   return `${q.whole} &minus; ${q.partA} = ${box}`;
 }
 function caveEqText(box) {
   const q = currentQ;
+  if (q._mnFormIdx != null) return mnEqHTML(q, box, '−');   // h56 missing-number scope (textContent → U+2212)
   if (q.missing === 'whole') return `${q.partA} + ${q.partB} = ${box}`;
   if (q.missing === 'partA') return `${q.whole} − ${q.partB} = ${box}`;
   return `${q.whole} − ${q.partA} = ${box}`;
@@ -7315,7 +7474,10 @@ function selectGuest() {
   rootState.activePlayerId = gid; save(); goS2();
 }
 function addPlayerFlow() {
-  promptLock(doAddPlayerFlow);   // adult gate every time
+  // No adult gate: creating a NEW player is non-destructive — it cannot alter or destroy
+  // any existing child's data (h54c/h56). The lock guards editing/deleting an EXISTING
+  // player's state (openManagePlayer / deletePlayer), which stay gated.
+  doAddPlayerFlow();
 }
 function doAddPlayerFlow() {
   const opts = document.getElementById("avatar-options");
@@ -7415,6 +7577,24 @@ function renderA2() {
   const cntEl = document.getElementById("a2-counters");
   cntEl.value = p.settings.countersLowLevel ? "on" : "off";
   cntEl.onchange = (e) => { p.settings.countersLowLevel = e.target.value === "on"; save(); };
+  // reset the fresh-assessment note each time the screen is (re)rendered
+  const note = document.getElementById("a2-reassess-note");
+  if (note) note.innerHTML = "Re-tests the child's level, then continues in Auto-selection mode.";
+}
+// h56: adult-initiated fresh placement. Re-measures the child from scratch and continues in Auto.
+// Callable from any scope. No confirm (A2 is already behind the adult lock). Above-boundary bonds
+// are left in place (no deferral). The armed search runs next time the child plays.
+function triggerFreshAssessment() {
+  const p = getCurrentPlayer();
+  if (p.engine) V8.v8_triggerPlacement(p.engine, p.age || 7);   // null engine = never played → first play places anyway
+  p.settings.bondScope = "auto";                                // reflect Auto in the selector + future builds
+  save();
+  const scopeEl = document.getElementById("a2-scope");
+  if (scopeEl) scopeEl.value = "auto";
+  const av = AVATARS.find(a => a.id === p.avatar);
+  const who = av ? av.name : "This player";
+  const note = document.getElementById("a2-reassess-note");
+  if (note) note.innerHTML = `✓ ${who} will be re-tested next time they play (a short placement check), then Auto-selection continues.`;
 }
 
 // ── lock (multiplication gate; sticky per-device) ──
@@ -7529,7 +7709,8 @@ function plainNextQuestion() {
   const q = currentQ;
   const box = '<input id="plain-entry" class="plain-inline-entry" type="text" inputmode="numeric" maxlength="3" autocomplete="off">';
   let html;
-  if (q.missing === "whole")       html = `${q.partA} + ${q.partB} = ${box}`;
+  if (q._mnFormIdx != null)             html = mnEqHTML(q, box, '&minus;');   // h56 missing-number scope
+  else if (q.missing === "whole")       html = `${q.partA} + ${q.partB} = ${box}`;
   else if (q.missing === "partA")  html = `${q.whole} &minus; ${q.partB} = ${box}`;
   else                             html = `${q.whole} &minus; ${q.partA} = ${box}`;
   document.getElementById("plain-question").innerHTML = html;
@@ -7744,6 +7925,50 @@ function renderDebug() {
   }
   out.textContent = lines.join("\n");
 }
+// h57 debug: compact human-readable state summary (the small paste that closes the provenance gap).
+function shellStateSummary(eng) {
+  if (!eng) return "(no engine)";
+  const lc = {};
+  for (const k in (eng.bonds || {})) { const l = eng.bonds[k].lifecycle; lc[l] = (lc[l] || 0) + 1; }
+  return [
+    `scope=${eng.bondScope}  opFocus=${eng.opFocus}`,
+    `boundary  add=${eng.settledBoundaryAdd}  sub=${eng.settledBoundarySub}`,
+    `warmup=${eng._warmupRemaining}  search=${!!(eng._boundarySearch && eng._boundarySearch.active)}  catastrophic=${!!eng._catastrophic}  reentry=${!!(eng._reentry && eng._reentry.active)}`,
+    `bonds=${Object.keys(eng.bonds || {}).length}  byLifecycle=${JSON.stringify(lc)}`,
+  ].join("\n");
+}
+// h57 debug: dump the active player's engine (full JSON → clipboard + box) with a summary header.
+function shellDumpState() {
+  const p = getCurrentPlayer();
+  const eng = (typeof engine !== "undefined" && engine && engine._eng) ? engine._eng : (p && p.engine) || null;
+  const payload = { _meta: { when: new Date().toISOString(), player: p && p.avatar, summary: shellStateSummary(eng) }, settings: p && p.settings, engine: eng };
+  const json = JSON.stringify(payload, null, 2);
+  const io = document.getElementById("dbg-state-io"); if (io) io.value = json;
+  if (navigator.clipboard) navigator.clipboard.writeText(json).catch(() => {});
+  const out = document.getElementById("debug-content");
+  if (out) out.textContent = "— STATE DUMPED (clipboard + box below) —\n" + shellStateSummary(eng) + "\n\n" + out.textContent;
+}
+// h57 debug: replace the active player's engine with the JSON in the box (bare engine OR a dump payload).
+function shellLoadState() {
+  const io = document.getElementById("dbg-state-io");
+  if (!io || !io.value.trim()) { alert("Paste engine-state JSON into the box first."); return; }
+  let parsed; try { parsed = JSON.parse(io.value); } catch (e) { alert("Bad JSON: " + e.message); return; }
+  const p = getCurrentPlayer(); if (!p) { alert("No active player."); return; }
+  const eng = parsed.engine || parsed;      // accept the wrapped dump or a bare engine object
+  if (!eng || !eng.bonds) { alert("JSON has no engine (.bonds) — is this a state dump?"); return; }
+  p.engine = eng;
+  if (parsed.settings) {
+    p.settings = parsed.settings;
+  } else {
+    // bare engine (no settings): align the player's scope/op so shellBuildEngine doesn't RE-scope
+    // the loaded engine (settings.bondScope drives makeV8Adapter — a mismatch would clobber it).
+    p.settings.bondScope = (eng.bondScope === "Auto") ? "auto" : eng.bondScope;
+    p.settings.opFocus = eng.opFocus || p.settings.opFocus;
+  }
+  save();
+  if (typeof shellBuildEngine === "function") shellBuildEngine();   // rebuild the live adapter from the loaded state
+  renderDebug();
+}
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -7945,7 +8170,9 @@ function cave_renderBars(q, isRevealed) {
   // Equation reminder (h50: level-banded sub form(s); bar model is the primary input)
   const prompt = document.getElementById('cave-bm-answer-prompt');
   const box = '<span class="missing-box">?</span>';
-  if (missing === 'whole') {
+  if (q && q._mnFormIdx != null) {
+    prompt.innerHTML = mnEqHTML(q, box, '&minus;');   // h56 missing-number scope (innerHTML → entity)
+  } else if (missing === 'whole') {
     const flip = q && q._flip;
     prompt.innerHTML = flip ? `${partB} + ${partA} = ${box}` : `${partA} + ${partB} = ${box}`;
   } else {
