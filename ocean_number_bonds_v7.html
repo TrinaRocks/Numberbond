@@ -321,18 +321,28 @@ canvas#cave-canvas { display:block; }
   background:rgba(10,26,58,0.55);
   text-align:center; caret-color:#ffffff;
   -moz-appearance:textfield;
-  /* h59 (iPad report: the answer bar renders DARKER than the other unknown bars).
-     The known bars are <div>s; only the answer bar is an <input>, and iOS Safari paints its
-     own control background + inset shadow UNDER our rgba(...,0.55) fill — two dark layers
-     composite, so the same declared colour lands darker on iPad than on desktop. Desktop
-     Chrome ignores the UA background, which is why this is iPad-only. Reset the UA styling so
-     the input paints exactly what the .unknown divs paint.
-     UNVERIFIED ON IPAD — no iPad here; this is the standard cause, not a confirmed diagnosis. */
+  /* h59: reset the iOS control chrome so the input paints only what we declare.
+     NOTE: this was my FIRST guess at the iPad "answer bar is darker" report and it was WRONG —
+     -webkit-appearance governs control chrome, not the disabled dimming that actually caused it
+     (see the :disabled rule below). Kept because it is correct practice for a fully-styled
+     input, not because it fixed the bug. */
   -webkit-appearance:none;
   appearance:none;
   -webkit-tap-highlight-color:transparent;
   box-shadow:none;
   box-sizing:border-box;
+}
+/* h59 — THE iPad FIX (user: answer bar is a weak/darker colour than the others).
+   Once answered, cave_checkAnswer does `inp.disabled = true` + .correct (a solid #ffb347 /
+   #5ab4ff / #9b6ee8 matching its sibling bar). But iOS Safari dims DISABLED inputs to ~0.4
+   opacity and greys their text via -webkit-text-fill-color. The sibling bars are <div>s — never
+   disabled, never dimmed — so the answered bar alone composites toward the dark cave background
+   and reads washed-out. Desktop Chrome does not dim disabled inputs, which is why it looked
+   correct here and wrong on the iPad. currentColor (not a literal) so it tracks whatever the
+   .correct rules set. */
+.cave-missing-input:disabled {
+  opacity:1;
+  -webkit-text-fill-color:currentColor;
 }
 .cave-missing-input::-webkit-inner-spin-button,
 .cave-missing-input::-webkit-outer-spin-button { -webkit-appearance:none; }
@@ -579,6 +589,10 @@ canvas#cave-canvas { display:block; }
   -moz-appearance: textfield;
 }
 .plain-inline-entry:focus { outline: none; border-color: #00b8d4; }
+/* h59: same iPad disabled-dimming fix as .cave-missing-input (see that rule for the why).
+   plainSubmit disables this box on a correct answer and leaves it VISIBLE, so on iOS its green
+   would wash out. Reef is immune — it hides its entry rather than leaving it disabled on screen. */
+.plain-inline-entry:disabled { opacity: 1; -webkit-text-fill-color: currentColor; }
 .plain-inline-entry::-webkit-inner-spin-button,
 .plain-inline-entry::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 /* h52: two-row number pad beneath the question. */
