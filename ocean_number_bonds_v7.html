@@ -698,7 +698,10 @@ canvas#cave-canvas { display:block; }
 }
 .player-manage-actions .danger { color: #ff8060; border-color: #992200; }
 .add-player-btn {
-  background: #0e2848; border: 2px solid #1a5090; color: #d0eeff; font-weight: bold;
+  /* h62: colour + size deliberately match `.shell-screen .title` (#40ffcc, 18px bold)
+     so the button reads as a peer of the heading, not as secondary chrome. */
+  background: #0e2848; border: 2px solid #1a5090; color: #40ffcc; font-weight: bold;
+  font-size: 18px;
   padding: 12px; border-radius: 8px; cursor: pointer; text-align: center; width: 100%;
 }
 .add-player-btn:hover { border-color: #00b8d4; }
@@ -713,13 +716,13 @@ canvas#cave-canvas { display:block; }
 <div id="s1" class="screen shell-screen active">
   <div class="topbar">
     <div style="width:60px;"></div>
-    <div class="title">🐙 Choose Player</div>
+    <div class="title">🐙 Choose Existing Player</div>
     <button class="gear-btn" onclick="openSettings('s1')">⚙ Settings</button>
   </div>
   <div id="s1-migration-nudge"></div>
   <div class="player-grid" id="player-grid"></div>
   <div id="player-mgmt-area" style="margin-top:12px;">
-    <button class="add-player-btn" onclick="addPlayerFlow()">+ Add Player</button>
+    <button class="add-player-btn" onclick="addPlayerFlow()">New Player +</button>
   </div>
 </div>
 
@@ -743,9 +746,9 @@ canvas#cave-canvas { display:block; }
       <div class="skin-icon">➕</div><div class="skin-title">Plain</div>
       <div class="skin-sub">arithmetic</div>
     </div>
-    <div class="skin-tile debug" onclick="enterDebug()">
+    <div class="skin-tile debug" onclick="promptPasscode(enterDebug)">
       <div class="skin-icon">🛠</div><div class="skin-title">Debug</div>
-      <div class="skin-sub">dev only</div>
+      <div class="skin-sub">adult only</div>
     </div>
   </div>
   <div class="achievements-link" onclick="enterAchievements()">🏆 Achievements</div>
@@ -791,6 +794,7 @@ canvas#cave-canvas { display:block; }
     <div style="width:36px;"></div>
   </div>
   <div class="settings-section">
+    <div class="settings-row"><label>Player:</label><span id="a1-player-name" style="color:#40ffcc; font-weight:bold;"></span></div>
     <div class="settings-row"><label>Sound:</label>
       <select id="a1-sound"><option value="on">On</option><option value="off">Off</option></select>
     </div>
@@ -812,7 +816,7 @@ canvas#cave-canvas { display:block; }
     <div style="width:36px;"></div>
   </div>
   <div class="settings-section">
-    <div class="settings-row"><label>Player:</label><select id="a2-player"></select></div>
+    <div class="settings-row"><label>Player:</label><span id="a2-player-name" style="color:#40ffcc; font-weight:bold;"></span></div>
     <div class="settings-row"><label>Age:</label><input type="number" id="a2-age" min="4" max="11" /></div>
     <div class="settings-row"><label>Bond scope:</label>
       <select id="a2-scope">
@@ -1804,7 +1808,9 @@ function _v8_warmupList(opFocus) {
 // h54: optional `startLevel` is an adult PLACEMENT SHORTCUT (distinct from an adult-set rigid
 // scope). When given, the boundary search is skipped: both boundaries seed at `startLevel` and
 // normal AUTO progression (advance / catastrophic / re-entry) continues from there — bondScope
-// stays "Auto". "Start on 5/10/20" = seed at to5 / exact10 / exact20. Warmup still runs first.
+// stays "Auto". "Start on 5/10/20" = seed at to5 / exact10 / exact20. NO warmup and NO search on
+// this path (both are for placement measurement, which the shortcut skips — see the else branch
+// and cohort D4). [h60: was "Warmup still runs first" — false; contradicted the code + line-668.]
 function v8_newGame(age, opFocus, startLevel) {
   const eng = v8_newEngineState();
   // h51: opFocus MUST be set before arming the boundary search — the single-op probe-skip
@@ -2876,8 +2882,9 @@ function inFluxCount(eng) {
 }
 
 // §6.2.1 effectiveMinInFlux — configured floor clamped to currently-reachable
-// distinct-bond count (firstAppearance <= higher boundary). Auto scope only in
-// the core path (adult-set strict filter is §6.0.1 future work).
+// distinct-bond count (firstAppearance <= higher boundary). Scope-aware in BOTH
+// modes (h54): the adult-set strict filter is applied per-bond via v8_inScopeWAB
+// below, so under an adult scope the reachable set IS that filter, not firstApp<=hi.
 function effectiveMinInFlux(eng, age) {
   const hi = Math.max(
     eng.settledBoundaryAdd ? levelIndex(eng.settledBoundaryAdd) : -1,
@@ -7655,9 +7662,12 @@ function showScreen(id) { return Screens.show(id); }
 // adapter state per child, shared by all skins). Clean break on old saves.
 // ════════════════════════════════════════════════════════════════
 
-const SHELL_SCHEMA_VERSION = 2;   // h60: was 1 and never read (dead stamp). Now load-bearing — see shellMigrateRoot.
-const SHELL_MIN_SUPPORTED  = 2;   // saves below this are wiped ONCE (h60 ruling: pre-v2 saves disposable), then gone forever.
 const SHELL_STORAGE_KEY = "onb_v8_state";
+// SHELL_SCHEMA_VERSION / SHELL_MIN_SUPPORTED / createPlayerState / createRootState /
+// SHELL_MIGRATIONS / shellMigrateRoot / shellCreatePlayerRecord are the shell's PURE state
+// logic — single-sourced in _v8_shell_state.js and inlined below in the BUILD:SHELLSTATE
+// region (h60). Edit that file, then `bash build_proto.sh`. DOM/localStorage glue (loadOrInit,
+// save, createPlayer's wrapper, renderS1) stays here and calls into it.
 
 const AVATARS = [
   { id: "ozzy",    name: "Ozzy",    emoji: "🐙" },
@@ -7669,6 +7679,36 @@ const AVATARS = [
   { id: "shimmer", name: "Shimmer", emoji: "⭐" },
   { id: "pearl",   name: "Pearl",   emoji: "🪸" },
 ];
+
+let rootState = null;
+let pendingSettingsReturn = "s2";
+let pendingLockAction = null;   // callback to run when the adult gate is solved
+let achAdultRevealed = false;   // transient: adult progress detail shown this achievements visit only
+let manageTargetPid = null;
+
+let shellMigrationNudge = false;   // set by loadOrInit, consumed once by renderS1
+
+// === BUILD:SHELLSTATE BEGIN (generated from _v8_shell_state.js by build_proto.sh; DO NOT EDIT) ===
+// ============================================================
+// _v8_shell_state.js — SINGLE SOURCE of the shell's PURE state logic.
+// ============================================================
+// h60: extracted from ocean_number_bonds_v7.html so the shell's load-bearing,
+// DOM-free logic (schema/migration/player-record construction) can be cold-run
+// tested like the engine — instead of only ephemeral in-browser assertions.
+//
+//   Inlined into the HTML  : build_proto.sh regenerates the BUILD:SHELLSTATE region
+//                            from this file (never hand-edit that region).
+//   Cold-run test          : cat _v8_shell_state.js _v8_shell_state.test.js > _shell_state_run.js
+//                            && node _shell_state_run.js
+//
+// PURE by contract: no DOM, no localStorage, no `rootState`/`AVATARS`/`SHELL_STORAGE_KEY`
+// (those stay in the HTML). Everything here is a function of its arguments. Anything that
+// touches the browser (loadOrInit / save / renderS1 / createPlayer's DOM wrapper) stays in
+// the HTML and CALLS into this module. bash cat only (never PowerShell — the U+2212 rule).
+// ============================================================
+
+const SHELL_SCHEMA_VERSION = 2;   // h60: was 1 and never read (dead stamp). Now load-bearing — see shellMigrateRoot.
+const SHELL_MIN_SUPPORTED  = 2;   // saves below this are wiped ONCE (h60 ruling: pre-v2 saves disposable), then gone forever.
 
 function createPlayerState(id, avatarId, age) {
   return {
@@ -7687,12 +7727,6 @@ function createRootState() {
   return { schemaVersion: SHELL_SCHEMA_VERSION,
            activePlayerId: "player_1", players: { "player_1": p } };
 }
-
-let rootState = null;
-let pendingSettingsReturn = "s2";
-let pendingLockAction = null;   // callback to run when the adult gate is solved
-let achAdultRevealed = false;   // transient: adult progress detail shown this achievements visit only
-let manageTargetPid = null;
 
 // h60: forward-only shell-state migration. Mirrors the engine's v8_migrateState /
 // V8_SCHEMA_VERSION (h58): version-gated, idempotent, backfill + repair.
@@ -7766,7 +7800,28 @@ function shellMigrateRoot(root) {
   return { root: { schemaVersion: SHELL_SCHEMA_VERSION, activePlayerId: active, players }, guessed };
 }
 
-let shellMigrationNudge = false;   // set by loadOrInit, consumed once by renderS1
+// h60: pure core of the add-player flow (the DOM wrapper `createPlayer` in the HTML reads the
+// locked checkbox / closes the modal / re-renders, then calls this and assigns the result).
+//   - Returns { ok:false, reason:"avatar-taken" } if the avatar is already in use. This is the
+//     h59 TWO-OZZY guard: the picker's taken-avatar filter is DISPLAY-only and cannot stop a
+//     double-click firing the add twice; the guard must live at the state-change site, here.
+//   - `idFn` is injectable for deterministic tests (default = the real scheme: Date.now + random
+//     suffix). The returned id is GUARANTEED free: if it already exists in `players` (the h59
+//     same-ms double-fire that silently overwrote a player), a counter suffix is appended until
+//     unused. This makes "no two players share an id" a real, tested invariant rather than a
+//     probabilistic bet on the random suffix (h60 decision). The counter suffix — not a bare
+//     regenerate — guarantees termination even when idFn is a constant (as in tests).
+function shellCreatePlayerRecord(players, avatarId, age, locked, idFn) {
+  if (players && Object.values(players).some(p => p && p.avatar === avatarId))
+    return { ok: false, reason: "avatar-taken" };
+  const gen = idFn || (() => "player_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8));
+  let id = gen();
+  for (let n = 1; players && players[id]; n++) id = gen() + "_" + n;   // never overwrite an existing id
+  const rec = createPlayerState(id, avatarId, age);
+  rec.settings.locked = !!locked;
+  return { ok: true, id, rec };
+}
+// === BUILD:SHELLSTATE END ===
 
 function loadOrInit() {
   try {
@@ -7898,20 +7953,14 @@ function doAddPlayerFlow() {
 }
 function closeAddPlayerModal() { document.getElementById("add-player-modal").classList.remove("active"); }
 function createPlayer(avatarId) {
-  // h59 two-Ozzy fix. The picker filters taken avatars, but that is a DISPLAY filter —
-  // it cannot stop a double-click firing this twice before closeAddPlayerModal() runs
-  // (two clicks ~1ms apart = two ids, one avatar = two Ozzys). Re-check here: the guard
-  // belongs where the state changes, not where the buttons are drawn.
-  if (Object.values(rootState.players).some(p => p.avatar === avatarId)) {
-    closeAddPlayerModal(); renderS1(); return;
-  }
-  // Date.now() alone collides on a same-millisecond double-fire and SILENTLY OVERWRITES
-  // the first player (same key). Suffix keeps ids unique even then.
-  const id = "player_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+  // h60: pure decision (avatar-uniqueness re-check + record build) lives in shellCreatePlayerRecord
+  // (_v8_shell_state.js, regression-tested). The h59 two-Ozzy guard is the ok:false branch — the
+  // picker's taken-avatar filter is DISPLAY-only and can't stop a double-click, so the guard is at
+  // this state-change site, not the buttons. This wrapper only does the DOM/state around it.
   const lk = document.getElementById("add-player-locked");
   const locked = !!(lk && lk.checked);
-  rootState.players[id] = createPlayerState(id, avatarId, 7);
-  rootState.players[id].settings.locked = locked;
+  const res = shellCreatePlayerRecord(rootState.players, avatarId, 7, locked);
+  if (res.ok) rootState.players[res.id] = res.rec;   // ok:false (avatar taken) → no-op, just close
   save(); closeAddPlayerModal(); renderS1();
 }
 function openManagePlayer(pid) {
@@ -7954,22 +8003,17 @@ function renderS2() {
 }
 
 // ── A1 / A2 settings ──
-function _fillPlayerSelect(sel, onPick) {
-  sel.innerHTML = "";
-  for (const pid in rootState.players) {
-    if (pid.startsWith("guest_")) continue;
-    const p = rootState.players[pid];
-    const av = AVATARS.find(a => a.id === p.avatar);
-    const opt = document.createElement("option");
-    opt.value = pid; opt.textContent = `${av ? av.emoji : "?"} ${av ? av.name : "?"}`;
-    if (pid === rootState.activePlayerId) opt.selected = true;
-    sel.appendChild(opt);
-  }
-  sel.onchange = () => { rootState.activePlayerId = sel.value; save(); onPick(); };
+// h60: adult settings (A1 + A2) act on the ACTIVE child only and no longer switch player
+// (the old _fillPlayerSelect dropdown silently reassigned activePlayerId as a side effect —
+// two targeting models on one surface). To configure a different child, pick them on S1 first.
+function _activePlayerLabel() {
+  const av = AVATARS.find(a => a.id === getCurrentPlayer().avatar);
+  return av ? `${av.emoji} ${av.name}` : "—";
 }
 function renderA1() {
   // Child-facing: sound + timer (PER-PLAYER, no lock) — act on the active player.
   const p = getCurrentPlayer();
+  document.getElementById("a1-player-name").textContent = _activePlayerLabel();
   const sndEl = document.getElementById("a1-sound");
   sndEl.value = (p.settings.soundOn !== false) ? "on" : "off";   // default-on for players saved pre-split
   sndEl.onchange = (e) => { p.settings.soundOn = e.target.value === "on"; save(); };
@@ -7978,7 +8022,7 @@ function renderA1() {
   tmrEl.onchange = (e) => { p.settings.timerOn = e.target.value === "on"; save(); };
 }
 function renderA2() {
-  _fillPlayerSelect(document.getElementById("a2-player"), renderA2);
+  document.getElementById("a2-player-name").textContent = _activePlayerLabel();
   const p = getCurrentPlayer();
   const ageEl = document.getElementById("a2-age");   // adult-controlled (hidden from child)
   ageEl.value = p.age;
@@ -8026,6 +8070,22 @@ function promptLock(onSuccess) {
   const q = document.getElementById("lock-question");
   q.textContent = `Solve: ${a} × ${b} = ?`;
   q.dataset.answer = a * b;
+  document.getElementById("lock-answer").value = "";
+  document.getElementById("lock-feedback").textContent = "";
+  document.getElementById("lock-modal").classList.add("active");
+  setTimeout(() => document.getElementById("lock-answer").focus(), 100);
+}
+// h62: DEBUG TILE ONLY — fixed adult passcode instead of the random times-table.
+// Deliberately NOT applied to the other promptLock callers (user ruling h62). A fixed
+// code is memorable by observation, so it is a WEAKER gate than a regenerating product
+// for the one gate that faces a child (locked-profile entry, h60); Debug is adult
+// convenience, where memorability is the point. Reuses the lock modal + submitLock —
+// only the question text and expected answer differ.
+function promptPasscode(onSuccess) {
+  pendingLockAction = (typeof onSuccess === "function") ? onSuccess : null;
+  const q = document.getElementById("lock-question");
+  q.textContent = "Passcode?";
+  q.dataset.answer = 31415;
   document.getElementById("lock-answer").value = "";
   document.getElementById("lock-feedback").textContent = "";
   document.getElementById("lock-modal").classList.add("active");
