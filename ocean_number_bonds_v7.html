@@ -7328,6 +7328,7 @@ let cfg    = {};
 let engine = null;
 let currentQ = null;
 let score=0, total=0, streak=0;
+let caveQCelebPending = 0;   // h62: cave attempts-milestone celebration, deferred to the next correct answer
 let whole, partA, partB, missing, correct;
 let skipMode      = false;
 let octopusMood   = 'thinking';
@@ -7357,7 +7358,7 @@ function cave_scheduleMoodReset() {
   if (sadResetId) clearTimeout(sadResetId);
   sadResetId = setTimeout(() => {
     sadResetId = null;
-    if (caveScene) caveScene.setExpr('positive');
+    if (caveScene) caveScene.setExpr('neutral');   // h62: resting face is neutral (straight mouth), not a smile
   }, MOOD_RESET_MS);
 }
 
@@ -7559,17 +7560,21 @@ function checkAnswer() {
 }
 
 function handleStreak() {
+  // h62: milestone lines reframed onto effort/persistence (was trait/outcome praise);
+  // "N in a row!" keeps its exclamation for the delighted lift, the effort clause stays calm.
   const STREAK_MSGS={
     3:  ['3 in a row! 🌊','#40ffcc'],
-    5:  ['5 in a row! Keep it up! 🐠','#00d4ff'],
-    10: ['10 in a row! I like it! ⭐','#ffff60'],
-    20: ['20 IN A ROW! Keep swimming! 🏆','#ff80c0'],
-    50: ['50 IN A ROW! Way to go! 🌟','#ff40ff'],
-    75: ['75 IN A ROW! Wow! 🔱','#40ffff'],
-    100:['100 IN A ROW! Well done! 👑','#ffffff'],
+    5:  ['5 in a row — keep going! 🐠','#00d4ff'],
+    10: ['10 in a row! Keep it up ⭐','#ffff60'],
+    20: ['20 in a row! Don\'t stop now 🏆','#ff80c0'],
+    50: ['50 in a row! You\'re working hard 🌟','#ff40ff'],
+    75: ['75 in a row! You kept going 🔱','#40ffff'],
+    100:['100 in a row! What great effort 👑','#ffffff'],
   };
+  // h62: per-answer list unchanged except the two over-the-top single-answer lines
+  // ("Excellent!", "Amazing work!") swapped for calm ocean-themed encouragement.
   const BRILLIANT=['✓ Keep it up! 🌊','✓ You\'re on a roll! 🐠',
-    '✓ Excellent! Don\'t stop now! ⭐','✓ Amazing work! Keep going! 🐙',
+    '✓ Dive deeper! ⭐','✓ Keep swimming! 🐙',
     '✓ Ride that wave! 🌊','✓ Nice! 🐡',
     '✓ Watch that streak! 🦀','✓ Way to go! 🐚'];
   const streakSounds={3:'streak3',5:'streak5',10:'streak10',20:'streak20',50:'streak20',75:'streak20',100:'streak20'};
@@ -8726,7 +8731,7 @@ function cave_newQuestion() {
   if (!currentQ) { shellEmptyPool('cave'); return; }   // h52 S6: graceful empty-pool
   whole = currentQ.whole; partA = currentQ.partA;
   partB = currentQ.partB; missing = currentQ.missing; correct = currentQ.correctAnswer;
-  if (caveScene) { caveScene.setExpr('positive'); caveScene.doAction('idle'); }
+  if (caveScene) { caveScene.setExpr('neutral'); caveScene.doAction('idle'); }   // h62: unanswered = neutral (straight mouth)
   cave_renderBars(currentQ, false);
   cave_buildNumPad();
   cave_updateScore();
@@ -8745,7 +8750,7 @@ function cave_checkAnswer() {
       // normal correct duration = the implicit "well done". NOT scored / no streak.
       copyMode = false;
       if (inp) { inp.value = String(copyTarget); inp.disabled = true; inp.classList.add('correct'); }
-      if (caveScene) caveScene.setExpr('happy');
+      if (caveScene) caveScene.setExpr('positive');   // h62: fixed-after-wrong = gentle pleased, not sparkly happy
       cave_bmShowFeedback(caveEqText(copyTarget), 'correct');
       if (revealTimeout) clearTimeout(revealTimeout);
       revealTimeout = setTimeout(cave_newQuestion, 1500);
@@ -8763,7 +8768,7 @@ function cave_checkAnswer() {
   const val = parseInt(raw, 10);
   if (isNaN(val)) return;
 
-  caveAnswered = true; cave_stopTimer(); total++;
+  caveAnswered = true; cave_stopTimer(); caveNoteAttempt();
   if (inp) inp.disabled = true;
 
   const isCorrect = val === correct;
@@ -8773,18 +8778,33 @@ function cave_checkAnswer() {
 
   if (isCorrect) {
     score++; streak++;
-    if (caveScene) caveScene.setExpr('happy');
-    if (caveScene) caveScene.doAction(streak >= 5 ? 'celebHi' : 'celebLo');
-    // Green reveal on the missing input
-    if (inp) { inp.value=correct; inp.classList.add('correct'); }
-    cave_bmShowFeedback(cave_streakMsg(), 'correct');
+    // h62: earned-celebration tier = higher of the streak signal and the pending
+    // questions-answered signal (both difficulty-flat). Tier 0 = ordinary correct.
+    const sTier = CAVE_STREAK_TIER[streak] || 0;
+    const qTier = caveQCelebPending ? CAVE_QCOUNT_TIER[caveQCelebPending] : 0;
+    const tier  = Math.max(sTier, qTier);
+    // text: a streak milestone wins ties; else the questions-answered message; else the
+    // ordinary per-answer acknowledgement (BRILLIANT / "You got it").
+    let msg;
+    if (sTier >= qTier && sTier > 0) msg = CAVE_STREAK_MSGS[streak];
+    else if (qTier > 0)              msg = CAVE_QCOUNT_MSGS[caveQCelebPending];
+    else                             msg = cave_streakMsg();
+    caveQCelebPending = 0;   // consumed
+    if (caveScene) {
+      // pleased smile on ordinary correct AND on the hop tier (hop must stay sparkle-free);
+      // the sparkly 'happy' face only from celebLo up. celebLo/celebHi override the face while playing.
+      caveScene.setExpr(tier >= 2 ? 'happy' : 'positive');
+      if (tier > 0) caveScene.doAction(CAVE_CELEB_ACTION[tier]);
+    }
+    if (inp) { inp.value=correct; inp.classList.add('correct'); }   // green reveal
+    cave_bmShowFeedback(msg, 'correct');
     cave_updateScore();
     if (result.graduation) showGraduationBanner(result.graduation_bond.w,result.graduation_bond.a,result.graduation_bond.b);
     if (result.level_up)   showLevelUpBanner();
     document.getElementById('cave-streak-label').textContent = streak >= 3 ? `🌊 ${streak} in a row!` : '';
-    snd(streak===3?'streak3':streak===5?'streak5':streak>=10?'streak10':'correct');
+    snd(tier > 0 ? CAVE_CELEB_SOUND[tier] : 'correct');   // fanfare only when a tier fires
     if (revealTimeout) clearTimeout(revealTimeout);
-    revealTimeout = setTimeout(cave_newQuestion, 1500);
+    revealTimeout = setTimeout(cave_newQuestion, CAVE_CELEB_DELAY[tier]);   // h62 opt-A: hold for the celebration to finish
   } else {
     // h59: ceremonial probes now take the same copy-the-answer corrective as teaching questions
     // (see the Reef note) — engine.recordAnswer() has already run, so this is display-only.
@@ -8799,16 +8819,39 @@ function cave_checkAnswer() {
   }
 }
 
+// h62: milestone lines hoisted to module scope + single-sourced, so the correct-branch
+// crab celebration (cave_answer) and this text share ONE milestone set — the crab now
+// celebrates only on these streaks, not on every correct. Reframed off trait/outcome
+// praise (was SUPERSTAR/LEGENDARY/CHAMPION) onto effort/persistence: reward trying, not
+// being clever. Cave lines run fuller than Reef's (older children — user h62).
+const CAVE_STREAK_MSGS = {
+  3:'3 in a row! 🦀', 5:'5 in a row — nice focus! 🦀',
+  10:'10 in a row! Great going ⭐', 20:'20 in a row! You\'re not giving up 🏆',
+  50:'50 in a row! That\'s a lot of hard work 🌟', 75:'75 in a row! You\'ve really stuck with it 🔱',
+  100:'100 in a row! All that effort paid off 👑',
+};
+// h62: THREE-tier earned celebration (mirrors Reef's 3 burst intensities), fed by TWO
+// difficulty-flat signals — streak AND cumulative questions-answered (effort/trying). Tier
+// 1 = hop (action only, no sparkles/particles), 2 = celebLo (sparkles + few particles),
+// 3 = celebHi (big burst). Ordinary correct is NOT a tier: plain 'positive' face, no action.
+const CAVE_STREAK_TIER  = {3:1,5:1,10:2,20:2,50:3,75:3,100:3};   // keys MUST match CAVE_STREAK_MSGS
+const CAVE_QCOUNT_TIER  = {15:1,30:1,50:2,100:3};                // attempts-this-session milestones
+const CAVE_QCOUNT_MSGS  = {15:'15 questions done! 🦀',30:'30 questions done — keep going! 🦀',50:'50 questions! Great effort 🌟',100:'100 questions today! What a lot of work 👑'};
+const CAVE_CELEB_ACTION = {1:'hop',2:'celebLo',3:'celebHi'};
+const CAVE_CELEB_SOUND  = {1:'streak3',2:'streak10',3:'streak20'};
+const CAVE_CELEB_DELAY  = {0:1500,1:1950,2:2550,3:3150};   // h62 opt-A: ms to next question per tier; MUST exceed the tier's bounce duration (nBounces × CELEB_FPB ÷ 60fps) so the celebration completes uncut
+// A questions milestone can be crossed on a WRONG answer; we never celebrate over a sad crab,
+// so stash the crossed count and fire it on the NEXT correct answer. Called at every attempt
+// (answer / skip / timeout); keys are sparse + ascending so last-crossed simply wins.
+function caveNoteAttempt() {
+  total++;
+  if (CAVE_QCOUNT_TIER[total]) caveQCelebPending = total;
+}
 function cave_streakMsg() {
-  const MSGS = {
-    3:'3 in a row! 🦀', 5:'5 in a row! Amazing! 🦀',
-    10:'10 in a row! SUPERSTAR! ⭐', 20:'20 IN A ROW! LEGENDARY! 🏆',
-    50:'50 IN A ROW! UNBELIEVABLE! 🌟', 75:'75 IN A ROW! INCREDIBLE! 🔱',
-    100:'100 IN A ROW! CHAMPION! 👑',
-  };
-  if (MSGS[streak]) return MSGS[streak];
+  if (CAVE_STREAK_MSGS[streak]) return CAVE_STREAK_MSGS[streak];
   if (streak >= 3) {
-    const BRILLIANT = ['✓ Keep focussed! 🦀','✓ Stay in the zone!','✓ Nice job! ⭐','✓ Watch that streak grow!','✓ Splendid! 🦀'];
+    // h62: only "Splendid!" swapped (generic evaluation) for the themed "Stay snappy!".
+    const BRILLIANT = ['✓ Keep focussed! 🦀','✓ Stay in the zone!','✓ Nice job! ⭐','✓ Watch that streak grow!','✓ Stay snappy! 🦀'];
     return BRILLIANT[Math.floor(Math.random()*BRILLIANT.length)];
   }
   return '✓ You got it! 🦀';
@@ -8824,7 +8867,7 @@ function cave_helpMeOut() {
 }
 function cave_skipQuestion() {
   if (caveAnswered) return;
-  caveAnswered = true; cave_stopTimer(); total++; streak = 0;
+  caveAnswered = true; cave_stopTimer(); caveNoteAttempt(); streak = 0;
   document.getElementById('cave-streak-label').textContent = '';
   const result = engine.recordAnswer(currentQ, false);
   bumpSave(result); cave_updateScore();
@@ -8841,7 +8884,7 @@ function cave_startTimer() {
   timerInterval = setInterval(() => {
     timeLeft--;
     if (timeLeft <= 0) {
-      caveAnswered = true; cave_stopTimer(); total++;
+      caveAnswered = true; cave_stopTimer(); caveNoteAttempt();
       const result = engine.recordAnswer(currentQ, false); bumpSave(result);
       if (caveScene) { caveScene.setExpr('sad'); caveScene.doAction('idle'); }
       cave_renderBars(currentQ, true);
@@ -8858,7 +8901,7 @@ function cave_stopTimer() {
 function cave_startGame() {
   shellBuildEngine();   // h52: builds cfg + engine from the active player (rootState)
 
-  score=0; total=0; streak=0; caveAnswered=false; saveCounter=0;
+  score=0; total=0; streak=0; caveQCelebPending=0; caveAnswered=false; saveCounter=0;
   if (revealTimeout) { clearTimeout(revealTimeout); revealTimeout=null; }
   if (sadResetId)    { clearTimeout(sadResetId);    sadResetId=null; }
 
@@ -8868,7 +8911,7 @@ function cave_startGame() {
   resizeCanvas();
 
   if (!caveScene) caveScene = underwaterCave('cave-canvas');
-  caveScene.setExpr('positive');
+  caveScene.setExpr('neutral');   // h62: resting baseline
   caveScene.doAction('idle');
 
   cave_newQuestion();
@@ -9154,7 +9197,17 @@ function underwaterCave(canvasId) {
   // state: 'idle' | 'wave' | 'hop' | 'scuttle' | 'celebLo' | 'celebHi'
   // celebLo duration: 72 frames @ 60fps ≈ 1.2s
   // celebHi duration: 180 frames @ 60fps ≈ 3.0s
-  const CELEB_LO = 72, CELEB_HI = 180;
+  // h62 opt-A: shared bounce for hop/celebLo/celebHi — octopus-style abs(sin) UP-bounces at
+  // CELEB_FPB frames each (0.60s, matches the Reef octopus; was 0.47s). The per-tier `factor`
+  // array sets both the bounce COUNT and the mid-sequence "highest" accent, so celebrations
+  // escalate in DURATION too: hop 3 bounces (1.8s), celebLo 4 (2.4s), celebHi 5 (3.0s).
+  // CAVE_CELEB_DELAY (in the answer handler) must cover these so nothing is cut.
+  const CELEB_FPB = 36;
+  function celebBounce(t, amp, factor) {
+    const idx = Math.floor(t / CELEB_FPB);
+    if (idx >= factor.length) return null;   // sequence done
+    return -Math.abs(Math.sin((t % CELEB_FPB) / CELEB_FPB * Math.PI)) * amp * factor[idx];
+  }
 
   const crab = {
     x:240, y:385, baseY:385,
@@ -9205,14 +9258,14 @@ function underwaterCave(canvasId) {
     const s = crab.state, e = crab.expr;
     if (s==='celebHi') return {mc:1,   es:.90, ed:0, sp:true,  ba:-1.0};
     if (s==='celebLo') return {mc:.70, es:.50, ed:0, sp:true,  ba:-0.5};
-    if (s==='hop')     return {mc:.50, es:.30, ed:0, sp:false, ba:-0.3};
+    if (s==='hop')     return {mc:.90, es:.30, ed:0, sp:false, ba:-0.3};   // h62: happy-arc mouth (was mc .50 → old quad shape); stays sparkle-free
     if (s==='wave')    return {mc:.55, es:.20, ed:0, sp:false, ba:-0.2};
     switch(e) {
       case 'neutral':  return {mc:0,   es:.00, ed:0, sp:false, ba: 0.0};
       case 'happy':    return {mc:.90, es:.85, ed:0, sp:true,  ba:-1.0};
       case 'sad':      return {mc:-.70,es:.00, ed:.8,sp:false, ba: 0.9};
       case 'blush':    return {mc:.45, es:.10, ed:0, sp:false, ba:-0.1};
-      default:         return {mc:.35, es:.10, ed:0, sp:false, ba:-0.1}; // positive
+      default:         return {mc:.90, es:.10, ed:0, sp:false, ba:-0.1}; // positive — h62: happy-style mouth (mc .35→.90), round eyes + no sparkles keep it distinct from happy
     }
   }
 
@@ -9373,12 +9426,13 @@ function underwaterCave(canvasId) {
         crab.eyeOff = Math.sin(t*0.1)*2;
         if(t>150){crab.state='idle';crab.t=0;}
         break;
-      case 'hop':
-        if(!crab.hopActive){crab.hopVY=-13;crab.hopActive=true;}
-        crab.hopVY+=0.85; crab.y+=crab.hopVY;
-        if(crab.y>=crab.baseY){crab.y=crab.baseY;crab.hopActive=false;crab.state='idle';crab.t=0;}
-        crab.aL=BASE_L+0.55; crab.aR=BASE_R-0.45; crab.open=0.9; crab.eyeOff=-3;
+      case 'hop': {
+        // h62: tier-1 celebration — octopus-style bounce (amp 15), sparkle/particle-free ("action only").
+        const dy = celebBounce(t, 15, [0.85,1.3,0.85]);          // 3 bounces, 1.8s
+        if(dy===null){crab.state='idle';crab.y=crab.baseY;crab.t=0;}
+        else{ crab.y=crab.baseY+dy; crab.aL=BASE_L+0.30+wr; crab.aR=BASE_R-0.25-wr; crab.open=0.5; crab.eyeOff=-1; }
         break;
+      }
       case 'scuttle':
         crab.x += crab.scuttleDir*3.5;
         if(crab.x>340||crab.x<140)crab.scuttleDir*=-1;
@@ -9387,24 +9441,30 @@ function underwaterCave(canvasId) {
         crab.open=0.2+Math.sin(t*0.18)*0.15;
         if(t>200){crab.state='idle';crab.x=240;crab.t=0;}
         break;
-      case 'celebLo':
-        crab.y = crab.baseY + Math.sin(t*0.18)*4;
+      case 'celebLo': {
+        // h62: tier-2 — bigger bounce than hop (amp 22) + sparkles + particles.
+        const dy = celebBounce(t, 22, [0.85,1.25,1.25,0.85]);    // 4 bounces, 2.4s
+        if(dy===null){crab.state='idle';crab.y=crab.baseY;crab.t=0;break;}
+        crab.y = crab.baseY + dy;
         crab.aL = BASE_L+Math.sin(t*0.22)*0.5+wr;
         crab.aR = BASE_R-Math.sin(t*0.22)*0.35-wr;
         crab.open = 0.4+Math.sin(t*0.22)*0.35;
         crab.eyeOff = Math.sin(t*0.18)*1.5;
-        if(t%18===0&&t<CELEB_LO) spawnParticles(3);
-        if(t>CELEB_LO){crab.state='idle';crab.y=crab.baseY;crab.t=0;}
+        if(t%18===0) spawnParticles(3);
         break;
-      case 'celebHi':
-        crab.y = crab.baseY + Math.sin(t*0.25)*9;
+      }
+      case 'celebHi': {
+        // h62: tier-3 — biggest bounce (amp 30) + sparkles + heavier particle burst.
+        const dy = celebBounce(t, 30, [0.8,1.1,1.35,1.1,0.8]);   // 5 bounces, 3.0s
+        if(dy===null){crab.state='idle';crab.y=crab.baseY;crab.t=0;break;}
+        crab.y = crab.baseY + dy;
         crab.aL = BASE_L+Math.sin(t*0.28)*0.9+wr;
         crab.aR = BASE_R-Math.sin(t*0.28)*0.7-wr;
         crab.open = 0.6+Math.sin(t*0.28)*0.4;
         crab.eyeOff = Math.sin(t*0.2)*3;
-        if(t%10===0&&t<CELEB_HI) spawnParticles(4);
-        if(t>CELEB_HI){crab.state='idle';crab.y=crab.baseY;crab.t=0;}
+        if(t%10===0) spawnParticles(4);
         break;
+      }
       default: // idle
         crab.aL = BASE_L+Math.sin(t*0.035)*0.14+wr;
         crab.aR = BASE_R-Math.sin(t*0.035)*0.11-wr;
