@@ -527,6 +527,10 @@ canvas#cave-canvas { display:block; }
 .player-card-x:hover { background: #992200; color: #ffd0c0; }
 .player-card:active { transform: scale(0.97); }
 .player-card.guest { background: #0e2848; border-style: solid; color: #d0eeff; }
+/* h62: highlight a just-created player so the child spots their new avatar on the S1 list —
+   bounced back to Choose Player (not auto-selected). Static accent border, no animation
+   (user h62); held until they navigate away. */
+.player-card.player-card-new { border-color: #40ffcc; }
 .player-emoji { font-size: 36px; margin-bottom: 6px; }
 .player-name { font-size: 14px; font-weight: bold; }
 
@@ -7879,7 +7883,7 @@ function goSummary() {
 }
 
 // ── S1 player select ──
-function renderS1() {
+function renderS1(highlightPid) {
   const grid = document.getElementById("player-grid");
   grid.innerHTML = "";
   for (const pid in rootState.players) {
@@ -7888,6 +7892,7 @@ function renderS1() {
     const av = AVATARS.find(a => a.id === p.avatar);
     const card = document.createElement("div");
     card.className = "player-card";
+    if (pid === highlightPid) card.classList.add("player-card-new");   // h62: draw the child's eye to their new avatar
     const isLocked = !!(p.settings && p.settings.locked);
     card.innerHTML = `<div class="player-card-x" title="Manage / delete">✕</div>
                       ${isLocked ? '<div class="player-lock" title="Locked — an adult must let you in">🔒</div>' : ''}
@@ -7906,6 +7911,10 @@ function renderS1() {
   guestCard.onclick = () => selectGuest();
   grid.appendChild(guestCard);
   document.getElementById("player-mgmt-area").style.display = "block";
+  if (highlightPid) {   // h62: bring the freshly-created card into view so the child sees their avatar
+    const el = grid.querySelector(".player-card-new");
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   // h60: one-shot migration nudge — fires only after a best-guess forward migration.
   if (shellMigrationNudge) {
@@ -7966,7 +7975,7 @@ function createPlayer(avatarId) {
   const locked = !!(lk && lk.checked);
   const res = shellCreatePlayerRecord(rootState.players, avatarId, 7, locked);
   if (res.ok) rootState.players[res.id] = res.rec;   // ok:false (avatar taken) → no-op, just close
-  save(); closeAddPlayerModal(); renderS1();
+  save(); closeAddPlayerModal(); renderS1(res.ok ? res.id : undefined);   // h62: highlight the just-created card
 }
 function openManagePlayer(pid) {
   promptLock(() => doManagePlayer(pid));   // adult gate every time
