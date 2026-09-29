@@ -1,0 +1,23 @@
+<!-- ════ PWA:SW BEGIN (generated into index.html by build_pwa.sh; DO NOT EDIT HERE — edit PWA/pwa_sw.html) ════ -->
+<script>
+/* Service-worker registration. Deliberately fire-and-forget and FAIL-SILENT: if the
+   page is opened from file:// or over plain http on a non-localhost host, there is no
+   service worker and the game must still run exactly as before — the PWA layer is
+   additive, never load-bearing for gameplay. */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      /* `return` matters: reg.update() REJECTS whenever the device is offline (it has
+         to re-fetch sw.js). Without returning it into the chain it is an unhandled
+         rejection — a red console error on every offline launch, which is exactly the
+         normal case for an installed PWA. Observed, then fixed. */
+      .then(function (reg) { return reg.update(); })
+      .catch(function (e) {
+        /* Offline, or no secure context. Neither is an error worth surfacing. */
+        console.info('[pwa] no service-worker update this launch:', e && e.message);
+      });
+  });
+})();
+</script>
+<!-- ════ PWA:SW END ════ -->

@@ -1,6 +1,6 @@
 // ============================================================================
 // sw.src.js — SOURCE for the service worker. `build_pwa.sh` copies this to sw.js
-// with 91ec26aca09f replaced by a content hash of the built app. NEVER edit sw.js.
+// with __BUILD_ID__ replaced by a content hash of the built app. NEVER edit sw.js.
 //
 // ---------------------------------------------------------------------------
 // WHY NETWORK-FIRST FOR THE DOCUMENT (shell_todo.md:92-94)
@@ -23,7 +23,7 @@
 // ============================================================================
 'use strict';
 
-const BUILD = '91ec26aca09f';
+const BUILD = '__BUILD_ID__';
 const CACHE = 'onb-' + BUILD;
 const NET_TIMEOUT_MS = 3500;
 
